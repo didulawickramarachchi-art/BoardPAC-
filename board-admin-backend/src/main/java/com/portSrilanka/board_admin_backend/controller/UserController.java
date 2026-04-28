@@ -46,4 +46,18 @@ public class UserController {
     public ResponseEntity<String> delete(@PathVariable Long id) {
         return ResponseEntity.ok(userService.deleteUser(id));
     }
+    @PutMapping("/{id}/reset-password")
+public ResponseEntity<String> resetPassword(@PathVariable Long id) {
+    return ResponseEntity.ok(userService.resetPassword(id));
+}
+
+@PutMapping("/{id}/lock")
+public ResponseEntity<String> lockUser(@PathVariable Long id) {
+    return ResponseEntity.ok(userService.lockUser(id));
+}
+
+@PutMapping("/{id}/unlock")
+public ResponseEntity<String> unlockUser(@PathVariable Long id) {
+    return ResponseEntity.ok(userService.unlockUser(id));
+}
 }

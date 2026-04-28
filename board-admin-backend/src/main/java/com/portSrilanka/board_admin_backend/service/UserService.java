@@ -5,8 +5,11 @@ import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 
@@ -15,9 +18,14 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuditService auditService;
 
     public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream().map(this::mapToResponse).toList();
+        return userRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     public UserResponse getUserById(Long id) {
@@ -40,13 +48,19 @@ public class UserService {
         user.setBoardType(request.getBoardType());
         user.setTwoStepEnabled(request.isTwoStepEnabled());
 
-        return mapToResponse(userRepository.save(user));
+        userRepository.save(user);
+
+        return mapToResponse(user);
     }
 
     public String deactivateUser(Long id) {
         User user = findUser(id);
         user.setStatus(UserStatus.DEACTIVATED);
         userRepository.save(user);
+
+        auditService.logInfo("USER", "DEACTIVATE_USER", user.getUsername(),
+                "User deactivated", "WEB");
+
         return "User deactivated successfully";
     }
 
@@ -54,6 +68,10 @@ public class UserService {
         User user = findUser(id);
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
+
+        auditService.logInfo("USER", "ACTIVATE_USER", user.getUsername(),
+                "User activated", "WEB");
+
         return "User activated successfully";
     }
 
@@ -61,12 +79,52 @@ public class UserService {
         User user = findUser(id);
         user.setStatus(UserStatus.DELETED);
         userRepository.save(user);
+
+        auditService.logInfo("USER", "DELETE_USER", user.getUsername(),
+                "User marked deleted", "WEB");
+
         return "User deleted successfully";
+    }
+
+    public String resetPassword(Long id) {
+        User user = findUser(id);
+
+        String temporaryPassword = "Temp@12345";
+        user.setPassword(passwordEncoder.encode(temporaryPassword));
+        userRepository.save(user);
+
+        auditService.logInfo("USER", "RESET_PASSWORD", user.getUsername(),
+                "Temporary password reset", "WEB");
+
+        return "Password reset successfully. Temporary password: " + temporaryPassword;
+    }
+
+    public String lockUser(Long id) {
+        User user = findUser(id);
+        user.setStatus(UserStatus.LOCKED);
+        userRepository.save(user);
+
+        auditService.logInfo("USER", "LOCK_USER", user.getUsername(),
+                "User locked", "WEB");
+
+        return "User locked successfully";
+    }
+
+    public String unlockUser(Long id) {
+        User user = findUser(id);
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
+
+        auditService.logInfo("USER", "UNLOCK_USER", user.getUsername(),
+                "User unlocked", "WEB");
+
+        return "User unlocked successfully";
     }
 
     private User findUser(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found"));
     }
 
     private UserResponse mapToResponse(User user) {

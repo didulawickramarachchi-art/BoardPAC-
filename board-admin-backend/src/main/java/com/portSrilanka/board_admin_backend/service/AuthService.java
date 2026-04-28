@@ -1,11 +1,14 @@
 package com.portSrilanka.board_admin_backend.service;
 
 import com.portSrilanka.board_admin_backend.dto.auth.*;
+import com.portSrilanka.board_admin_backend.entity.LoginHistory;
 import com.portSrilanka.board_admin_backend.entity.Role;
 import com.portSrilanka.board_admin_backend.entity.User;
+import com.portSrilanka.board_admin_backend.enums.LoginStatus;
 import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import com.portSrilanka.board_admin_backend.exception.BadRequestException;
+import com.portSrilanka.board_admin_backend.repository.LoginHistoryRepository;
 import com.portSrilanka.board_admin_backend.repository.RoleRepository;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
 import com.portSrilanka.board_admin_backend.security.JwtService;
@@ -14,6 +17,7 @@ import org.springframework.security.authentication.*;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 
 import java.util.Set;
 
@@ -26,6 +30,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final LoginHistoryRepository loginHistoryRepository;
+    
 
     public String register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -54,7 +60,8 @@ public class AuthService {
         return "User registered successfully";
     }
 
-    public LoginResponse login(LoginRequest request) {
+   public LoginResponse login(LoginRequest request) {
+    try {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -75,10 +82,33 @@ public class AuthService {
 
         String token = jwtService.generateToken(userDetails);
 
+        loginHistoryRepository.save(
+                LoginHistory.builder()
+                        .user(user)
+                        .username(user.getUsername())
+                        .ipAddress("N/A")
+                        .deviceInfo("WEB")
+                        .status(LoginStatus.SUCCESS)
+                        .loginTime(java.time.LocalDateTime.now())
+                        .build()
+        );
+
         return LoginResponse.builder()
                 .token(token)
                 .username(user.getUsername())
                 .message("Login successful")
                 .build();
+
+    } catch (Exception ex) {
+        loginHistoryRepository.save(
+                LoginHistory.builder()
+                        .username(request.getUsername())
+                        .ipAddress("N/A")
+                        .deviceInfo("WEB")
+                        .status(LoginStatus.FAILED)
+                        .loginTime(java.time.LocalDateTime.now())
+                        .build()
+        );
+        throw ex;
     }
-}
+}}
