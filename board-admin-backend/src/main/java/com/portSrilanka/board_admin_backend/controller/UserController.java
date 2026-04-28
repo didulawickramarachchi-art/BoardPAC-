@@ -1,5 +1,6 @@
 package com.portSrilanka.board_admin_backend.controller;
 
+import com.portSrilanka.board_admin_backend.dto.common.PageResponse;
 import com.portSrilanka.board_admin_backend.dto.user.*;
 import com.portSrilanka.board_admin_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -59,5 +60,14 @@ public ResponseEntity<String> lockUser(@PathVariable Long id) {
 @PutMapping("/{id}/unlock")
 public ResponseEntity<String> unlockUser(@PathVariable Long id) {
     return ResponseEntity.ok(userService.unlockUser(id));
+}
+@GetMapping("/paged")
+public ResponseEntity<PageResponse<UserResponse>> getPagedUsers(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size,
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) com.portSrilanka.board_admin_backend.enums.UserStatus status
+) {
+    return ResponseEntity.ok(userService.getUsersPaged(page, size, search, status));
 }
 }

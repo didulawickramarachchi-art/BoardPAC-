@@ -5,6 +5,10 @@ import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
+import com.portSrilanka.board_admin_backend.dto.common.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import lombok.RequiredArgsConstructor;
 
@@ -141,4 +145,25 @@ public class UserService {
                 .status(user.getStatus())
                 .build();
     }
+    public PageResponse<UserResponse> getUsersPaged(int page, int size, String search, UserStatus status) {
+    Pageable pageable = PageRequest.of(page, size);
+    Page<User> result;
+
+    if (search != null && !search.isBlank()) {
+        result = userRepository.findByUsernameContainingIgnoreCase(search, pageable);
+    } else if (status != null) {
+        result = userRepository.findByStatus(status, pageable);
+    } else {
+        result = userRepository.findAll(pageable);
+    }
+
+    return PageResponse.<UserResponse>builder()
+            .content(result.getContent().stream().map(this::mapToResponse).toList())
+            .page(result.getNumber())
+            .size(result.getSize())
+            .totalElements(result.getTotalElements())
+            .totalPages(result.getTotalPages())
+            .last(result.isLast())
+            .build();
+}
 }

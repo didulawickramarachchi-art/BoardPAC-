@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
+
 import java.util.Set;
 
 @Service
@@ -31,7 +32,9 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final LoginHistoryRepository loginHistoryRepository;
-    
+    private final TwoFactorService twoFactorService;
+    private final RefreshTokenService refreshTokenService;
+    private final AuditService auditService;
 
     public String register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -111,4 +114,33 @@ public class AuthService {
         );
         throw ex;
     }
-}}
+}
+public LoginResponse verifyTwoFactor(String username, String code) {
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new BadRequestException("User not found"));
+
+    twoFactorService.verifyCode(user, code);
+
+    UserDetails userDetails = org.springframework.security.core.userdetails.User
+            .withUsername(user.getUsername())
+            .password(user.getPassword())
+            .authorities(user.getRoles().stream()
+                    .map(r -> "ROLE_" + r.getName().name())
+                    .toArray(String[]::new))
+            .build();
+
+    String token = jwtService.generateToken(userDetails);
+    String refreshToken = refreshTokenService.createRefreshToken(user);
+
+    auditService.logInfo("AUTH", "VERIFY_2FA_SUCCESS", user.getUsername(),
+            "2FA verified successfully", "WEB");
+
+    return LoginResponse.builder()
+            .token(token)
+            .refreshToken(refreshToken)
+            .username(user.getUsername())
+            .message("2FA verification successful")
+            .requiresTwoFactor(false)
+            .build();
+}
+}

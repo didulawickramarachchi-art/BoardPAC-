@@ -23,4 +23,9 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @PostMapping("/verify-2fa")
+    public ResponseEntity<LoginResponse> verifyTwoFactor(@Valid @RequestBody TwoFactorVerifyRequest request) {
+    return ResponseEntity.ok(authService.verifyTwoFactor(request.getUsername(), request.getCode()));
+}
 }
