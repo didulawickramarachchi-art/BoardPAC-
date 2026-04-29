@@ -20,6 +20,9 @@ public class CommentService {
     private final CommentShareRepository commentShareRepository;
     private final AuditService auditService;
 
+    // ✅ NEW INJECTION
+    private final NotificationService notificationService;
+
     public CommentResponse create(CommentRequest request) {
         Meeting meeting = null;
         Paper paper = null;
@@ -72,10 +75,13 @@ public class CommentService {
     }
 
     public String shareComment(ShareCommentRequest request) {
+
         Comment comment = commentRepository.findById(request.getCommentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+
         User sharedBy = userRepository.findById(request.getSharedByUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Shared by user not found"));
+
         User sharedTo = userRepository.findById(request.getSharedToUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Shared to user not found"));
 
@@ -85,6 +91,12 @@ public class CommentService {
                         .sharedBy(sharedBy)
                         .sharedTo(sharedTo)
                         .build()
+        );
+
+        // ✅ NEW: Notification after share
+        notificationService.notifyCommentShared(
+                sharedTo,
+                sharedBy.getUsername()
         );
 
         auditService.logInfo("COMMENT", "SHARE_COMMENT",

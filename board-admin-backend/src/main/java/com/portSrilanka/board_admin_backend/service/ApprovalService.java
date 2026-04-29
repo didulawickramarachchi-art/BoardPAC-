@@ -18,18 +18,36 @@ public class ApprovalService {
     private final UserRepository userRepository;
     private final PaperApprovalRepository paperApprovalRepository;
     private final AuditService auditService;
+    private final WorkflowSettingService workflowSettingService;
+    private final NotificationService notificationService;
 
     public ApprovalResponse approve(ApprovalRequest request) {
+
+        workflowSettingService.validateApprovalComment(request.getApprovalComment());
+
         Paper paper = paperRepository.findById(request.getPaperId())
                 .orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        boolean blockMeetingApprovals =
+                workflowSettingService.isEnabled("BLOCK_APPROVALS_FOR_MEETING_PAPERS_ONLY", false);
+
+        if (blockMeetingApprovals
+                && paper.getMeeting() != null
+                && paper.getMeeting().getType() != null
+                && paper.getMeeting().getType().name().equals("MEETING")) {
+
+            throw new BadRequestException("Approvals for meeting papers are blocked by settings");
+        }
 
         if (!paper.isRequiresApproval()) {
             throw new BadRequestException("This paper does not require approval");
         }
 
-        PaperApproval approval = paperApprovalRepository.findByPaperIdAndUserId(paper.getId(), user.getId())
+        PaperApproval approval = paperApprovalRepository
+                .findByPaperIdAndUserId(paper.getId(), user.getId())
                 .orElse(PaperApproval.builder()
                         .paper(paper)
                         .user(user)
@@ -37,7 +55,14 @@ public class ApprovalService {
 
         approval.setApprovalStatus(request.getApprovalStatus());
         approval.setApprovalComment(request.getApprovalComment());
+
         approval = paperApprovalRepository.save(approval);
+
+        notificationService.notifyApproval(
+                user,
+                paper,
+                request.getApprovalStatus().name()
+        );
 
         auditService.logInfo("APPROVAL", "SET_APPROVAL",
                 user.getUsername(),

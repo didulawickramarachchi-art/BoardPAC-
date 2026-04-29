@@ -23,17 +23,28 @@ public class PaperService {
     private final PackDeliveryRepository packDeliveryRepository;
     private final MeetingParticipantRepository meetingParticipantRepository;
     private final AuditService auditService;
+    private final WorkflowSettingService workflowSettingService;
+    private final NotificationService notificationService;
 
     public PaperResponse create(PaperRequest request) {
-        if (request.getReferenceNumber() != null && !request.getReferenceNumber().isBlank()) {
+
+        workflowSettingService.validateReferenceNumber(request.getReferenceNumber());
+
+        boolean uniqueRef = workflowSettingService.isEnabled("UNIQUE_PAPER_REFERENCE_NUMBER", false);
+
+        if (uniqueRef
+                && request.getReferenceNumber() != null
+                && !request.getReferenceNumber().isBlank()) {
+
             paperRepository.findByReferenceNumber(request.getReferenceNumber())
                     .ifPresent(existing -> {
-                        throw new BadRequestException("Reference number already exists");
+                        throw new BadRequestException("Paper reference number must be unique");
                     });
         }
 
         Meeting meeting = meetingRepository.findById(request.getMeetingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Meeting not found"));
+
         AgendaItem agendaItem = agendaItemRepository.findById(request.getAgendaItemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agenda item not found"));
 
@@ -70,11 +81,17 @@ public class PaperService {
     }
 
     public List<PaperResponse> getByMeeting(Long meetingId) {
-        return paperRepository.findByMeetingId(meetingId).stream().map(this::mapPaper).toList();
+        return paperRepository.findByMeetingId(meetingId)
+                .stream()
+                .map(this::mapPaper)
+                .toList();
     }
 
     public List<PaperResponse> getByAgendaItem(Long agendaItemId) {
-        return paperRepository.findByAgendaItemId(agendaItemId).stream().map(this::mapPaper).toList();
+        return paperRepository.findByAgendaItemId(agendaItemId)
+                .stream()
+                .map(this::mapPaper)
+                .toList();
     }
 
     public String markRead(Long paperId, Long userId) {
@@ -88,28 +105,35 @@ public class PaperService {
     }
 
     public String sharePaper(SharePaperRequest request) {
-        Paper paper = paperRepository.findById(request.getPaperId())
-                .orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
-        User sharedBy = userRepository.findById(request.getSharedByUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Shared by user not found"));
-        User sharedTo = userRepository.findById(request.getSharedToUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Shared to user not found"));
+    Paper paper = paperRepository.findById(request.getPaperId())
+            .orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
 
-        paperShareRepository.save(
-                PaperShare.builder()
-                        .paper(paper)
-                        .sharedBy(sharedBy)
-                        .sharedTo(sharedTo)
-                        .build()
-        );
+    User sharedBy = userRepository.findById(request.getSharedByUserId())
+            .orElseThrow(() -> new ResourceNotFoundException("Shared by user not found"));
 
-        auditService.logInfo("PAPER", "SHARE_PAPER",
-                sharedBy.getUsername(),
-                "Paper shared to " + sharedTo.getUsername(), "DEVICE");
+    User sharedTo = userRepository.findById(request.getSharedToUserId())
+            .orElseThrow(() -> new ResourceNotFoundException("Shared to user not found"));
 
-        return "Paper shared successfully";
-    }
+    paperShareRepository.save(
+            PaperShare.builder()
+                    .paper(paper)
+                    .sharedBy(sharedBy)
+                    .sharedTo(sharedTo)
+                    .build()
+    );
 
+    notificationService.notifyAnnotatedPaperShared(
+            sharedTo,
+            paper.getTitle(),
+            sharedBy.getUsername()
+    );
+
+    auditService.logInfo("PAPER", "SHARE_PAPER",
+            sharedBy.getUsername(),
+            "Paper shared to " + sharedTo.getUsername(), "DEVICE");
+
+    return "Paper shared successfully";
+}
     private PaperResponse mapPaper(Paper paper) {
         return PaperResponse.builder()
                 .id(paper.getId())

@@ -10,4 +10,5 @@ public interface PaperRepository extends JpaRepository<Paper, Long> {
     List<Paper> findByMeetingId(Long meetingId);
     List<Paper> findByAgendaItemId(Long agendaItemId);
     Optional<Paper> findByReferenceNumber(String referenceNumber);
+    
 }
