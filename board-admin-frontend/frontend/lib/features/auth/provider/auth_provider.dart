@@ -3,7 +3,6 @@ import '../../../core/network/dio_provider.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../data/auth_repository.dart';
 import '../model/login_request.dart';
-import '../model/login_response.dart';
 import '../model/verify_2fa_request.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
