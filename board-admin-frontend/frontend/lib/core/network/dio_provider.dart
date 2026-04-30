@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../constants/api_constants.dart';
 import '../storage/secure_storage_service.dart';
 import 'auth_interceptor.dart';
@@ -16,10 +17,24 @@ final dioProvider = Provider<Dio>((ref) {
       baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(seconds: 20),
       receiveTimeout: const Duration(seconds: 20),
-      headers: {'Content-Type': 'application/json'},
+      sendTimeout: const Duration(seconds: 20),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
     ),
   );
 
   dio.interceptors.add(AuthInterceptor(storage));
+
+  dio.interceptors.add(
+    LogInterceptor(
+      request: true,
+      requestBody: true,
+      responseBody: true,
+      error: true,
+    ),
+  );
+
   return dio;
 });
