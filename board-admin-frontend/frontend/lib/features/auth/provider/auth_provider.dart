@@ -61,12 +61,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
 
-      if (result.token != null &&
-          result.refreshToken != null &&
-          result.username != null) {
+      if (result.token != null && result.username != null) {
         await storage.saveTokens(
           accessToken: result.token!,
-          refreshToken: result.refreshToken!,
+          refreshToken: result.refreshToken ?? '',
           username: result.username!,
         );
       }
@@ -90,12 +88,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         Verify2FARequest(username: username, code: code),
       );
 
-      if (result.token != null &&
-          result.refreshToken != null &&
-          result.username != null) {
+      if (result.token != null && result.username != null) {
         await storage.saveTokens(
           accessToken: result.token!,
-          refreshToken: result.refreshToken!,
+          refreshToken: result.refreshToken ?? '',
           username: result.username!,
         );
       }

@@ -11,10 +11,15 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await storageService.getAccessToken();
-    if (token != null && token.isNotEmpty) {
-      options.headers['Authorization'] = 'Bearer $token';
+    if (!options.path.contains('/auth/login') &&
+        !options.path.contains('/auth/register')) {
+      final token = await storageService.getAccessToken();
+
+      if (token != null && token.isNotEmpty) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
+
     handler.next(options);
   }
 }
