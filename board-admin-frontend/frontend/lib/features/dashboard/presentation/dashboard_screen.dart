@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../agendas/presentation/agenda_section_screen.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../categories/presentation/category_list_screen.dart';
 import '../../devices/presentation/device_list_screen.dart';
+import '../../meetings/presentation/meeting_list_screen.dart';
 import '../../privileges/presentation/privilege_list_screen.dart';
 import '../../subcategories/presentation/subcategory_list_screen.dart';
 import '../../users/presentation/user_list_screen.dart';
@@ -14,11 +16,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tiles = [
-      _DashboardTileData(
-        'Users',
-        Icons.people_outline,
-        const UserListScreen(),
-      ),
+      _DashboardTileData('Users', Icons.people_outline, const UserListScreen()),
       _DashboardTileData(
         'Devices',
         Icons.devices_other_outlined,
@@ -39,6 +37,11 @@ class DashboardScreen extends ConsumerWidget {
         Icons.admin_panel_settings_outlined,
         const PrivilegeListScreen(),
       ),
+      _DashboardTileData(
+        'Meetings',
+        Icons.event_note_outlined,
+        const MeetingListScreen(),
+      ),
     ];
 
     return Scaffold(
@@ -53,7 +56,7 @@ class DashboardScreen extends ConsumerWidget {
               }
             },
             icon: const Icon(Icons.logout),
-          )
+          ),
         ],
       ),
       body: Padding(
@@ -64,7 +67,7 @@ class DashboardScreen extends ConsumerWidget {
             crossAxisCount: 2,
             crossAxisSpacing: 14,
             mainAxisSpacing: 14,
-            childAspectRatio: 1.12,
+            childAspectRatio: 1.1,
           ),
           itemBuilder: (context, index) {
             final item = tiles[index];
@@ -88,7 +91,7 @@ class DashboardScreen extends ConsumerWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
