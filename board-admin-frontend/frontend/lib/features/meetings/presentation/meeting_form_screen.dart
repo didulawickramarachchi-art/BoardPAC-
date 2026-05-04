@@ -25,6 +25,16 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   String meetingType = 'MEETING';
   bool isSaving = false;
 
+  int? _readRequiredInt(TextEditingController controller, String fieldName) {
+    final value = int.tryParse(controller.text.trim());
+    if (value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter a valid $fieldName.')),
+      );
+    }
+    return value;
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -39,7 +49,20 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   }
 
   Future<void> _save() async {
-    setState(() => isSaving = true);
+    final categoryId = _readRequiredInt(_categoryIdController, 'Category ID');
+    if (categoryId == null) return;
+
+    final subcategoryId = _readRequiredInt(
+      _subcategoryIdController,
+      'Subcategory ID',
+    );
+    if (subcategoryId == null) return;
+
+    final createdByUserId = _readRequiredInt(
+      _createdByController,
+      'Created By User ID',
+    );
+    if (createdByUserId == null) return;
 
     final request = MeetingRequest(
       title: _titleController.text.trim(),
@@ -50,16 +73,29 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
           : _targetDateController.text.trim(),
       location: _locationController.text.trim(),
       description: _descriptionController.text.trim(),
-      categoryId: int.parse(_categoryIdController.text.trim()),
-      subcategoryId: int.parse(_subcategoryIdController.text.trim()),
-      createdByUserId: int.parse(_createdByController.text.trim()),
+      categoryId: categoryId,
+      subcategoryId: subcategoryId,
+      createdByUserId: createdByUserId,
     );
 
-    await ref.read(meetingListProvider.notifier).createMeeting(request);
+    setState(() => isSaving = true);
 
-    if (mounted) {
-      setState(() => isSaving = false);
-      Navigator.pop(context);
+    try {
+      await ref.read(meetingListProvider.notifier).createMeeting(request);
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create meeting: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
     }
   }
 
