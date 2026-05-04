@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/features/access_control/presentation/access_validation_screen.dart';
+import 'package:frontend/features/reports/presentation/report_home_screen.dart';
+import 'package:frontend/features/settings/presentation/setting_home_screen.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../auth/provider/auth_provider.dart';
@@ -20,13 +23,16 @@ class DashboardScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(dashboardSummaryProvider(currentUserId));
 
     final tiles = [
-      _DashboardTileData('Users', Icons.people_outline, const UserListScreen()),
-      _DashboardTileData('Devices', Icons.devices_other_outlined, const DeviceListScreen()),
-      _DashboardTileData('Categories', Icons.category_outlined, const CategoryListScreen()),
-      _DashboardTileData('Subcategories', Icons.account_tree_outlined, const SubcategoryListScreen()),
-      _DashboardTileData('Privileges', Icons.admin_panel_settings_outlined, const PrivilegeListScreen()),
-      _DashboardTileData('Meetings', Icons.event_note_outlined, const MeetingListScreen()),
-    ];
+  _DashboardTileData('Users', Icons.people_outline, const UserListScreen()),
+  _DashboardTileData('Devices', Icons.devices_other_outlined, const DeviceListScreen()),
+  _DashboardTileData('Categories', Icons.category_outlined, const CategoryListScreen()),
+  _DashboardTileData('Subcategories', Icons.account_tree_outlined, const SubcategoryListScreen()),
+  _DashboardTileData('Privileges', Icons.admin_panel_settings_outlined, const PrivilegeListScreen()),
+  _DashboardTileData('Meetings', Icons.event_note_outlined, const MeetingListScreen()),
+  _DashboardTileData('Reports', Icons.bar_chart_outlined, const ReportHomeScreen()),
+  _DashboardTileData('Settings', Icons.settings_outlined, const SettingHomeScreen()),
+  _DashboardTileData('Access Control', Icons.verified_user_outlined, const AccessValidationScreen()),
+];
 
     return Scaffold(
       appBar: AppBar(

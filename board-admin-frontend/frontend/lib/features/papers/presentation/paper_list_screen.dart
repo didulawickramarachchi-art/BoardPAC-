@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/features/annotations/presentation/annotation_screen.dart';
 
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
@@ -30,7 +31,7 @@ class PaperListScreen extends ConsumerWidget {
             onPressed: () {
               ref.refresh(paperListProvider(meetingId));
             },
-          )
+          ),
         ],
       ),
 
@@ -45,7 +46,6 @@ class PaperListScreen extends ConsumerWidget {
             ),
           );
 
-          // 🔥 refresh after adding
           ref.refresh(paperListProvider(meetingId));
         },
       ),
@@ -77,15 +77,10 @@ class PaperListScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 6),
-
-                      // Paper Type + Ref
                       Text(
                         '${paper.paperType} • Ref: ${paper.referenceNumber ?? '-'}',
                       ),
-
                       const SizedBox(height: 4),
-
-                      // Approval Status
                       Row(
                         children: [
                           Icon(
@@ -105,10 +100,7 @@ class PaperListScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 4),
-
-                      // Version
                       Text('Version: ${paper.versionNumber ?? 1}'),
                     ],
                   ),
@@ -127,6 +119,17 @@ class PaperListScreen extends ConsumerWidget {
                             ),
                           ),
                         );
+                      } else if (value == 'annotations') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AnnotationScreen(
+                              paperId: paper.id,
+                              userId: 1,
+                              paperTitle: paper.title,
+                            ),
+                          ),
+                        );
                       } else if (value == 'approve') {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Approve action')),
@@ -141,6 +144,10 @@ class PaperListScreen extends ConsumerWidget {
                       const PopupMenuItem(
                         value: 'open',
                         child: Text('Open'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'annotations',
+                        child: Text('Annotations'),
                       ),
                       if (paper.requiresApproval)
                         const PopupMenuItem(
