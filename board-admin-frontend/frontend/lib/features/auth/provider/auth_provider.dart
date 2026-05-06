@@ -16,11 +16,16 @@ class AuthState {
   final String? pendingUsername;
   final bool requiresTwoFactor;
 
+  final String? username;
+  final String? role;
+
   const AuthState({
     this.isLoading = false,
     this.error,
     this.pendingUsername,
     this.requiresTwoFactor = false,
+    this.username,
+    this.role,
   });
 
   AuthState copyWith({
@@ -28,12 +33,16 @@ class AuthState {
     String? error,
     String? pendingUsername,
     bool? requiresTwoFactor,
+    String? username,
+    String? role,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
       pendingUsername: pendingUsername ?? this.pendingUsername,
       requiresTwoFactor: requiresTwoFactor ?? this.requiresTwoFactor,
+      username: username ?? this.username,
+      role: role ?? this.role,
     );
   }
 }
@@ -57,6 +66,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isLoading: false,
           pendingUsername: result.username,
           requiresTwoFactor: true,
+          username: result.username,
+          role: result.role ?? 'User',
         );
         return false;
       }
@@ -69,10 +80,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
       }
 
-      state = state.copyWith(isLoading: false, requiresTwoFactor: false);
+      state = state.copyWith(
+        isLoading: false,
+        requiresTwoFactor: false,
+        username: result.username ?? username,
+        role: result.role ?? 'User',
+      );
+
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Login failed');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Login failed',
+      );
       return false;
     }
   }
@@ -96,10 +116,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
       }
 
-      state = const AuthState(isLoading: false);
+      state = AuthState(
+        isLoading: false,
+        username: result.username ?? username,
+        role: result.role ?? 'User',
+        requiresTwoFactor: false,
+      );
+
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Verification failed');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Verification failed',
+      );
       return false;
     }
   }

@@ -22,4 +22,6 @@ class LoginResponse {
       requiresTwoFactor: json['requiresTwoFactor'] ?? false,
     );
   }
+
+  String? get role => null;
 }
