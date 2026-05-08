@@ -8,6 +8,7 @@ class UserModel {
   final String? mobileNumber;
   final String? jobTitle;
   final String? boardType;
+  final bool? twoStepEnabled;
   final String? status;
 
   UserModel({
@@ -20,6 +21,7 @@ class UserModel {
     this.mobileNumber,
     this.jobTitle,
     this.boardType,
+    this.twoStepEnabled,
     this.status,
   });
 
@@ -34,6 +36,7 @@ class UserModel {
       mobileNumber: json['mobileNumber'],
       jobTitle: json['jobTitle'],
       boardType: json['boardType'],
+      twoStepEnabled: json['twoStepEnabled'],
       status: json['status'],
     );
   }

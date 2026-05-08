@@ -16,20 +16,27 @@ import '../provider/dashboard_provider.dart';
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
+  static const Color primaryBlue = Color(0xFF12275B);
+  static const Color darkBlue = Color(0xFF00184A);
+  static const Color cardBlue = Color(0xFF233E8B);
+  static const Color gold = Color(0xFFFFB52E);
+  static const Color bgColor = Color(0xFFF6F7FB);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     const currentUserId = 1;
     final summaryAsync = ref.watch(dashboardSummaryProvider(currentUserId));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: bgColor,
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             const _Header(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -38,22 +45,22 @@ class DashboardScreen extends ConsumerWidget {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         crossAxisCount: 2,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 1.05,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 1.18,
                         children: [
                           _SummaryCard(
                             title: 'Meetings',
                             value: summary.totalMeetings.toString(),
-                            icon: Icons.event,
-                            iconColor: const Color(0xFFF4A51C),
+                            icon: Icons.event_rounded,
+                            iconColor: gold,
                             iconBg: const Color(0xFFFFF3DC),
                             screen: const MeetingListScreen(),
                           ),
                           _SummaryCard(
                             title: 'Circulars',
                             value: summary.totalCirculars.toString(),
-                            icon: Icons.mail_outline,
+                            icon: Icons.mail_outline_rounded,
                             iconColor: const Color(0xFFE84393),
                             iconBg: const Color(0xFFFFE7F2),
                             screen: const MeetingListScreen(),
@@ -61,7 +68,7 @@ class DashboardScreen extends ConsumerWidget {
                           _SummaryCard(
                             title: 'Pending Approvals',
                             value: summary.pendingApprovals.toString(),
-                            icon: Icons.how_to_vote,
+                            icon: Icons.how_to_vote_rounded,
                             iconColor: const Color(0xFF3168F4),
                             iconBg: const Color(0xFFEAF0FF),
                             screen: const MeetingListScreen(),
@@ -69,7 +76,7 @@ class DashboardScreen extends ConsumerWidget {
                           _SummaryCard(
                             title: 'Unread Papers',
                             value: summary.unreadPapers.toString(),
-                            icon: Icons.picture_as_pdf,
+                            icon: Icons.picture_as_pdf_rounded,
                             iconColor: const Color(0xFFE74C3C),
                             iconBg: const Color(0xFFFFEAEA),
                             screen: const MeetingListScreen(),
@@ -85,64 +92,44 @@ class DashboardScreen extends ConsumerWidget {
                           _SummaryCard(
                             title: 'Shared Docs',
                             value: summary.sharedDocuments.toString(),
-                            icon: Icons.share_outlined,
+                            icon: Icons.share_rounded,
                             iconColor: const Color(0xFF7C3AED),
                             iconBg: const Color(0xFFF1EAFE),
                             screen: const CategoryListScreen(),
                           ),
                         ],
                       ),
-                      loading: () => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(30),
-                          child: CircularProgressIndicator(),
-                        ),
+                      loading: () => const Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Center(child: CircularProgressIndicator()),
                       ),
-                      error: (error, _) => Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          error.toString(),
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
+                      error: (error, _) => _ErrorBox(message: error.toString()),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
-                    const Text(
-                      'Upcoming Meetings',
-                      style: TextStyle(
-                        color: Color(0xFF00184A),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    const _SectionTitle(title: 'Upcoming Meeting'),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
 
                     summaryAsync.when(
                       data: (summary) => _UpcomingMeetingCard(
                         title: summary.upcomingMeetingTitle ?? 'No upcoming meeting',
-                        dateTimeText: summary.upcomingMeetingDateTime ?? 'No date available',
-                        location: summary.upcomingMeetingLocation ?? 'No location',
+                        dateTimeText:
+                            summary.upcomingMeetingDateTime ?? 'No date available',
+                        location:
+                            summary.upcomingMeetingLocation ?? 'No location',
                         daysText: summary.upcomingMeetingDaysText ?? '',
                       ),
                       loading: () => const SizedBox.shrink(),
                       error: (_, __) => const SizedBox.shrink(),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
-                    const Text(
-                      'Management',
-                      style: TextStyle(
-                        color: Color(0xFF00184A),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    const _SectionTitle(title: 'Management'),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
 
                     _MenuGrid(),
                   ],
@@ -159,6 +146,10 @@ class DashboardScreen extends ConsumerWidget {
 class _Header extends ConsumerWidget {
   const _Header();
 
+  static const Color primaryBlue = Color(0xFF12275B);
+  static const Color darkBlue = Color(0xFF00184A);
+  static const Color gold = Color(0xFFFFB52E);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
@@ -169,33 +160,45 @@ class _Header extends ConsumerWidget {
     final initials = _getInitials(userName);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 14),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        MediaQuery.of(context).padding.top + 12,
+        16,
+        22,
+      ),
       decoration: const BoxDecoration(
-        color: Color(0xFF12275B),
+        color: primaryBlue,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
       ),
       child: Column(
         children: [
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
+                  border: Border.all(color: gold, width: 2),
                 ),
                 child: const Center(
                   child: Text(
                     'SLPA',
                     style: TextStyle(
-                      color: Color(0xFF00184A),
-                      fontSize: 9,
+                      color: darkBlue,
+                      fontSize: 10,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+
+              const SizedBox(width: 10),
+
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,48 +207,58 @@ class _Header extends ConsumerWidget {
                       'SLPA Board',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 13,
+                        fontSize: 15,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     Text(
-                      'Management\nSystem',
+                      'Management System',
                       style: TextStyle(
-                        color: Color(0xFFFFB52E),
-                        fontSize: 8,
-                        height: 1,
-                        fontWeight: FontWeight.w800,
+                        color: gold,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
               ),
+
               IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.08),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
                 onPressed: () async {
                   await ref.read(authProvider.notifier).logout();
+
                   if (context.mounted) {
                     Navigator.pushReplacementNamed(context, '/');
                   }
                 },
                 icon: const Icon(
-                  Icons.logout,
+                  Icons.logout_rounded,
                   color: Colors.white,
                   size: 20,
                 ),
               ),
+
+              const SizedBox(width: 8),
+
               Container(
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFFB52E),
+                  color: gold,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: Text(
                     initials,
                     style: const TextStyle(
-                      color: Color(0xFF00184A),
-                      fontSize: 12,
+                      color: darkBlue,
+                      fontSize: 13,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -254,7 +267,7 @@ class _Header extends ConsumerWidget {
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 22),
 
           Row(
             children: [
@@ -266,48 +279,65 @@ class _Header extends ConsumerWidget {
                       _greetingText(),
                       style: const TextStyle(
                         color: Color(0xFFB9C4E2),
-                        fontSize: 11,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+
+                    const SizedBox(height: 3),
+
                     Text(
                       userName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 22,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 6),
+
+                    const SizedBox(height: 8),
+
                     _RoleChip(role: role),
                   ],
                 ),
               ),
+
               Container(
-                width: 65,
-                padding: const EdgeInsets.symmetric(vertical: 9),
+                width: 78,
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF30467D),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24),
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.16)),
                 ),
                 child: Column(
                   children: [
                     Text(
                       now.day.toString(),
                       style: const TextStyle(
-                        color: Color(0xFFFFB52E),
-                        fontSize: 24,
+                        color: gold,
+                        fontSize: 28,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     Text(
-                      '${_monthName(now.month)} ${now.year}\n${_weekDayName(now.weekday)}',
+                      '${_monthName(now.month)} ${now.year}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      _weekDayName(now.weekday),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFFC5CDE2),
                         fontSize: 9,
-                        height: 1.1,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -321,106 +351,19 @@ class _Header extends ConsumerWidget {
   }
 }
 
-class _UpcomingMeetingCard extends StatelessWidget {
+class _SectionTitle extends StatelessWidget {
   final String title;
-  final String dateTimeText;
-  final String location;
-  final String daysText;
 
-  const _UpcomingMeetingCard({
-    required this.title,
-    required this.dateTimeText,
-    required this.location,
-    required this.daysText,
-  });
+  const _SectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(15),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const MeetingListScreen()),
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: const Color(0xFF233E8B),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (daysText.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFC88824),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  daysText,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-
-            const SizedBox(height: 10),
-
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                height: 1.2,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-
-            const SizedBox(height: 5),
-
-            Text(
-              '$dateTimeText · $location',
-              style: const TextStyle(
-                color: Color(0xFFD8E2FF),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RoleChip extends StatelessWidget {
-  final String role;
-
-  const _RoleChip({required this.role});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.white.withOpacity(0.08),
-        border: Border.all(color: const Color(0xFFFFB52E)),
-      ),
-      child: Text(
-        role,
-        style: const TextStyle(
-          color: Color(0xFFFFB52E),
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-        ),
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Color(0xFF00184A),
+        fontSize: 17,
+        fontWeight: FontWeight.w900,
       ),
     );
   }
@@ -445,59 +388,194 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(15),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => screen),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => screen),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.035),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: iconColor, size: 22),
+              ),
+
+              const Spacer(),
+
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Color(0xFF00184A),
+                  fontSize: 27,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+
+              const SizedBox(height: 3),
+
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF7D8CB2),
+                  fontSize: 12,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(8),
+      ),
+    );
+  }
+}
+
+class _UpcomingMeetingCard extends StatelessWidget {
+  final String title;
+  final String dateTimeText;
+  final String location;
+  final String daysText;
+
+  const _UpcomingMeetingCard({
+    required this.title,
+    required this.dateTimeText,
+    required this.location,
+    required this.daysText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF233E8B),
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const MeetingListScreen()),
+          );
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.event_available_rounded,
+                  color: Color(0xFFFFB52E),
+                  size: 25,
+                ),
               ),
-              child: Icon(icon, color: iconColor, size: 18),
-            ),
-            const Spacer(),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Color(0xFF00184A),
-                fontSize: 25,
-                fontWeight: FontWeight.w900,
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (daysText.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFB52E),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          daysText,
+                          style: const TextStyle(
+                            color: Color(0xFF00184A),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.25,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: Color(0xFFD8E2FF),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            '$dateTimeText · $location',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFD8E2FF),
+                              fontSize: 11,
+                              height: 1.3,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF7D8CB2),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white70,
+                size: 16,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -508,13 +586,13 @@ class _MenuGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tiles = [
-      _MenuTileData('Users', Icons.people_outline, const UserListScreen()),
-      _MenuTileData('Devices', Icons.devices_other_outlined, const DeviceListScreen()),
+      _MenuTileData('Users', Icons.people_outline_rounded, const UserListScreen()),
+      _MenuTileData('Devices', Icons.devices_other_rounded, const DeviceListScreen()),
       _MenuTileData('Categories', Icons.category_outlined, const CategoryListScreen()),
       _MenuTileData('Subcategories', Icons.account_tree_outlined, const SubcategoryListScreen()),
       _MenuTileData('Privileges', Icons.admin_panel_settings_outlined, const PrivilegeListScreen()),
       _MenuTileData('Meetings', Icons.event_note_outlined, const MeetingListScreen()),
-      _MenuTileData('Reports', Icons.bar_chart_outlined, const ReportHomeScreen()),
+      _MenuTileData('Reports', Icons.bar_chart_rounded, const ReportHomeScreen()),
       _MenuTileData('Settings', Icons.settings_outlined, const SettingHomeScreen()),
       _MenuTileData('Access Control', Icons.verified_user_outlined, const AccessValidationScreen()),
     ];
@@ -525,60 +603,131 @@ class _MenuGrid extends StatelessWidget {
       itemCount: tiles.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1.7,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 2.25,
       ),
       itemBuilder: (context, index) {
         final item = tiles[index];
 
-        return InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => item.screen),
-            );
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.035),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  item.icon,
-                  color: const Color(0xFF233E8B),
-                  size: 23,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    item.title,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF00184A),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => item.screen),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 14,
+                    offset: const Offset(0, 7),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF233E8B).withOpacity(0.09),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(
+                      item.icon,
+                      color: const Color(0xFF233E8B),
+                      size: 21,
                     ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF00184A),
+                        fontSize: 12,
+                        height: 1.2,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF9AA6C5),
+                    size: 20,
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _RoleChip extends StatelessWidget {
+  final String role;
+
+  const _RoleChip({required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        color: const Color(0xFFFFB52E).withOpacity(0.12),
+        border: Border.all(color: const Color(0xFFFFB52E).withOpacity(0.7)),
+      ),
+      child: Text(
+        role,
+        style: const TextStyle(
+          color: Color(0xFFFFB52E),
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBox extends StatelessWidget {
+  final String message;
+
+  const _ErrorBox({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEAEA),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Colors.red,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

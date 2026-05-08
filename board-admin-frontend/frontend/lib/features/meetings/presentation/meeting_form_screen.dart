@@ -25,13 +25,20 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   String meetingType = 'MEETING';
   bool isSaving = false;
 
+  static const Color primaryBlue = Color(0xFF12275B);
+  static const Color darkBlue = Color(0xFF00184A);
+  static const Color gold = Color(0xFFFFB52E);
+  static const Color bgColor = Color(0xFFF6F7FB);
+
   int? _readRequiredInt(TextEditingController controller, String fieldName) {
     final value = int.tryParse(controller.text.trim());
+
     if (value == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter a valid $fieldName.')),
       );
     }
+
     return value;
   }
 
@@ -102,64 +109,291 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Meeting')),
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: primaryBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Create Meeting',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
         children: [
-          AppTextField(controller: _titleController, hintText: 'Meeting title'),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: meetingType,
-            decoration: const InputDecoration(labelText: 'Meeting Type'),
-            items: const [
-              DropdownMenuItem(value: 'MEETING', child: Text('Meeting')),
-              DropdownMenuItem(value: 'CIRCULAR', child: Text('Circular')),
-            ],
-            onChanged: (value) {
-              if (value != null) setState(() => meetingType = value);
-            },
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _meetingDateController,
-            hintText: 'Meeting date time (2026-05-10T10:00:00)',
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _targetDateController,
-            hintText: 'Target date time (optional)',
-          ),
-          const SizedBox(height: 12),
-          AppTextField(controller: _locationController, hintText: 'Location'),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _descriptionController,
-            hintText: 'Description',
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _categoryIdController,
-            hintText: 'Category ID',
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _subcategoryIdController,
-            hintText: 'Subcategory ID',
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _createdByController,
-            hintText: 'Created By User ID',
-            keyboardType: TextInputType.number,
-          ),
+          _HeaderCard(meetingType: meetingType),
+
           const SizedBox(height: 18),
+
+          _SectionCard(
+            title: 'Meeting Details',
+            children: [
+              AppTextField(
+                controller: _titleController,
+                hintText: 'Meeting title',
+              ),
+
+              const SizedBox(height: 12),
+
+              DropdownButtonFormField<String>(
+                value: meetingType,
+                decoration: _dropdownDecoration('Meeting Type'),
+                dropdownColor: Colors.white,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: primaryBlue,
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'MEETING',
+                    child: Text('Meeting'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'CIRCULAR',
+                    child: Text('Circular'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => meetingType = value);
+                  }
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              AppTextField(
+                controller: _meetingDateController,
+                hintText: 'Meeting date time (2026-05-10T10:00:00)',
+              ),
+
+              const SizedBox(height: 12),
+
+              AppTextField(
+                controller: _targetDateController,
+                hintText: 'Target date time (optional)',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          _SectionCard(
+            title: 'Location & Description',
+            children: [
+              AppTextField(
+                controller: _locationController,
+                hintText: 'Location',
+              ),
+
+              const SizedBox(height: 12),
+
+              AppTextField(
+                controller: _descriptionController,
+                hintText: 'Description',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          _SectionCard(
+            title: 'Reference Details',
+            children: [
+              AppTextField(
+                controller: _categoryIdController,
+                hintText: 'Category ID',
+                keyboardType: TextInputType.number,
+              ),
+
+              const SizedBox(height: 12),
+
+              AppTextField(
+                controller: _subcategoryIdController,
+                hintText: 'Subcategory ID',
+                keyboardType: TextInputType.number,
+              ),
+
+              const SizedBox(height: 12),
+
+              AppTextField(
+                controller: _createdByController,
+                hintText: 'Created By User ID',
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 22),
+
           AppButton(
             label: 'Create Meeting',
             onPressed: _save,
             isLoading: isSaving,
           ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _dropdownDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: Color(0xFF7D8CB2),
+        fontWeight: FontWeight.w600,
+      ),
+      filled: true,
+      fillColor: bgColor,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: gold,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderCard extends StatelessWidget {
+  final String meetingType;
+
+  const _HeaderCard({required this.meetingType});
+
+  static const Color primaryBlue = Color(0xFF12275B);
+  static const Color darkBlue = Color(0xFF00184A);
+  static const Color gold = Color(0xFFFFB52E);
+
+  @override
+  Widget build(BuildContext context) {
+    final isCircular = meetingType == 'CIRCULAR';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: primaryBlue,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.20),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: const BoxDecoration(
+              color: gold,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isCircular ? Icons.campaign_outlined : Icons.event_note_outlined,
+              color: darkBlue,
+              size: 30,
+            ),
+          ),
+
+          const SizedBox(width: 14),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Create New',
+                  style: TextStyle(
+                    color: Color(0xFFB9C4E2),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 3),
+
+                Text(
+                  isCircular ? 'Circular' : 'Meeting',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                const Text(
+                  'Fill the details below to continue',
+                  style: TextStyle(
+                    color: Color(0xFFFFD27A),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const _SectionCard({
+    required this.title,
+    required this.children,
+  });
+
+  static const Color darkBlue = Color(0xFF00184A);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: darkBlue,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          ...children,
         ],
       ),
     );

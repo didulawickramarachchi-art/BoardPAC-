@@ -7,42 +7,184 @@ import '../provider/device_provider.dart';
 class DeviceListScreen extends ConsumerWidget {
   const DeviceListScreen({super.key});
 
+  static const Color primaryBlue = Color(0xFF12275B);
+  static const Color darkBlue = Color(0xFF00184A);
+  static const Color gold = Color(0xFFFFB52E);
+  static const Color bgColor = Color(0xFFF6F7FB);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final devicesAsync = ref.watch(deviceListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Devices')),
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: primaryBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Devices',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
       body: devicesAsync.when(
         data: (devices) {
           if (devices.isEmpty) {
             return const AppEmptyState(message: 'No devices found');
           }
 
-          return ListView.builder(
+          return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: devices.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               final device = devices[index];
-              return Card(
-                child: ListTile(
-                  title: Text(device.deviceId),
-                  subtitle: Text(
-                    '${device.deviceInfo ?? 'Unknown device'}\n'
-                    'Status: ${device.status ?? '-'}',
-                  ),
-                  isThreeLine: true,
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) async {
-                      final notifier = ref.read(deviceListProvider.notifier);
-                      if (value == 'approve') await notifier.approve(device.id);
-                      if (value == 'deactivate') await notifier.deactivate(device.id);
-                      if (value == 'wipe') await notifier.wipe(device.id);
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(value: 'approve', child: Text('Approve')),
-                      PopupMenuItem(value: 'deactivate', child: Text('Deactivate')),
-                      PopupMenuItem(value: 'wipe', child: Text('Wipe')),
+
+              final deviceInfo = device.deviceInfo ?? 'Unknown device';
+              final status = device.status ?? '-';
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          _deviceIcon(deviceInfo),
+                          color: primaryBlue,
+                          size: 27,
+                        ),
+                      ),
+
+                      const SizedBox(width: 14),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              device.deviceId,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: darkBlue,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline_rounded,
+                                  size: 15,
+                                  color: Color(0xFF7D8CB2),
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    deviceInfo,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF7D8CB2),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            _StatusChip(status: status),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      PopupMenuButton<String>(
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        icon: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: primaryBlue.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.more_vert_rounded,
+                            color: primaryBlue,
+                            size: 22,
+                          ),
+                        ),
+                        onSelected: (value) async {
+                          final notifier =
+                              ref.read(deviceListProvider.notifier);
+
+                          if (value == 'approve') {
+                            await notifier.approve(device.id);
+                          }
+
+                          if (value == 'deactivate') {
+                            await notifier.deactivate(device.id);
+                          }
+
+                          if (value == 'wipe') {
+                            await notifier.wipe(device.id);
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'approve',
+                            child: _PopupItem(
+                              icon: Icons.check_circle_outline_rounded,
+                              text: 'Approve',
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'deactivate',
+                            child: _PopupItem(
+                              icon: Icons.block_outlined,
+                              text: 'Deactivate',
+                            ),
+                          ),
+                          PopupMenuDivider(),
+                          PopupMenuItem(
+                            value: 'wipe',
+                            child: _PopupItem(
+                              icon: Icons.delete_outline_rounded,
+                              text: 'Wipe',
+                              isDanger: true,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -50,9 +192,123 @@ class DeviceListScreen extends ConsumerWidget {
             },
           );
         },
-        error: (error, _) => Center(child: Text('Failed to load devices: $error')),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              'Failed to load devices: $error',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
         loading: () => const AppLoading(),
       ),
     );
   }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String status;
+
+  const _StatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final lowerStatus = status.toLowerCase();
+
+    Color bgColor;
+    Color textColor;
+
+    if (lowerStatus.contains('active') || lowerStatus.contains('approved')) {
+      bgColor = const Color(0xFFE0F8F1);
+      textColor = const Color(0xFF20A67A);
+    } else if (lowerStatus.contains('pending')) {
+      bgColor = const Color(0xFFFFF3DC);
+      textColor = const Color(0xFFC88824);
+    } else if (lowerStatus.contains('deactivate') ||
+        lowerStatus.contains('inactive') ||
+        lowerStatus.contains('blocked')) {
+      bgColor = const Color(0xFFFFEAEA);
+      textColor = const Color(0xFFE74C3C);
+    } else {
+      bgColor = const Color(0xFFEAF0FF);
+      textColor = const Color(0xFF233E8B);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _PopupItem extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final bool isDanger;
+
+  const _PopupItem({
+    required this.icon,
+    required this.text,
+    this.isDanger = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDanger ? Colors.red : const Color(0xFF12275B);
+
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: TextStyle(
+            color: isDanger ? Colors.red : const Color(0xFF00184A),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+IconData _deviceIcon(String deviceInfo) {
+  final info = deviceInfo.toLowerCase();
+
+  if (info.contains('mobile') ||
+      info.contains('android') ||
+      info.contains('iphone') ||
+      info.contains('ios')) {
+    return Icons.smartphone_rounded;
+  }
+
+  if (info.contains('windows') ||
+      info.contains('pc') ||
+      info.contains('desktop') ||
+      info.contains('laptop') ||
+      info.contains('mac')) {
+    return Icons.computer_rounded;
+  }
+
+  if (info.contains('tablet') || info.contains('ipad')) {
+    return Icons.tablet_mac_rounded;
+  }
+
+  return Icons.devices_other_rounded;
 }
