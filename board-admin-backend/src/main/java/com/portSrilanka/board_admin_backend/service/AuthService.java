@@ -13,7 +13,9 @@ import com.portSrilanka.board_admin_backend.repository.RoleRepository;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
 import com.portSrilanka.board_admin_backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.*;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -63,14 +66,18 @@ public class AuthService {
         return "User registered successfully";
     }
 
-   public LoginResponse login(LoginRequest request) {
-    try {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
+    public LoginResponse login(LoginRequest request) {
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
+        } catch (AuthenticationException ex) {
+            recordLoginHistory(null, request.getUsername(), LoginStatus.FAILED);
+            throw ex;
+        }
 
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BadRequestException("Invalid credentials"));
@@ -85,36 +92,31 @@ public class AuthService {
 
         String token = jwtService.generateToken(userDetails);
 
-        loginHistoryRepository.save(
-                LoginHistory.builder()
-                        .user(user)
-                        .username(user.getUsername())
-                        .ipAddress("N/A")
-                        .deviceInfo("WEB")
-                        .status(LoginStatus.SUCCESS)
-                        .loginTime(java.time.LocalDateTime.now())
-                        .build()
-        );
+        recordLoginHistory(user, user.getUsername(), LoginStatus.SUCCESS);
 
         return LoginResponse.builder()
                 .token(token)
                 .username(user.getUsername())
                 .message("Login successful")
                 .build();
-
-    } catch (Exception ex) {
-        loginHistoryRepository.save(
-                LoginHistory.builder()
-                        .username(request.getUsername())
-                        .ipAddress("N/A")
-                        .deviceInfo("WEB")
-                        .status(LoginStatus.FAILED)
-                        .loginTime(java.time.LocalDateTime.now())
-                        .build()
-        );
-        throw ex;
     }
-}
+
+    private void recordLoginHistory(User user, String username, LoginStatus status) {
+        try {
+            loginHistoryRepository.save(
+                    LoginHistory.builder()
+                            .user(user)
+                            .username(username)
+                            .ipAddress("N/A")
+                            .deviceInfo("WEB")
+                            .status(status)
+                            .loginTime(java.time.LocalDateTime.now())
+                            .build()
+            );
+        } catch (RuntimeException ex) {
+            log.warn("Unable to record {} login history for user {}", status, username, ex);
+        }
+    }
 public LoginResponse verifyTwoFactor(String username, String code) {
     User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new BadRequestException("User not found"));
