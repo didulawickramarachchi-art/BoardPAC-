@@ -34,7 +34,7 @@ class _AccessValidationScreenState extends ConsumerState<AccessValidationScreen>
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: channel,
+              initialValue: channel,
               items: const [
                 DropdownMenuItem(value: 'WEB', child: Text('WEB')),
                 DropdownMenuItem(value: 'DEVICE', child: Text('DEVICE')),
