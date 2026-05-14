@@ -55,54 +55,55 @@ class DashboardScreen extends ConsumerWidget {
                             icon: Icons.event_rounded,
                             iconColor: gold,
                             iconBg: const Color(0xFFFFF3DC),
-                            screen: const MeetingListScreen(),
                           ),
+
                           _SummaryCard(
                             title: 'Circulars',
                             value: summary.totalCirculars.toString(),
                             icon: Icons.mail_outline_rounded,
                             iconColor: const Color(0xFFE84393),
                             iconBg: const Color(0xFFFFE7F2),
-                            screen: const MeetingListScreen(),
                           ),
+
                           _SummaryCard(
                             title: 'Pending Approvals',
                             value: summary.pendingApprovals.toString(),
                             icon: Icons.how_to_vote_rounded,
                             iconColor: const Color(0xFF3168F4),
                             iconBg: const Color(0xFFEAF0FF),
-                            screen: const MeetingListScreen(),
                           ),
+
                           _SummaryCard(
                             title: 'Unread Papers',
                             value: summary.unreadPapers.toString(),
                             icon: Icons.picture_as_pdf_rounded,
                             iconColor: const Color(0xFFE74C3C),
                             iconBg: const Color(0xFFFFEAEA),
-                            screen: const MeetingListScreen(),
                           ),
+
                           _SummaryCard(
                             title: 'Shared Comments',
                             value: summary.sharedComments.toString(),
                             icon: Icons.comment_outlined,
                             iconColor: const Color(0xFF20C997),
                             iconBg: const Color(0xFFE0F8F1),
-                            screen: const MeetingListScreen(),
                           ),
+
                           _SummaryCard(
                             title: 'Shared Docs',
                             value: summary.sharedDocuments.toString(),
                             icon: Icons.share_rounded,
                             iconColor: const Color(0xFF7C3AED),
                             iconBg: const Color(0xFFF1EAFE),
-                            screen: const CategoryListScreen(),
                           ),
                         ],
                       ),
+
                       loading: () => const Padding(
                         padding: EdgeInsets.all(40),
                         child: Center(child: CircularProgressIndicator()),
                       ),
+
                       error: (error, _) => _ErrorBox(message: error.toString()),
                     ),
 
@@ -114,9 +115,12 @@ class DashboardScreen extends ConsumerWidget {
 
                     summaryAsync.when(
                       data: (summary) => _UpcomingMeetingCard(
-                        title: summary.upcomingMeetingTitle ?? 'No upcoming meeting',
+                        title:
+                            summary.upcomingMeetingTitle ??
+                            'No upcoming meeting',
                         dateTimeText:
-                            summary.upcomingMeetingDateTime ?? 'No date available',
+                            summary.upcomingMeetingDateTime ??
+                            'No date available',
                         location:
                             summary.upcomingMeetingLocation ?? 'No location',
                         daysText: summary.upcomingMeetingDaysText ?? '',
@@ -177,24 +181,11 @@ class _Header extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: gold, width: 2),
-                ),
-                child: const Center(
-                  child: Text(
-                    'SLPA',
-                    style: TextStyle(
-                      color: darkBlue,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
+              Image.asset(
+                'assets/images/slpa_logo.png',
+                width: 52,
+                height: 52,
+                fit: BoxFit.contain,
               ),
 
               const SizedBox(width: 10),
@@ -211,6 +202,7 @@ class _Header extends ConsumerWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
+
                     Text(
                       'Management System',
                       style: TextStyle(
@@ -322,6 +314,7 @@ class _Header extends ConsumerWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
+
                     Text(
                       '${_monthName(now.month)} ${now.year}',
                       textAlign: TextAlign.center,
@@ -331,6 +324,7 @@ class _Header extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+
                     Text(
                       _weekDayName(now.weekday),
                       textAlign: TextAlign.center,
@@ -375,7 +369,6 @@ class _SummaryCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color iconBg;
-  final Widget screen;
 
   const _SummaryCard({
     required this.title,
@@ -383,74 +376,61 @@ class _SummaryCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.iconBg,
-    required this.screen,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => screen),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.035),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-
-              const Spacer(),
-
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Color(0xFF00184A),
-                  fontSize: 27,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-
-              const SizedBox(height: 3),
-
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF7D8CB2),
-                  fontSize: 12,
-                  height: 1.2,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: iconColor, size: 22),
           ),
-        ),
+
+          const Spacer(),
+
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF00184A),
+              fontSize: 27,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+
+          const SizedBox(height: 3),
+
+          Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF7D8CB2),
+              fontSize: 12,
+              height: 1.2,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -586,15 +566,51 @@ class _MenuGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tiles = [
-      _MenuTileData('Users', Icons.people_outline_rounded, const UserListScreen()),
-      _MenuTileData('Devices', Icons.devices_other_rounded, const DeviceListScreen()),
-      _MenuTileData('Categories', Icons.category_outlined, const CategoryListScreen()),
-      _MenuTileData('Subcategories', Icons.account_tree_outlined, const SubcategoryListScreen()),
-      _MenuTileData('Privileges', Icons.admin_panel_settings_outlined, const PrivilegeListScreen()),
-      _MenuTileData('Meetings', Icons.event_note_outlined, const MeetingListScreen()),
-      _MenuTileData('Reports', Icons.bar_chart_rounded, const ReportHomeScreen()),
-      _MenuTileData('Settings', Icons.settings_outlined, const SettingHomeScreen()),
-      _MenuTileData('Access Control', Icons.verified_user_outlined, const AccessValidationScreen()),
+      _MenuTileData(
+        'Users',
+        Icons.people_outline_rounded,
+        const UserListScreen(),
+      ),
+      _MenuTileData(
+        'Devices',
+        Icons.devices_other_rounded,
+        const DeviceListScreen(),
+      ),
+      _MenuTileData(
+        'Categories',
+        Icons.category_outlined,
+        const CategoryListScreen(),
+      ),
+      _MenuTileData(
+        'Subcategories',
+        Icons.account_tree_outlined,
+        const SubcategoryListScreen(),
+      ),
+      _MenuTileData(
+        'Privileges',
+        Icons.admin_panel_settings_outlined,
+        const PrivilegeListScreen(),
+      ),
+      _MenuTileData(
+        'Meetings',
+        Icons.event_note_outlined,
+        const MeetingListScreen(),
+      ),
+      _MenuTileData(
+        'Reports',
+        Icons.bar_chart_rounded,
+        const ReportHomeScreen(),
+      ),
+      _MenuTileData(
+        'Settings',
+        Icons.settings_outlined,
+        const SettingHomeScreen(),
+      ),
+      _MenuTileData(
+        'Access Control',
+        Icons.verified_user_outlined,
+        const AccessValidationScreen(),
+      ),
     ];
 
     return GridView.builder(
@@ -750,8 +766,18 @@ String _greetingText() {
 
 String _monthName(int month) {
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   return months[month - 1];
@@ -759,8 +785,13 @@ String _monthName(int month) {
 
 String _weekDayName(int day) {
   const days = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-    'Friday', 'Saturday', 'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
   ];
 
   return days[day - 1];

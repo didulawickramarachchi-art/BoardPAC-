@@ -54,7 +54,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.08),
+                  color: const Color.fromARGB(
+                    255,
+                    255,
+                    255,
+                    255,
+                  ).withOpacity(0.08),
                 ),
               ),
             ),
@@ -67,21 +72,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 25),
 
                     Container(
-                      width: 82,
-                      height: 82,
+                      width: 200,
+                      height: 200,
                       decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'SLPA',
-                          style: TextStyle(
-                            color: Color(0xFF061B4E),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                          ),
+                        image: DecorationImage(
+                          image: AssetImage('assets/images/slpa_logo.png'),
+                          fit: BoxFit.cover,
                         ),
+                        shape: BoxShape.circle,
                       ),
                     ),
 
@@ -273,11 +271,7 @@ class _LoginTextField extends StatelessWidget {
         decoration: InputDecoration(
           border: InputBorder.none,
           contentPadding: const EdgeInsets.only(top: 11),
-          prefixIcon: Icon(
-            icon,
-            color: const Color(0xFFCBD5E1),
-            size: 19,
-          ),
+          prefixIcon: Icon(icon, color: const Color(0xFFCBD5E1), size: 19),
           hintText: hintText,
           hintStyle: const TextStyle(
             color: Color(0xFF9AA8C2),
