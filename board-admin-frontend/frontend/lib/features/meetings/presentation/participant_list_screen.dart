@@ -135,7 +135,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: status,
+                initialValue: status,
                 decoration: _dialogInputDecoration('Participant Status'),
                 dropdownColor: Colors.white,
                 icon: const Icon(
@@ -243,7 +243,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: items.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
+            separatorBuilder: (_, _) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               if (index == 0) {
                 return _MeetingHeaderCard(meetingTitle: widget.meetingTitle);

@@ -37,7 +37,7 @@ class DeviceListScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: devices.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
+            separatorBuilder: (_, _) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               final device = devices[index];
 

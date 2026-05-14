@@ -95,7 +95,7 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
               const SizedBox(height: 12),
 
               DropdownButtonFormField<String>(
-                value: selectedRole,
+                initialValue: selectedRole,
                 decoration: InputDecoration(
                   labelText: 'Assigned Role',
                   labelStyle: const TextStyle(

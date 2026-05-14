@@ -36,7 +36,7 @@ class AgendaItemScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: itemType,
+                  initialValue: itemType,
                   items: const [
                     DropdownMenuItem(value: 'HEADING', child: Text('Heading')),
                     DropdownMenuItem(

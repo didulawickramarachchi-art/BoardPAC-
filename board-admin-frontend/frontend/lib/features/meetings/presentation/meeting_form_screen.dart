@@ -138,7 +138,7 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
               const SizedBox(height: 12),
 
               DropdownButtonFormField<String>(
-                value: meetingType,
+                initialValue: meetingType,
                 decoration: _dropdownDecoration('Meeting Type'),
                 dropdownColor: Colors.white,
                 icon: const Icon(

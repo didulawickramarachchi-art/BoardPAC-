@@ -33,7 +33,7 @@ class AnnotationScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: annotationType,
+                  initialValue: annotationType,
                   items: const [
                     DropdownMenuItem(value: 'TEXT_NOTE', child: Text('Text Note')),
                     DropdownMenuItem(value: 'HIGHLIGHT', child: Text('Highlight')),

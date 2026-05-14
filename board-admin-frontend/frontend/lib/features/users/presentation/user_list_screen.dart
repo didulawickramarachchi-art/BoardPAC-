@@ -38,7 +38,7 @@ class UserListScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: users.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
+            separatorBuilder: (_, _) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               final user = users[index];
               final fullName = '${user.firstName} ${user.lastName}'.trim();

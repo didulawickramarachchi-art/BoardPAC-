@@ -165,7 +165,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
             title: 'Board Access',
             children: [
               DropdownButtonFormField<String>(
-                value: boardType,
+                initialValue: boardType,
                 decoration: InputDecoration(
                   labelText: 'Board type',
                   labelStyle: const TextStyle(
@@ -225,7 +225,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                 ),
                 child: SwitchListTile(
                   value: twoStepEnabled,
-                  activeColor: gold,
+                  activeThumbColor: gold,
                   activeTrackColor: gold.withOpacity(0.35),
                   inactiveThumbColor: Colors.white,
                   title: const Text(

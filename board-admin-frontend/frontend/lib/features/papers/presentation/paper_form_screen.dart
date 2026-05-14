@@ -81,7 +81,7 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: paperType,
+            initialValue: paperType,
             decoration: const InputDecoration(labelText: 'Paper Type'),
             items: const [
               DropdownMenuItem(value: 'APPROVAL', child: Text('Approval')),

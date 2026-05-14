@@ -36,7 +36,7 @@ class ApprovalScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedStatus,
+                  initialValue: selectedStatus,
                   decoration: const InputDecoration(labelText: 'Approval Status'),
                   items: const [
                     DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
