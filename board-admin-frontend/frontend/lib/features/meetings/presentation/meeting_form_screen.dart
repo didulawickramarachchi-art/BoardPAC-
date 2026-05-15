@@ -9,10 +9,12 @@ class MeetingFormScreen extends ConsumerStatefulWidget {
   const MeetingFormScreen({super.key});
 
   @override
-  ConsumerState<MeetingFormScreen> createState() => _MeetingFormScreenState();
+  ConsumerState<MeetingFormScreen> createState() =>
+      _MeetingFormScreenState();
 }
 
-class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
+class _MeetingFormScreenState
+    extends ConsumerState<MeetingFormScreen> {
   final _titleController = TextEditingController();
   final _meetingDateController = TextEditingController();
   final _targetDateController = TextEditingController();
@@ -20,7 +22,8 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   final _descriptionController = TextEditingController();
   final _categoryIdController = TextEditingController();
   final _subcategoryIdController = TextEditingController();
-  final _createdByController = TextEditingController(text: '1');
+  final _createdByController =
+      TextEditingController(text: '1');
 
   String meetingType = 'MEETING';
   bool isSaving = false;
@@ -30,16 +33,125 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   static const Color gold = Color(0xFFFFB52E);
   static const Color bgColor = Color(0xFFF6F7FB);
 
-  int? _readRequiredInt(TextEditingController controller, String fieldName) {
+  int? _readRequiredInt(
+    TextEditingController controller,
+    String fieldName,
+  ) {
     final value = int.tryParse(controller.text.trim());
 
     if (value == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter a valid $fieldName.')),
+        SnackBar(
+          content: Text(
+            'Please enter a valid $fieldName.',
+          ),
+        ),
       );
     }
 
     return value;
+  }
+
+  Future<void> _pickMeetingDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2025),
+      lastDate: DateTime(2035),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: primaryBlue,
+              secondary: gold,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (date != null) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: primaryBlue,
+                secondary: gold,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (time != null) {
+        final selectedDateTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+
+        _meetingDateController.text =
+            selectedDateTime.toIso8601String();
+      }
+    }
+  }
+
+  Future<void> _pickTargetDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2025),
+      lastDate: DateTime(2035),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: primaryBlue,
+              secondary: gold,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (date != null) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: primaryBlue,
+                secondary: gold,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (time != null) {
+        final selectedDateTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+
+        _targetDateController.text =
+            selectedDateTime.toIso8601String();
+      }
+    }
   }
 
   @override
@@ -56,28 +168,36 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   }
 
   Future<void> _save() async {
-    final categoryId = _readRequiredInt(_categoryIdController, 'Category ID');
+    final categoryId = _readRequiredInt(
+      _categoryIdController,
+      'Category ID',
+    );
+
     if (categoryId == null) return;
 
     final subcategoryId = _readRequiredInt(
       _subcategoryIdController,
       'Subcategory ID',
     );
+
     if (subcategoryId == null) return;
 
     final createdByUserId = _readRequiredInt(
       _createdByController,
       'Created By User ID',
     );
+
     if (createdByUserId == null) return;
 
     final request = MeetingRequest(
       title: _titleController.text.trim(),
       type: meetingType,
-      meetingDateTime: _meetingDateController.text.trim(),
-      targetDateTime: _targetDateController.text.trim().isEmpty
-          ? null
-          : _targetDateController.text.trim(),
+      meetingDateTime:
+          _meetingDateController.text.trim(),
+      targetDateTime:
+          _targetDateController.text.trim().isEmpty
+              ? null
+              : _targetDateController.text.trim(),
       location: _locationController.text.trim(),
       description: _descriptionController.text.trim(),
       categoryId: categoryId,
@@ -88,7 +208,9 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
     setState(() => isSaving = true);
 
     try {
-      await ref.read(meetingListProvider.notifier).createMeeting(request);
+      await ref
+          .read(meetingListProvider.notifier)
+          .createMeeting(request);
 
       if (mounted) {
         Navigator.pop(context);
@@ -96,7 +218,11 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create meeting: $e')),
+          SnackBar(
+            content: Text(
+              'Failed to create meeting: $e',
+            ),
+          ),
         );
       }
     } finally {
@@ -117,11 +243,18 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
         centerTitle: true,
         title: const Text(
           'Create Meeting',
-          style: TextStyle(fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          16,
+          18,
+          16,
+          24,
+        ),
         children: [
           _HeaderCard(meetingType: meetingType),
 
@@ -139,7 +272,8 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
 
               DropdownButtonFormField<String>(
                 initialValue: meetingType,
-                decoration: _dropdownDecoration('Meeting Type'),
+                decoration:
+                    _dropdownDecoration('Meeting Type'),
                 dropdownColor: Colors.white,
                 icon: const Icon(
                   Icons.keyboard_arrow_down_rounded,
@@ -157,23 +291,39 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
                 ],
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() => meetingType = value);
+                    setState(() {
+                      meetingType = value;
+                    });
                   }
                 },
               ),
 
               const SizedBox(height: 12),
 
-              AppTextField(
-                controller: _meetingDateController,
-                hintText: 'Meeting date time (2026-05-10T10:00:00)',
+              GestureDetector(
+                onTap: _pickMeetingDateTime,
+                child: AbsorbPointer(
+                  child: AppTextField(
+                    controller:
+                        _meetingDateController,
+                    hintText:
+                        'Select Meeting Date & Time',
+                  ),
+                ),
               ),
 
               const SizedBox(height: 12),
 
-              AppTextField(
-                controller: _targetDateController,
-                hintText: 'Target date time (optional)',
+              GestureDetector(
+                onTap: _pickTargetDateTime,
+                child: AbsorbPointer(
+                  child: AppTextField(
+                    controller:
+                        _targetDateController,
+                    hintText:
+                        'Select Target Date & Time',
+                  ),
+                ),
               ),
             ],
           ),
@@ -205,23 +355,28 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
               AppTextField(
                 controller: _categoryIdController,
                 hintText: 'Category ID',
-                keyboardType: TextInputType.number,
+                keyboardType:
+                    TextInputType.number,
               ),
 
               const SizedBox(height: 12),
 
               AppTextField(
-                controller: _subcategoryIdController,
+                controller:
+                    _subcategoryIdController,
                 hintText: 'Subcategory ID',
-                keyboardType: TextInputType.number,
+                keyboardType:
+                    TextInputType.number,
               ),
 
               const SizedBox(height: 12),
 
               AppTextField(
                 controller: _createdByController,
-                hintText: 'Created By User ID',
-                keyboardType: TextInputType.number,
+                hintText:
+                    'Created By User ID',
+                keyboardType:
+                    TextInputType.number,
               ),
             ],
           ),
@@ -238,7 +393,9 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
     );
   }
 
-  InputDecoration _dropdownDecoration(String label) {
+  InputDecoration _dropdownDecoration(
+    String label,
+  ) {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(
@@ -269,24 +426,35 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
 class _HeaderCard extends StatelessWidget {
   final String meetingType;
 
-  const _HeaderCard({required this.meetingType});
+  const _HeaderCard({
+    required this.meetingType,
+  });
 
-  static const Color primaryBlue = Color(0xFF12275B);
-  static const Color darkBlue = Color(0xFF00184A);
-  static const Color gold = Color(0xFFFFB52E);
+  static const Color primaryBlue =
+      Color(0xFF12275B);
+
+  static const Color darkBlue =
+      Color(0xFF00184A);
+
+  static const Color gold =
+      Color(0xFFFFB52E);
 
   @override
   Widget build(BuildContext context) {
-    final isCircular = meetingType == 'CIRCULAR';
+    final isCircular =
+        meetingType == 'CIRCULAR';
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: primaryBlue,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius:
+            BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.20),
+            color: primaryBlue.withOpacity(
+              0.20,
+            ),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -302,7 +470,9 @@ class _HeaderCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isCircular ? Icons.campaign_outlined : Icons.event_note_outlined,
+              isCircular
+                  ? Icons.campaign_outlined
+                  : Icons.event_note_outlined,
               color: darkBlue,
               size: 30,
             ),
@@ -312,25 +482,31 @@ class _HeaderCard extends StatelessWidget {
 
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Create New',
                   style: TextStyle(
-                    color: Color(0xFFB9C4E2),
+                    color:
+                        Color(0xFFB9C4E2),
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight:
+                        FontWeight.w600,
                   ),
                 ),
 
                 const SizedBox(height: 3),
 
                 Text(
-                  isCircular ? 'Circular' : 'Meeting',
+                  isCircular
+                      ? 'Circular'
+                      : 'Meeting',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
-                    fontWeight: FontWeight.w900,
+                    fontWeight:
+                        FontWeight.w900,
                   ),
                 ),
 
@@ -339,9 +515,11 @@ class _HeaderCard extends StatelessWidget {
                 const Text(
                   'Fill the details below to continue',
                   style: TextStyle(
-                    color: Color(0xFFFFD27A),
+                    color:
+                        Color(0xFFFFD27A),
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight:
+                        FontWeight.w600,
                   ),
                 ),
               ],
@@ -362,7 +540,8 @@ class _SectionCard extends StatelessWidget {
     required this.children,
   });
 
-  static const Color darkBlue = Color(0xFF00184A);
+  static const Color darkBlue =
+      Color(0xFF00184A);
 
   @override
   Widget build(BuildContext context) {
@@ -370,17 +549,21 @@ class _SectionCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius:
+            BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.035),
+            color: Colors.black.withOpacity(
+              0.035,
+            ),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Text(
             title,
