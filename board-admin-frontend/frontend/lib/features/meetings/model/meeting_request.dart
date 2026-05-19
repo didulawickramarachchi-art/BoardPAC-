@@ -7,7 +7,6 @@ class MeetingRequest {
   final String? description;
   final int categoryId;
   final int subcategoryId;
-  final int createdByUserId;
 
   MeetingRequest({
     required this.title,
@@ -18,7 +17,6 @@ class MeetingRequest {
     this.description,
     required this.categoryId,
     required this.subcategoryId,
-    required this.createdByUserId,
   });
 
   Map<String, dynamic> toJson() {
@@ -31,7 +29,6 @@ class MeetingRequest {
       'description': description,
       'categoryId': categoryId,
       'subcategoryId': subcategoryId,
-      'createdByUserId': createdByUserId,
     };
   }
 }

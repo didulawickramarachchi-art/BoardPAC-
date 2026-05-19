@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../provider/device_provider.dart';
 
 class DeviceListScreen extends ConsumerWidget {
@@ -15,6 +17,16 @@ class DeviceListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final devicesAsync = ref.watch(deviceListProvider);
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.isSuperAdmin) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(
+          child: Text('You do not have access to devices.'),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: bgColor,

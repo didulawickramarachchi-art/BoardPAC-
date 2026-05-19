@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_error_message.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../categories/model/category_model.dart';
+import '../../categories/provider/category_provider.dart';
+import '../../subcategories/model/subcategory_model.dart';
+import '../../subcategories/provider/subcategory_provider.dart';
 import '../model/meeting_request.dart';
 import '../provider/meeting_provider.dart';
 
@@ -20,37 +25,16 @@ class _MeetingFormScreenState
   final _targetDateController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _categoryIdController = TextEditingController();
-  final _subcategoryIdController = TextEditingController();
-  final _createdByController =
-      TextEditingController(text: '1');
 
   String meetingType = 'MEETING';
+  int? selectedCategoryId;
+  int? selectedSubcategoryId;
   bool isSaving = false;
 
   static const Color primaryBlue = Color(0xFF12275B);
   static const Color darkBlue = Color(0xFF00184A);
   static const Color gold = Color(0xFFFFB52E);
   static const Color bgColor = Color(0xFFF6F7FB);
-
-  int? _readRequiredInt(
-    TextEditingController controller,
-    String fieldName,
-  ) {
-    final value = int.tryParse(controller.text.trim());
-
-    if (value == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please enter a valid $fieldName.',
-          ),
-        ),
-      );
-    }
-
-    return value;
-  }
 
   Future<void> _pickMeetingDateTime() async {
     final date = await showDatePicker(
@@ -97,8 +81,7 @@ class _MeetingFormScreenState
           time.minute,
         );
 
-        _meetingDateController.text =
-            selectedDateTime.toIso8601String();
+        _meetingDateController.text = _formatLocalDateTime(selectedDateTime);
       }
     }
   }
@@ -148,8 +131,7 @@ class _MeetingFormScreenState
           time.minute,
         );
 
-        _targetDateController.text =
-            selectedDateTime.toIso8601String();
+        _targetDateController.text = _formatLocalDateTime(selectedDateTime);
       }
     }
   }
@@ -161,33 +143,21 @@ class _MeetingFormScreenState
     _targetDateController.dispose();
     _locationController.dispose();
     _descriptionController.dispose();
-    _categoryIdController.dispose();
-    _subcategoryIdController.dispose();
-    _createdByController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    final categoryId = _readRequiredInt(
-      _categoryIdController,
-      'Category ID',
-    );
+    final categoryId = selectedCategoryId;
+    if (categoryId == null) {
+      _showValidationMessage('Please select a category.');
+      return;
+    }
 
-    if (categoryId == null) return;
-
-    final subcategoryId = _readRequiredInt(
-      _subcategoryIdController,
-      'Subcategory ID',
-    );
-
-    if (subcategoryId == null) return;
-
-    final createdByUserId = _readRequiredInt(
-      _createdByController,
-      'Created By User ID',
-    );
-
-    if (createdByUserId == null) return;
+    final subcategoryId = selectedSubcategoryId;
+    if (subcategoryId == null) {
+      _showValidationMessage('Please select a subcategory.');
+      return;
+    }
 
     final request = MeetingRequest(
       title: _titleController.text.trim(),
@@ -202,7 +172,6 @@ class _MeetingFormScreenState
       description: _descriptionController.text.trim(),
       categoryId: categoryId,
       subcategoryId: subcategoryId,
-      createdByUserId: createdByUserId,
     );
 
     setState(() => isSaving = true);
@@ -220,7 +189,10 @@ class _MeetingFormScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to create meeting: $e',
+              ApiErrorMessage.from(
+                e,
+                fallback: 'Failed to create meeting.',
+              ),
             ),
           ),
         );
@@ -232,8 +204,27 @@ class _MeetingFormScreenState
     }
   }
 
+  String _formatLocalDateTime(DateTime dateTime) {
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
+
+    return '${dateTime.year}-'
+        '${twoDigits(dateTime.month)}-'
+        '${twoDigits(dateTime.day)}T'
+        '${twoDigits(dateTime.hour)}:'
+        '${twoDigits(dateTime.minute)}:00';
+  }
+
+  void _showValidationMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final categoriesAsync = ref.watch(categoryListProvider);
+    final subcategoriesAsync = ref.watch(subcategoryListProvider);
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -352,32 +343,40 @@ class _MeetingFormScreenState
           _SectionCard(
             title: 'Reference Details',
             children: [
-              AppTextField(
-                controller: _categoryIdController,
-                hintText: 'Category ID',
-                keyboardType:
-                    TextInputType.number,
+              categoriesAsync.when(
+                data: (categories) =>
+                    _buildCategoryDropdown(categories),
+                loading: () => const _DropdownLoading(
+                  label: 'Category',
+                ),
+                error: (error, _) => _DropdownError(
+                  message:
+                      'Failed to load categories: $error',
+                  onRetry: () {
+                    ref.invalidate(categoryListProvider);
+                  },
+                ),
               ),
 
               const SizedBox(height: 12),
 
-              AppTextField(
-                controller:
-                    _subcategoryIdController,
-                hintText: 'Subcategory ID',
-                keyboardType:
-                    TextInputType.number,
+              subcategoriesAsync.when(
+                data: (subcategories) =>
+                    _buildSubcategoryDropdown(
+                  subcategories,
+                ),
+                loading: () => const _DropdownLoading(
+                  label: 'Subcategory',
+                ),
+                error: (error, _) => _DropdownError(
+                  message:
+                      'Failed to load subcategories: $error',
+                  onRetry: () {
+                    ref.invalidate(subcategoryListProvider);
+                  },
+                ),
               ),
 
-              const SizedBox(height: 12),
-
-              AppTextField(
-                controller: _createdByController,
-                hintText:
-                    'Created By User ID',
-                keyboardType:
-                    TextInputType.number,
-              ),
             ],
           ),
 
@@ -391,6 +390,99 @@ class _MeetingFormScreenState
         ],
       ),
     );
+  }
+
+  Widget _buildCategoryDropdown(
+    List<CategoryModel> categories,
+  ) {
+    return DropdownButtonFormField<int>(
+      initialValue: selectedCategoryId,
+      decoration: _dropdownDecoration('Category'),
+      dropdownColor: Colors.white,
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: primaryBlue,
+      ),
+      items: categories
+          .map(
+            (category) => DropdownMenuItem<int>(
+              value: category.id,
+              child: Text(
+                _displayName(
+                  category.displayName,
+                  category.name,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: categories.isEmpty
+          ? null
+          : (value) {
+              setState(() {
+                selectedCategoryId = value;
+                selectedSubcategoryId = null;
+              });
+            },
+    );
+  }
+
+  Widget _buildSubcategoryDropdown(
+    List<SubcategoryModel> subcategories,
+  ) {
+    final filteredSubcategories = selectedCategoryId == null
+        ? <SubcategoryModel>[]
+        : subcategories
+            .where(
+              (subcategory) =>
+                  subcategory.categoryId ==
+                  selectedCategoryId,
+            )
+            .toList();
+
+    return DropdownButtonFormField<int>(
+      initialValue: selectedSubcategoryId,
+      decoration: _dropdownDecoration('Subcategory'),
+      dropdownColor: Colors.white,
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: primaryBlue,
+      ),
+      items: filteredSubcategories
+          .map(
+            (subcategory) => DropdownMenuItem<int>(
+              value: subcategory.id,
+              child: Text(
+                _displayName(
+                  subcategory.displayName,
+                  subcategory.name,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: filteredSubcategories.isEmpty
+          ? null
+          : (value) {
+              setState(() {
+                selectedSubcategoryId = value;
+              });
+            },
+    );
+  }
+
+  String _displayName(String displayName, String name) {
+    if (displayName.trim().isNotEmpty) {
+      return displayName.trim();
+    }
+
+    if (name.trim().isNotEmpty) {
+      return name.trim();
+    }
+
+    return 'Unnamed';
   }
 
   InputDecoration _dropdownDecoration(
@@ -524,6 +616,89 @@ class _HeaderCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DropdownLoading extends StatelessWidget {
+  final String label;
+
+  const _DropdownLoading({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(
+          color: Color(0xFF7D8CB2),
+          fontWeight: FontWeight.w600,
+        ),
+        filled: true,
+        fillColor: _MeetingFormScreenState.bgColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      child: const SizedBox(
+        height: 22,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DropdownError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _DropdownError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEAEA),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Colors.red,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text('Retry'),
           ),
         ],
       ),

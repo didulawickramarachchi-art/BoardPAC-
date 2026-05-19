@@ -16,6 +16,7 @@ class AuthState {
   final String? pendingUsername;
   final bool requiresTwoFactor;
 
+  final int? userId;
   final String? username;
   final String? role;
 
@@ -24,6 +25,7 @@ class AuthState {
     this.error,
     this.pendingUsername,
     this.requiresTwoFactor = false,
+    this.userId,
     this.username,
     this.role,
   });
@@ -33,6 +35,7 @@ class AuthState {
     String? error,
     String? pendingUsername,
     bool? requiresTwoFactor,
+    int? userId,
     String? username,
     String? role,
   }) {
@@ -41,6 +44,7 @@ class AuthState {
       error: error,
       pendingUsername: pendingUsername ?? this.pendingUsername,
       requiresTwoFactor: requiresTwoFactor ?? this.requiresTwoFactor,
+      userId: userId ?? this.userId,
       username: username ?? this.username,
       role: role ?? this.role,
     );
@@ -66,6 +70,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isLoading: false,
           pendingUsername: result.username,
           requiresTwoFactor: true,
+          userId: result.userId,
           username: result.username,
           role: result.role ?? 'User',
         );
@@ -83,6 +88,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(
         isLoading: false,
         requiresTwoFactor: false,
+        userId: result.userId,
         username: result.username ?? username,
         role: result.role ?? 'User',
       );
@@ -118,6 +124,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = AuthState(
         isLoading: false,
+        userId: result.userId,
         username: result.username ?? username,
         role: result.role ?? 'User',
         requiresTwoFactor: false,

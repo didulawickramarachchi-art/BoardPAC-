@@ -19,37 +19,37 @@ public class AgendaController {
     private final AgendaSharingService agendaSharingService;
 
     @PostMapping("/sections")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<AgendaSectionResponse> createSection(@RequestBody AgendaSectionRequest request) {
         return ResponseEntity.ok(agendaService.createSection(request));
     }
 
     @GetMapping("/sections/{meetingId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<AgendaSectionResponse>> getSections(@PathVariable Long meetingId) {
         return ResponseEntity.ok(agendaService.getSections(meetingId));
     }
 
     @PostMapping("/items")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<AgendaItemResponse> createItem(@RequestBody AgendaItemRequest request) {
         return ResponseEntity.ok(agendaService.createItem(request));
     }
 
     @GetMapping("/items/{meetingId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<AgendaItemResponse>> getItems(@PathVariable Long meetingId) {
         return ResponseEntity.ok(agendaService.getItems(meetingId));
     }
 
     @PostMapping("/share")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<SharedAgendaItemResponse> shareAgendaItem(@RequestBody ShareAgendaItemRequest request) {
         return ResponseEntity.ok(agendaSharingService.shareAgendaItem(request));
     }
 
     @GetMapping("/shared/subcategory/{subcategoryId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<SharedAgendaItemResponse>> getSharedToSubcategory(@PathVariable Long subcategoryId) {
         return ResponseEntity.ok(agendaSharingService.getSharedToSubcategory(subcategoryId));
     }

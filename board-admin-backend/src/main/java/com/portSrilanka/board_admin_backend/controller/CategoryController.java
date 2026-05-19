@@ -12,27 +12,30 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
     @PostMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<CategoryResponse> create(@RequestBody CategoryRequest request) {
         return ResponseEntity.ok(categoryService.create(request));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<List<CategoryResponse>> getAll() {
         return ResponseEntity.ok(categoryService.getAll());
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<CategoryResponse> update(@PathVariable Long id, @RequestBody CategoryRequest request) {
         return ResponseEntity.ok(categoryService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<String> delete(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.delete(id));
     }

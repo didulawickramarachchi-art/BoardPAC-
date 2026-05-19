@@ -17,13 +17,13 @@ public class PackDeliveryController {
     private final PackDeliveryService packDeliveryService;
 
     @GetMapping("/paper/{paperId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<List<PackDeliveryResponse>> getByPaper(@PathVariable Long paperId) {
         return ResponseEntity.ok(packDeliveryService.getByPaper(paperId));
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<PackDeliveryResponse>> getByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(packDeliveryService.getByUser(userId));
     }

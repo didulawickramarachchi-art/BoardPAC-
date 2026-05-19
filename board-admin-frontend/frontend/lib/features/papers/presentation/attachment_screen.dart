@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../model/attachment_request.dart';
 import '../provider/paper_provider.dart';
 
@@ -75,13 +77,24 @@ class AttachmentScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final attachmentsAsync = ref.watch(attachmentListProvider(paperId));
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.canViewPapers) {
+      return const Scaffold(
+        body: Center(
+          child: Text('You do not have access to board papers.'),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text('Attachments - $paperTitle')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddDialog(context, ref),
-        child: const Icon(Icons.attach_file),
-      ),
+      floatingActionButton: access.canUploadPapers
+          ? FloatingActionButton(
+              onPressed: () => _showAddDialog(context, ref),
+              child: const Icon(Icons.attach_file),
+            )
+          : null,
       body: attachmentsAsync.when(
         data: (items) {
           if (items.isEmpty) {

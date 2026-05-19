@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../provider/privilege_provider.dart';
 import 'assign_privilege_screen.dart';
 
@@ -16,6 +18,16 @@ class PrivilegeListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final privilegesAsync = ref.watch(privilegeListProvider);
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.canManagePrivileges) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(
+          child: Text('You do not have access to privileges.'),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: bgColor,

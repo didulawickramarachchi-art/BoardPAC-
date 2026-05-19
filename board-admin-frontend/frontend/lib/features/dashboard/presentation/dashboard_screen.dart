@@ -4,6 +4,7 @@ import 'package:frontend/features/access_control/presentation/access_validation_
 import 'package:frontend/features/reports/presentation/report_home_screen.dart';
 import 'package:frontend/features/settings/presentation/setting_home_screen.dart';
 
+import '../../../core/auth/role_access.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../categories/presentation/category_list_screen.dart';
 import '../../devices/presentation/device_list_screen.dart';
@@ -11,6 +12,7 @@ import '../../meetings/presentation/meeting_list_screen.dart';
 import '../../privileges/presentation/privilege_list_screen.dart';
 import '../../subcategories/presentation/subcategory_list_screen.dart';
 import '../../users/presentation/user_list_screen.dart';
+import '../model/dashboard_summary_model.dart';
 import '../provider/dashboard_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -25,6 +27,9 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     const currentUserId = 1;
+    final authState = ref.watch(authProvider);
+    final role = authState.role ?? 'User';
+    final config = _RoleDashboardConfig.forRole(role);
     final summaryAsync = ref.watch(dashboardSummaryProvider(currentUserId));
 
     return Scaffold(
@@ -40,63 +45,13 @@ class DashboardScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _RoleOverview(config: config),
+
+                    const SizedBox(height: 16),
+
                     summaryAsync.when(
-                      data: (summary) => GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 1.18,
-                        children: [
-                          _SummaryCard(
-                            title: 'Meetings',
-                            value: summary.totalMeetings.toString(),
-                            icon: Icons.event_rounded,
-                            iconColor: gold,
-                            iconBg: const Color(0xFFFFF3DC),
-                          ),
-
-                          _SummaryCard(
-                            title: 'Circulars',
-                            value: summary.totalCirculars.toString(),
-                            icon: Icons.mail_outline_rounded,
-                            iconColor: const Color(0xFFE84393),
-                            iconBg: const Color(0xFFFFE7F2),
-                          ),
-
-                          _SummaryCard(
-                            title: 'Pending Approvals',
-                            value: summary.pendingApprovals.toString(),
-                            icon: Icons.how_to_vote_rounded,
-                            iconColor: const Color(0xFF3168F4),
-                            iconBg: const Color(0xFFEAF0FF),
-                          ),
-
-                          _SummaryCard(
-                            title: 'Unread Papers',
-                            value: summary.unreadPapers.toString(),
-                            icon: Icons.picture_as_pdf_rounded,
-                            iconColor: const Color(0xFFE74C3C),
-                            iconBg: const Color(0xFFFFEAEA),
-                          ),
-
-                          _SummaryCard(
-                            title: 'Shared Comments',
-                            value: summary.sharedComments.toString(),
-                            icon: Icons.comment_outlined,
-                            iconColor: const Color(0xFF20C997),
-                            iconBg: const Color(0xFFE0F8F1),
-                          ),
-
-                          _SummaryCard(
-                            title: 'Shared Docs',
-                            value: summary.sharedDocuments.toString(),
-                            icon: Icons.share_rounded,
-                            iconColor: const Color(0xFF7C3AED),
-                            iconBg: const Color(0xFFF1EAFE),
-                          ),
-                        ],
+                      data: (summary) => _SummaryGrid(
+                        cards: _summaryCardsForRole(summary, config),
                       ),
 
                       loading: () => const Padding(
@@ -131,11 +86,11 @@ class DashboardScreen extends ConsumerWidget {
 
                     const SizedBox(height: 24),
 
-                    const _SectionTitle(title: 'Management'),
+                    _SectionTitle(title: config.menuTitle),
 
                     const SizedBox(height: 10),
 
-                    _MenuGrid(),
+                    _MenuGrid(tiles: config.tiles),
                   ],
                 ),
               ),
@@ -436,6 +391,97 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
+class _SummaryGrid extends StatelessWidget {
+  final List<_SummaryCard> cards;
+
+  const _SummaryGrid({required this.cards});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 14,
+      mainAxisSpacing: 14,
+      childAspectRatio: 1.18,
+      children: cards,
+    );
+  }
+}
+
+class _RoleOverview extends StatelessWidget {
+  final _RoleDashboardConfig config;
+
+  const _RoleOverview({required this.config});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF233E8B).withOpacity(0.09),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(
+              config.icon,
+              color: const Color(0xFF233E8B),
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  config.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF00184A),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  config.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF7D8CB2),
+                    fontSize: 12,
+                    height: 1.25,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _UpcomingMeetingCard extends StatelessWidget {
   final String title;
   final String dateTimeText;
@@ -563,56 +609,12 @@ class _UpcomingMeetingCard extends StatelessWidget {
 }
 
 class _MenuGrid extends StatelessWidget {
+  final List<_MenuTileData> tiles;
+
+  const _MenuGrid({required this.tiles});
+
   @override
   Widget build(BuildContext context) {
-    final tiles = [
-      _MenuTileData(
-        'Users',
-        Icons.people_outline_rounded,
-        const UserListScreen(),
-      ),
-      _MenuTileData(
-        'Devices',
-        Icons.devices_other_rounded,
-        const DeviceListScreen(),
-      ),
-      _MenuTileData(
-        'Categories',
-        Icons.category_outlined,
-        const CategoryListScreen(),
-      ),
-      _MenuTileData(
-        'Subcategories',
-        Icons.account_tree_outlined,
-        const SubcategoryListScreen(),
-      ),
-      _MenuTileData(
-        'Privileges',
-        Icons.admin_panel_settings_outlined,
-        const PrivilegeListScreen(),
-      ),
-      _MenuTileData(
-        'Meetings',
-        Icons.event_note_outlined,
-        const MeetingListScreen(),
-      ),
-      _MenuTileData(
-        'Reports',
-        Icons.bar_chart_rounded,
-        const ReportHomeScreen(),
-      ),
-      _MenuTileData(
-        'Settings',
-        Icons.settings_outlined,
-        const SettingHomeScreen(),
-      ),
-      _MenuTileData(
-        'Access Control',
-        Icons.verified_user_outlined,
-        const AccessValidationScreen(),
-      ),
-    ];
-
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -753,7 +755,270 @@ class _MenuTileData {
   final IconData icon;
   final Widget screen;
 
-  _MenuTileData(this.title, this.icon, this.screen);
+  const _MenuTileData(this.title, this.icon, this.screen);
+}
+
+class _RoleDashboardConfig {
+  final String title;
+  final String subtitle;
+  final String menuTitle;
+  final IconData icon;
+  final List<String> summaryKeys;
+  final List<_MenuTileData> tiles;
+
+  const _RoleDashboardConfig({
+    required this.title,
+    required this.subtitle,
+    required this.menuTitle,
+    required this.icon,
+    required this.summaryKeys,
+    required this.tiles,
+  });
+
+  factory _RoleDashboardConfig.forRole(String role) {
+    final access = RoleAccess(role);
+
+    if (access.isSuperAdmin) {
+      return const _RoleDashboardConfig(
+        title: 'Super Admin Dashboard',
+        subtitle: 'Full system access for users, devices, setup, and reports.',
+        menuTitle: 'Management',
+        icon: Icons.admin_panel_settings_rounded,
+        summaryKeys: [
+          'users',
+          'meetings',
+          'circulars',
+          'approvals',
+          'papers',
+          'comments',
+        ],
+        tiles: _adminTiles,
+      );
+    }
+
+    if (access.isBoardAdmin) {
+      return const _RoleDashboardConfig(
+        title: 'Board Admin Dashboard',
+        subtitle: 'Manage board users and assign their privileges.',
+        menuTitle: 'User Access',
+        icon: Icons.manage_accounts_rounded,
+        summaryKeys: [
+          'users',
+          'privileges',
+        ],
+        tiles: _boardAdminTiles,
+      );
+    }
+
+    if (access.isBoardSecretary) {
+      return const _RoleDashboardConfig(
+        title: 'Board Secretary Dashboard',
+        subtitle: 'Create meetings, upload papers, and manage paper comments.',
+        menuTitle: 'Board Operations',
+        icon: Icons.event_available_rounded,
+        summaryKeys: [
+          'meetings',
+          'papers',
+          'comments',
+          'documents',
+        ],
+        tiles: _organizerTiles,
+      );
+    }
+
+    if (access.isSupportTeam) {
+      return const _RoleDashboardConfig(
+        title: 'Support Dashboard',
+        subtitle: 'View users and handle their assigned privileges.',
+        menuTitle: 'Support Tools',
+        icon: Icons.support_agent_rounded,
+        summaryKeys: [
+          'users',
+          'privileges',
+        ],
+        tiles: _supportTiles,
+      );
+    }
+
+    return const _RoleDashboardConfig(
+      title: 'Member Dashboard',
+      subtitle: 'Attend meetings and read assigned board papers.',
+      menuTitle: 'My Workspace',
+      icon: Icons.person_rounded,
+      summaryKeys: [
+        'meetings',
+        'papers',
+        'documents',
+      ],
+      tiles: _memberTiles,
+    );
+  }
+}
+
+const _adminTiles = [
+  _MenuTileData(
+    'Users',
+    Icons.people_outline_rounded,
+    UserListScreen(),
+  ),
+  _MenuTileData(
+    'Devices',
+    Icons.devices_other_rounded,
+    DeviceListScreen(),
+  ),
+  _MenuTileData(
+    'Categories',
+    Icons.category_outlined,
+    CategoryListScreen(),
+  ),
+  _MenuTileData(
+    'Subcategories',
+    Icons.account_tree_outlined,
+    SubcategoryListScreen(),
+  ),
+  _MenuTileData(
+    'Privileges',
+    Icons.admin_panel_settings_outlined,
+    PrivilegeListScreen(),
+  ),
+  _MenuTileData(
+    'Meetings',
+    Icons.event_note_outlined,
+    MeetingListScreen(),
+  ),
+  _MenuTileData(
+    'Reports',
+    Icons.bar_chart_rounded,
+    ReportHomeScreen(),
+  ),
+  _MenuTileData(
+    'Settings',
+    Icons.settings_outlined,
+    SettingHomeScreen(),
+  ),
+  _MenuTileData(
+    'Access Control',
+    Icons.verified_user_outlined,
+    AccessValidationScreen(),
+  ),
+];
+
+const _boardAdminTiles = [
+  _MenuTileData(
+    'Users',
+    Icons.people_outline_rounded,
+    UserListScreen(),
+  ),
+  _MenuTileData(
+    'Privileges',
+    Icons.admin_panel_settings_outlined,
+    PrivilegeListScreen(),
+  ),
+];
+
+const _organizerTiles = [
+  _MenuTileData(
+    'Meetings',
+    Icons.event_note_outlined,
+    MeetingListScreen(),
+  ),
+  _MenuTileData(
+    'Categories',
+    Icons.category_outlined,
+    CategoryListScreen(),
+  ),
+  _MenuTileData(
+    'Subcategories',
+    Icons.account_tree_outlined,
+    SubcategoryListScreen(),
+  ),
+];
+
+const _supportTiles = [
+  _MenuTileData(
+    'Users',
+    Icons.people_outline_rounded,
+    UserListScreen(),
+  ),
+  _MenuTileData(
+    'Privileges',
+    Icons.admin_panel_settings_outlined,
+    PrivilegeListScreen(),
+  ),
+];
+
+const _memberTiles = [
+  _MenuTileData(
+    'Meetings',
+    Icons.event_note_outlined,
+    MeetingListScreen(),
+  ),
+];
+
+List<_SummaryCard> _summaryCardsForRole(
+  DashboardSummaryModel summary,
+  _RoleDashboardConfig config,
+) {
+  final cards = <String, _SummaryCard>{
+    'users': _SummaryCard(
+      title: 'Users',
+      value: summary.totalUsers.toString(),
+      icon: Icons.people_outline_rounded,
+      iconColor: const Color(0xFF233E8B),
+      iconBg: const Color(0xFFEAF0FF),
+    ),
+    'meetings': _SummaryCard(
+      title: 'Meetings',
+      value: summary.totalMeetings.toString(),
+      icon: Icons.event_rounded,
+      iconColor: DashboardScreen.gold,
+      iconBg: const Color(0xFFFFF3DC),
+    ),
+    'circulars': _SummaryCard(
+      title: 'Circulars',
+      value: summary.totalCirculars.toString(),
+      icon: Icons.mail_outline_rounded,
+      iconColor: const Color(0xFFE84393),
+      iconBg: const Color(0xFFFFE7F2),
+    ),
+    'approvals': _SummaryCard(
+      title: 'Pending Approvals',
+      value: summary.pendingApprovals.toString(),
+      icon: Icons.how_to_vote_rounded,
+      iconColor: const Color(0xFF3168F4),
+      iconBg: const Color(0xFFEAF0FF),
+    ),
+    'papers': _SummaryCard(
+      title: 'Unread Papers',
+      value: summary.unreadPapers.toString(),
+      icon: Icons.picture_as_pdf_rounded,
+      iconColor: const Color(0xFFE74C3C),
+      iconBg: const Color(0xFFFFEAEA),
+    ),
+    'comments': _SummaryCard(
+      title: 'Shared Comments',
+      value: summary.sharedComments.toString(),
+      icon: Icons.comment_outlined,
+      iconColor: const Color(0xFF20C997),
+      iconBg: const Color(0xFFE0F8F1),
+    ),
+    'documents': _SummaryCard(
+      title: 'Shared Docs',
+      value: summary.sharedDocuments.toString(),
+      icon: Icons.share_rounded,
+      iconColor: const Color(0xFF7C3AED),
+      iconBg: const Color(0xFFF1EAFE),
+    ),
+    'privileges': _SummaryCard(
+      title: 'Privileges',
+      value: summary.totalUsers.toString(),
+      icon: Icons.admin_panel_settings_outlined,
+      iconColor: const Color(0xFF233E8B),
+      iconBg: const Color(0xFFEAF0FF),
+    ),
+  };
+
+  return config.summaryKeys.map((key) => cards[key]!).toList();
 }
 
 String _greetingText() {

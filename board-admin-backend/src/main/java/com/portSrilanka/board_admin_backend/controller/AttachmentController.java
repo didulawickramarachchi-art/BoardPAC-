@@ -17,13 +17,13 @@ public class AttachmentController {
     private final AttachmentService attachmentService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<PaperAttachmentResponse> add(@RequestBody PaperAttachmentRequest request) {
         return ResponseEntity.ok(attachmentService.addAttachment(request));
     }
 
     @GetMapping("/paper/{paperId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<PaperAttachmentResponse>> getByPaper(@PathVariable Long paperId) {
         return ResponseEntity.ok(attachmentService.getAttachments(paperId));
     }

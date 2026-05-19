@@ -155,7 +155,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                           _LoginTextField(
                             controller: _usernameController,
-                            hintText: 'your.name@slpa.lk',
+                            hintText: 'User Name',
                             icon: Icons.person,
                           ),
 

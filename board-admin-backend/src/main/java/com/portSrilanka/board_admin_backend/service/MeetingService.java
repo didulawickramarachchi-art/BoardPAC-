@@ -28,7 +28,7 @@ public class MeetingService {
     private final AuditService auditService;
 
     @Transactional
-    public MeetingResponse create(MeetingRequest request) {
+    public MeetingResponse create(MeetingRequest request, String username) {
         validateMeetingRequest(request);
 
         Category category = categoryRepository.findById(request.getCategoryId())
@@ -37,21 +37,11 @@ public class MeetingService {
         Subcategory subcategory = subcategoryRepository.findById(request.getSubcategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Subcategory not found"));
 
-        User createdBy = userRepository.findById(request.getCreatedByUserId())
+        User createdBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
 
         if (createdBy.getStatus() != UserStatus.ACTIVE) {
             throw new BadRequestException("Inactive user cannot create meetings");
-        }
-
-        boolean hasAccess = accessRepository.findByUserId(createdBy.getId())
-                .stream()
-                .anyMatch(access -> access.getSubcategory()
-                        .getId()
-                        .equals(subcategory.getId()));
-
-        if (!hasAccess) {
-            throw new BadRequestException("User does not have permission to create meeting for this subcategory");
         }
 
         Meeting meeting = Meeting.builder()
@@ -339,9 +329,6 @@ public class MeetingService {
             throw new BadRequestException("Subcategory id is required");
         }
 
-        if (request.getCreatedByUserId() == null) {
-            throw new BadRequestException("Created by user id is required");
-        }
     }
 
     private MeetingResponse mapMeeting(Meeting meeting) {

@@ -13,7 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/settings")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SettingController {
 
     private final SettingService settingService;

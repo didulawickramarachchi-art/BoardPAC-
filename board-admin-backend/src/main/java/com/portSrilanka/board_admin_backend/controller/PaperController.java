@@ -17,31 +17,31 @@ public class PaperController {
     private final PaperService paperService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<PaperResponse> create(@RequestBody PaperRequest request) {
         return ResponseEntity.ok(paperService.create(request));
     }
 
     @GetMapping("/meeting/{meetingId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<PaperResponse>> getByMeeting(@PathVariable Long meetingId) {
         return ResponseEntity.ok(paperService.getByMeeting(meetingId));
     }
 
     @GetMapping("/agenda-item/{agendaItemId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<PaperResponse>> getByAgendaItem(@PathVariable Long agendaItemId) {
         return ResponseEntity.ok(paperService.getByAgendaItem(agendaItemId));
     }
 
     @PutMapping("/{paperId}/read/{userId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<String> markRead(@PathVariable Long paperId, @PathVariable Long userId) {
         return ResponseEntity.ok(paperService.markRead(paperId, userId));
     }
 
     @PostMapping("/share")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
     public ResponseEntity<String> sharePaper(@RequestBody SharePaperRequest request) {
         return ResponseEntity.ok(paperService.sharePaper(request));
     }

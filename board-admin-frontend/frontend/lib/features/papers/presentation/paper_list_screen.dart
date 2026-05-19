@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/features/annotations/presentation/annotation_screen.dart';
 
+import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../auth/provider/auth_provider.dart';
+import '../../comments/presentation/comment_screen.dart';
 import '../provider/paper_provider.dart';
 import 'attachment_screen.dart';
 import 'paper_form_screen.dart';
@@ -21,6 +24,15 @@ class PaperListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final papersAsync = ref.watch(paperListProvider(meetingId));
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.canViewPapers) {
+      return const Scaffold(
+        body: Center(
+          child: Text('You do not have access to board papers.'),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -35,20 +47,22 @@ class PaperListScreen extends ConsumerWidget {
         ],
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: const Text('Add Paper'),
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PaperFormScreen(meetingId: meetingId),
-            ),
-          );
+      floatingActionButton: access.canUploadPapers
+          ? FloatingActionButton.extended(
+              icon: const Icon(Icons.add),
+              label: const Text('Add Paper'),
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PaperFormScreen(meetingId: meetingId),
+                  ),
+                );
 
-          ref.refresh(paperListProvider(meetingId));
-        },
-      ),
+                ref.refresh(paperListProvider(meetingId));
+              },
+            )
+          : null,
 
       body: papersAsync.when(
         data: (items) {
@@ -130,13 +144,20 @@ class PaperListScreen extends ConsumerWidget {
                             ),
                           ),
                         );
-                      } else if (value == 'approve') {
+                      } else if (value == 'approve' && access.canUploadPapers) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Approve action')),
                         );
-                      } else if (value == 'comment') {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Comment action')),
+                      } else if (value == 'comment' &&
+                          access.canCommentPapers) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CommentScreen(
+                              paperId: paper.id,
+                              title: paper.title,
+                            ),
+                          ),
                         );
                       }
                     },
@@ -149,15 +170,16 @@ class PaperListScreen extends ConsumerWidget {
                         value: 'annotations',
                         child: Text('Annotations'),
                       ),
-                      if (paper.requiresApproval)
+                      if (paper.requiresApproval && access.canUploadPapers)
                         const PopupMenuItem(
                           value: 'approve',
                           child: Text('Approve'),
                         ),
-                      const PopupMenuItem(
-                        value: 'comment',
-                        child: Text('Comment'),
-                      ),
+                      if (access.canCommentPapers)
+                        const PopupMenuItem(
+                          value: 'comment',
+                          child: Text('Comments'),
+                        ),
                     ],
                   ),
 

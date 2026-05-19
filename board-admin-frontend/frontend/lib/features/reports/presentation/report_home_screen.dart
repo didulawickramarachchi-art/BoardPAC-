@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
+import '../../auth/provider/auth_provider.dart';
 import 'audit_log_screen.dart';
 import 'license_utilization_screen.dart';
 import 'login_history_screen.dart';
 import 'pending_approval_screen.dart';
 import 'user_category_report_screen.dart';
 
-class ReportHomeScreen extends StatelessWidget {
+class ReportHomeScreen extends ConsumerWidget {
   const ReportHomeScreen({super.key});
 
   static const Color primaryBlue = Color(0xFF12275B);
@@ -14,7 +17,18 @@ class ReportHomeScreen extends StatelessWidget {
   static const Color bgColor = Color(0xFFF6F7FB);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.canViewReports) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(
+          child: Text('You do not have access to reports.'),
+        ),
+      );
+    }
+
     final items = [
       _ReportItem(
         title: 'Login History',

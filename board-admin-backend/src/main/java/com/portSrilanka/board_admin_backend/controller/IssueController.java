@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/issues")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class IssueController {
 
     private final IssueService issueService;

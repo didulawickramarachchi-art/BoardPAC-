@@ -9,7 +9,10 @@ import lombok.*;
 public class LoginResponse {
     private String token;
     private String refreshToken;
+    private Long userId;
     private String username;
+    private String role;
+    private String boardType;
     private String message;
     private boolean requiresTwoFactor;
 }

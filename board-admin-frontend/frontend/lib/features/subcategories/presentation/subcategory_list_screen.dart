@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/auth/role_access.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../auth/provider/auth_provider.dart';
+import '../../categories/model/category_model.dart';
+import '../../categories/provider/category_provider.dart';
+import '../model/subcategory_request.dart';
 import '../provider/subcategory_provider.dart';
 
 class SubcategoryListScreen extends ConsumerWidget {
@@ -13,9 +19,220 @@ class SubcategoryListScreen extends ConsumerWidget {
   static const Color gold = Color(0xFFFFB52E);
   static const Color bgColor = Color(0xFFF6F7FB);
 
+  Future<void> _showCreateDialog(BuildContext context, WidgetRef ref) async {
+    List<CategoryModel> loadedCategories = [];
+
+    try {
+      loadedCategories = await ref.read(categoryListProvider.future);
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ApiErrorMessage.from(
+              e,
+              fallback: 'Failed to load categories.',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final categories = {
+      for (final category in loadedCategories) category.id: category,
+    }.values.toList();
+
+    if (categories.isEmpty) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please create a category first.'),
+        ),
+      );
+      return;
+    }
+
+    final nameController = TextEditingController();
+    final displayNameController = TextEditingController();
+    final displayOrderController = TextEditingController();
+
+    int selectedCategoryId = categories.first.id;
+
+    final request = await showDialog<SubcategoryRequest>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setLocalState) {
+            return AlertDialog(
+              title: const Text('Create Subcategory'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<int>(
+                      value: selectedCategoryId,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                      ),
+                      items: categories.map((category) {
+                        return DropdownMenuItem<int>(
+                          value: category.id,
+                          child: Text(_categoryLabel(category)),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+
+                        setLocalState(() {
+                          selectedCategoryId = value;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Name',
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: displayNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Display Name',
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: displayOrderController,
+                      decoration: const InputDecoration(
+                        labelText: 'Display Order',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    final displayName = displayNameController.text.trim();
+                    final displayOrderText =
+                        displayOrderController.text.trim();
+
+                    if (name.isEmpty || displayName.isEmpty) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Please enter all required details.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    int? displayOrder;
+
+                    if (displayOrderText.isNotEmpty) {
+                      displayOrder = int.tryParse(displayOrderText);
+
+                      if (displayOrder == null) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Display order must be a number.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                    }
+
+                    Navigator.pop(
+                      dialogContext,
+                      SubcategoryRequest(
+                        name: name,
+                        displayName: displayName,
+                        displayOrder: displayOrder,
+                        categoryId: selectedCategoryId,
+                      ),
+                    );
+                  },
+                  child: const Text('Create'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    nameController.dispose();
+    displayNameController.dispose();
+    displayOrderController.dispose();
+
+    if (request == null) return;
+
+    try {
+      await ref
+          .read(subcategoryRepositoryProvider)
+          .createSubcategory(request)
+          .timeout(const Duration(seconds: 10));
+
+      ref.invalidate(categoryListProvider);
+      ref.invalidate(subcategoryListProvider);
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Subcategory created successfully.'),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ApiErrorMessage.from(
+              e,
+              fallback: 'Failed to create subcategory.',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subcategoriesAsync = ref.watch(subcategoryListProvider);
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.canManageBoardSetup) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(
+          child: Text('You do not have access to subcategories.'),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -29,10 +246,19 @@ class SubcategoryListScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: gold,
+        foregroundColor: darkBlue,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add Subcategory'),
+        onPressed: () => _showCreateDialog(context, ref),
+      ),
       body: subcategoriesAsync.when(
         data: (items) {
           if (items.isEmpty) {
-            return const AppEmptyState(message: 'No subcategories found');
+            return const AppEmptyState(
+              message: 'No subcategories found',
+            );
           }
 
           return ListView.separated(
@@ -157,6 +383,18 @@ class SubcategoryListScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _categoryLabel(CategoryModel category) {
+  if (category.displayName.trim().isNotEmpty) {
+    return category.displayName.trim();
+  }
+
+  if (category.name.trim().isNotEmpty) {
+    return category.name.trim();
+  }
+
+  return 'Unnamed Category';
 }
 
 class _SubcategoryErrorState extends StatelessWidget {

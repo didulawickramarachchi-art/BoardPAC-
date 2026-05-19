@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
+import '../../auth/provider/auth_provider.dart';
 import 'setting_group_screen.dart';
 
-class SettingHomeScreen extends StatelessWidget {
+class SettingHomeScreen extends ConsumerWidget {
   const SettingHomeScreen({super.key});
 
   static const Color navy = Color(0xFF14275B);
@@ -12,7 +15,18 @@ class SettingHomeScreen extends StatelessWidget {
   static const Color subTextColor = Color(0xFF6E7FA8);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.canManageSettings) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(
+          child: Text('You do not have access to settings.'),
+        ),
+      );
+    }
+
     final groups = const [
       SettingGroupItem(
         title: 'Meeting & Circular',

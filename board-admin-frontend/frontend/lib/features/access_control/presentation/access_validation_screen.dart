@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/app_status_chip.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../provider/access_provider.dart';
 
 class AccessValidationScreen extends ConsumerStatefulWidget {
@@ -37,6 +39,17 @@ class _AccessValidationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.isSuperAdmin) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(
+          child: Text('You do not have access to access validation.'),
+        ),
+      );
+    }
+
     final args = (
       userId: int.tryParse(userIdController.text.trim()) ?? 1,
       channel: channel,

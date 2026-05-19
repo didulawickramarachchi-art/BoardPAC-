@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../provider/user_provider.dart';
 import 'user_form_screen.dart';
 
@@ -16,6 +18,16 @@ class UserListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(userListProvider);
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.canViewUsers) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(
+          child: Text('You do not have access to users.'),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -155,113 +167,114 @@ class UserListScreen extends ConsumerWidget {
 
                       const SizedBox(width: 8),
 
-                      PopupMenuButton<String>(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        icon: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: primaryBlue.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
+                      if (access.canManageUsers)
+                        PopupMenuButton<String>(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(
-                            Icons.more_vert_rounded,
-                            color: primaryBlue,
-                            size: 22,
+                          icon: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: primaryBlue.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.more_vert_rounded,
+                              color: primaryBlue,
+                              size: 22,
+                            ),
                           ),
-                        ),
-                        onSelected: (value) async {
-                          final notifier =
-                              ref.read(userListProvider.notifier);
+                          onSelected: (value) async {
+                            final notifier =
+                                ref.read(userListProvider.notifier);
 
-                          switch (value) {
-                            case 'edit':
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => UserFormScreen(user: user),
-                                ),
-                              );
-                              break;
-
-                            case 'deactivate':
-                              await notifier.deactivateUser(user.id);
-                              break;
-
-                            case 'activate':
-                              await notifier.activateUser(user.id);
-                              break;
-
-                            case 'lock':
-                              await notifier.lockUser(user.id);
-                              break;
-
-                            case 'unlock':
-                              await notifier.unlockUser(user.id);
-                              break;
-
-                            case 'reset':
-                              await notifier.resetPassword(user.id);
-
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Password reset sent'),
+                            switch (value) {
+                              case 'edit':
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => UserFormScreen(user: user),
                                   ),
                                 );
-                              }
-                              break;
-                          }
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: _PopupItem(
-                              icon: Icons.edit_outlined,
-                              text: 'Edit',
+                                break;
+
+                              case 'deactivate':
+                                await notifier.deactivateUser(user.id);
+                                break;
+
+                              case 'activate':
+                                await notifier.activateUser(user.id);
+                                break;
+
+                              case 'lock':
+                                await notifier.lockUser(user.id);
+                                break;
+
+                              case 'unlock':
+                                await notifier.unlockUser(user.id);
+                                break;
+
+                              case 'reset':
+                                await notifier.resetPassword(user.id);
+
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Password reset sent'),
+                                    ),
+                                  );
+                                }
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: _PopupItem(
+                                icon: Icons.edit_outlined,
+                                text: 'Edit',
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 'activate',
-                            child: _PopupItem(
-                              icon: Icons.check_circle_outline,
-                              text: 'Activate',
+                            PopupMenuItem(
+                              value: 'activate',
+                              child: _PopupItem(
+                                icon: Icons.check_circle_outline,
+                                text: 'Activate',
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 'deactivate',
-                            child: _PopupItem(
-                              icon: Icons.block_outlined,
-                              text: 'Deactivate',
+                            PopupMenuItem(
+                              value: 'deactivate',
+                              child: _PopupItem(
+                                icon: Icons.block_outlined,
+                                text: 'Deactivate',
+                              ),
                             ),
-                          ),
-                          PopupMenuDivider(),
-                          PopupMenuItem(
-                            value: 'lock',
-                            child: _PopupItem(
-                              icon: Icons.lock_outline,
-                              text: 'Lock',
+                            PopupMenuDivider(),
+                            PopupMenuItem(
+                              value: 'lock',
+                              child: _PopupItem(
+                                icon: Icons.lock_outline,
+                                text: 'Lock',
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 'unlock',
-                            child: _PopupItem(
-                              icon: Icons.lock_open_outlined,
-                              text: 'Unlock',
+                            PopupMenuItem(
+                              value: 'unlock',
+                              child: _PopupItem(
+                                icon: Icons.lock_open_outlined,
+                                text: 'Unlock',
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 'reset',
-                            child: _PopupItem(
-                              icon: Icons.restart_alt_rounded,
-                              text: 'Reset Password',
+                            PopupMenuItem(
+                              value: 'reset',
+                              child: _PopupItem(
+                                icon: Icons.restart_alt_rounded,
+                                text: 'Reset Password',
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                     ],
                   ),
                 ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../../agendas/presentation/agenda_section_screen.dart';
 import '../../papers/presentation/paper_list_screen.dart';
 import '../provider/meeting_provider.dart';
@@ -19,6 +21,16 @@ class MeetingListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final meetingsAsync = ref.watch(meetingListProvider);
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+
+    if (!access.canViewMeetings) {
+      return const Scaffold(
+        backgroundColor: bgColor,
+        body: Center(
+          child: Text('You do not have access to meetings.'),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -32,21 +44,23 @@ class MeetingListScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: gold,
-        foregroundColor: darkBlue,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const MeetingFormScreen()),
-          );
-        },
-        child: const Icon(Icons.add_rounded),
-      ),
+      floatingActionButton: access.canManageMeetings
+          ? FloatingActionButton(
+              backgroundColor: gold,
+              foregroundColor: darkBlue,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MeetingFormScreen()),
+                );
+              },
+              child: const Icon(Icons.add_rounded),
+            )
+          : null,
       body: meetingsAsync.when(
         data: (items) {
           if (items.isEmpty) {
@@ -66,7 +80,7 @@ class MeetingListScreen extends ConsumerWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(22),
                   onTap: () {
-                    _showMeetingOptions(context, meeting);
+                    _showMeetingOptions(context, meeting, access);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(14),
@@ -185,53 +199,54 @@ class MeetingListScreen extends ConsumerWidget {
 
                         const SizedBox(width: 8),
 
-                        PopupMenuButton<String>(
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          icon: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: primaryBlue.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(12),
+                        if (access.canManageMeetings)
+                          PopupMenuButton<String>(
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Icon(
-                              Icons.more_vert_rounded,
-                              color: primaryBlue,
-                              size: 22,
-                            ),
-                          ),
-                          onSelected: (value) async {
-                            final notifier =
-                                ref.read(meetingListProvider.notifier);
-
-                            if (value == 'open') {
-                              await notifier.openMeeting(meeting.id);
-                            }
-
-                            if (value == 'close') {
-                              await notifier.closeMeeting(meeting.id);
-                            }
-                          },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(
-                              value: 'open',
-                              child: _PopupItem(
-                                icon: Icons.lock_open_outlined,
-                                text: 'Open',
+                            icon: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: primaryBlue.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.more_vert_rounded,
+                                color: primaryBlue,
+                                size: 22,
                               ),
                             ),
-                            PopupMenuItem(
-                              value: 'close',
-                              child: _PopupItem(
-                                icon: Icons.lock_outline,
-                                text: 'Close',
+                            onSelected: (value) async {
+                              final notifier =
+                                  ref.read(meetingListProvider.notifier);
+
+                              if (value == 'open') {
+                                await notifier.openMeeting(meeting.id);
+                              }
+
+                              if (value == 'close') {
+                                await notifier.closeMeeting(meeting.id);
+                              }
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: 'open',
+                                child: _PopupItem(
+                                  icon: Icons.lock_open_outlined,
+                                  text: 'Open',
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                              PopupMenuItem(
+                                value: 'close',
+                                child: _PopupItem(
+                                  icon: Icons.lock_outline,
+                                  text: 'Close',
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -258,7 +273,11 @@ class MeetingListScreen extends ConsumerWidget {
     );
   }
 
-  static void _showMeetingOptions(BuildContext context, dynamic meeting) {
+  static void _showMeetingOptions(
+    BuildContext context,
+    dynamic meeting,
+    RoleAccess access,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -283,41 +302,43 @@ class MeetingListScreen extends ConsumerWidget {
                 ),
               ),
 
-              _BottomSheetTile(
-                icon: Icons.group_outlined,
-                title: 'Participants',
-                subtitle: 'View and manage meeting participants',
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ParticipantListScreen(
-                        meetingId: meeting.id,
-                        meetingTitle: meeting.title,
+              if (access.canManageMeetings)
+                _BottomSheetTile(
+                  icon: Icons.group_outlined,
+                  title: 'Participants',
+                  subtitle: 'View and manage meeting participants',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ParticipantListScreen(
+                          meetingId: meeting.id,
+                          meetingTitle: meeting.title,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
 
-              _BottomSheetTile(
-                icon: Icons.view_list_outlined,
-                title: 'Agenda Sections',
-                subtitle: 'Manage agenda items and sections',
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AgendaSectionScreen(
-                        meetingId: meeting.id,
-                        meetingTitle: meeting.title,
+              if (access.canManageMeetings)
+                _BottomSheetTile(
+                  icon: Icons.view_list_outlined,
+                  title: 'Agenda Sections',
+                  subtitle: 'Manage agenda items and sections',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AgendaSectionScreen(
+                          meetingId: meeting.id,
+                          meetingTitle: meeting.title,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
 
               _BottomSheetTile(
                 icon: Icons.picture_as_pdf_outlined,

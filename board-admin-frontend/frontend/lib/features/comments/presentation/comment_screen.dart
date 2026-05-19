@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../model/comment_request.dart';
 import '../model/share_comment_request.dart';
 import '../model/share_paper_request.dart';
@@ -186,15 +188,24 @@ class CommentScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
     final asyncComments = paperId != null
         ? ref.watch(paperCommentProvider(paperId!))
         : ref.watch(meetingCommentProvider(meetingId!));
+
+    if (!access.canCommentPapers) {
+      return const Scaffold(
+        body: Center(
+          child: Text('You do not have access to paper comments.'),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Comments - $title'),
         actions: [
-          if (paperId != null)
+          if (paperId != null && access.canCommentPapers)
             IconButton(
               onPressed: () => _showSharePaperDialog(context, ref),
               icon: const Icon(Icons.share_outlined),

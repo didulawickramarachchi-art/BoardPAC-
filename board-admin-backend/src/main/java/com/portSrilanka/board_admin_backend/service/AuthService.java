@@ -48,8 +48,12 @@ public class AuthService {
             throw new BadRequestException("Board email already exists");
         }
 
-        Role userRole = roleRepository.findByName(SystemRole.BOARD_ADMIN)
-                .orElseThrow(() -> new BadRequestException("Default role not found"));
+        SystemRole requestedRole = request.getRole() != null
+                ? request.getRole()
+                : SystemRole.MEMBER;
+
+        Role userRole = roleRepository.findByName(requestedRole)
+                .orElseThrow(() -> new BadRequestException("Role not found: " + requestedRole));
 
         User user = User.builder()
                 .username(request.getUsername())
@@ -96,9 +100,19 @@ public class AuthService {
 
         return LoginResponse.builder()
                 .token(token)
+                .userId(user.getId())
                 .username(user.getUsername())
+                .role(getPrimaryRole(user))
+                .boardType(user.getBoardType() != null ? user.getBoardType().name() : null)
                 .message("Login successful")
                 .build();
+    }
+
+    private String getPrimaryRole(User user) {
+        return user.getRoles().stream()
+                .findFirst()
+                .map(role -> role.getName().name())
+                .orElse(SystemRole.MEMBER.name());
     }
 
     private void recordLoginHistory(User user, String username, LoginStatus status) {
@@ -140,7 +154,10 @@ public LoginResponse verifyTwoFactor(String username, String code) {
     return LoginResponse.builder()
             .token(token)
             .refreshToken(refreshToken)
+            .userId(user.getId())
             .username(user.getUsername())
+            .role(getPrimaryRole(user))
+            .boardType(user.getBoardType() != null ? user.getBoardType().name() : null)
             .message("2FA verification successful")
             .requiresTwoFactor(false)
             .build();
