@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
-import '../../../core/network/api_error_message.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../auth/provider/auth_provider.dart';
-import '../model/category_request.dart';
 import '../provider/category_provider.dart';
+import 'category_form_screen.dart';
 
 class CategoryListScreen extends ConsumerWidget {
   const CategoryListScreen({super.key});
@@ -16,105 +15,18 @@ class CategoryListScreen extends ConsumerWidget {
   static const Color gold = Color(0xFFFFB52E);
   static const Color bgColor = Color(0xFFF6F7FB);
 
-  Future<void> _showCreateDialog(BuildContext context, WidgetRef ref) async {
-    final nameController = TextEditingController();
-    final displayNameController = TextEditingController();
-    final displayOrderController = TextEditingController();
-
-    final request = await showDialog<CategoryRequest>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Create Category'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: displayNameController,
-                decoration: const InputDecoration(labelText: 'Display Name'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: displayOrderController,
-                decoration: const InputDecoration(
-                  labelText: 'Display Order',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final name = nameController.text.trim();
-              final displayName = displayNameController.text.trim();
-              final displayOrder = displayOrderController.text.trim();
-
-              if (name.isEmpty || displayName.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter name and display name.'),
-                  ),
-                );
-                return;
-              }
-
-              Navigator.pop(
-                context,
-                CategoryRequest(
-                  name: name,
-                  displayName: displayName,
-                  displayOrder:
-                      displayOrder.isEmpty ? null : int.tryParse(displayOrder),
-                ),
-              );
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
+  Future<void> _openCreateScreen(BuildContext context, WidgetRef ref) async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const CategoryFormScreen()),
     );
 
-    nameController.dispose();
-    displayNameController.dispose();
-    displayOrderController.dispose();
-
-    if (request == null) return;
-
-    try {
-      await ref
-          .read(categoryRepositoryProvider)
-          .createCategory(request)
-          .timeout(const Duration(seconds: 10));
-
+    if (created == true) {
       ref.invalidate(categoryListProvider);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Category created successfully.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ApiErrorMessage.from(
-                e,
-                fallback: 'Failed to create category.',
-              ),
-            ),
-          ),
         );
       }
     }
@@ -151,7 +63,7 @@ class CategoryListScreen extends ConsumerWidget {
         foregroundColor: darkBlue,
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add Category'),
-        onPressed: () => _showCreateDialog(context, ref),
+        onPressed: () => _openCreateScreen(context, ref),
       ),
       body: categoriesAsync.when(
         data: (categories) {
