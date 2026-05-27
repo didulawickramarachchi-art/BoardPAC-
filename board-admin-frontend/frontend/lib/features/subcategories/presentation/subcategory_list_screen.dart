@@ -34,6 +34,57 @@ class SubcategoryListScreen extends ConsumerWidget {
     }
   }
 
+  Future<bool?> _showDeleteConfirmation(
+    BuildContext context,
+    String title,
+  ) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete subcategory'),
+          content: Text('Are you sure you want to delete "$title"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteSubcategory(
+    BuildContext context,
+    WidgetRef ref,
+    item,
+  ) async {
+    final confirmed = await _showDeleteConfirmation(context, item.name);
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(subcategoryRepositoryProvider).deleteSubcategory(item.id);
+      ref.invalidate(subcategoryListProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Subcategory deleted successfully.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete subcategory: $error')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subcategoriesAsync = ref.watch(subcategoryListProvider);
@@ -177,6 +228,23 @@ class SubcategoryListScreen extends ConsumerWidget {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+
+                      GestureDetector(
+                        onTap: () => _deleteSubcategory(context, ref, sub),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: primaryBlue.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.redAccent,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ],

@@ -14,9 +14,11 @@ class SubcategoryRepository {
         .toList();
   }
 
-  Future<void> createSubcategory(
-    SubcategoryRequest request,
-  ) async {
+  Future<void> createSubcategory(SubcategoryRequest request) async {
     await dio.post('/subcategories', data: request.toJson());
+  }
+
+  Future<void> deleteSubcategory(int subcategoryId) async {
+    await dio.delete('/subcategories/$subcategoryId');
   }
 }

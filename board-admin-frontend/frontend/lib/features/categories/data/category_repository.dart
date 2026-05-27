@@ -17,4 +17,8 @@ class CategoryRepository {
   Future<void> createCategory(CategoryRequest request) async {
     await dio.post('/categories', data: request.toJson());
   }
+
+  Future<void> deleteCategory(int categoryId) async {
+    await dio.delete('/categories/$categoryId');
+  }
 }

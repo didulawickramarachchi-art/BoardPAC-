@@ -32,6 +32,57 @@ class CategoryListScreen extends ConsumerWidget {
     }
   }
 
+  Future<bool?> _showDeleteConfirmation(
+    BuildContext context,
+    String title,
+  ) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete category'),
+          content: Text('Are you sure you want to delete "$title"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteCategory(
+    BuildContext context,
+    WidgetRef ref,
+    category,
+  ) async {
+    final confirmed = await _showDeleteConfirmation(context, category.name);
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(categoryRepositoryProvider).deleteCategory(category.id);
+      ref.invalidate(categoryListProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Category deleted successfully.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete category: $error')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(categoryListProvider);
@@ -40,9 +91,7 @@ class CategoryListScreen extends ConsumerWidget {
     if (!access.canManageBoardSetup) {
       return const Scaffold(
         backgroundColor: bgColor,
-        body: Center(
-          child: Text('You do not have access to categories.'),
-        ),
+        body: Center(child: Text('You do not have access to categories.')),
       );
     }
 
@@ -68,9 +117,7 @@ class CategoryListScreen extends ConsumerWidget {
       body: categoriesAsync.when(
         data: (categories) {
           if (categories.isEmpty) {
-            return const AppEmptyState(
-              message: 'No categories found',
-            );
+            return const AppEmptyState(message: 'No categories found');
           }
 
           return ListView.separated(
@@ -177,17 +224,20 @@ class CategoryListScreen extends ConsumerWidget {
                         ),
                       ),
 
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: primaryBlue.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: primaryBlue,
-                          size: 16,
+                      GestureDetector(
+                        onTap: () => _deleteCategory(context, ref, category),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: primaryBlue.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.redAccent,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ],
