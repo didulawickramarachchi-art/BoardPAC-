@@ -102,7 +102,7 @@ class _AccessValidationScreenState
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
-                    value: channel,
+                    initialValue: channel,
                     decoration: InputDecoration(
                       labelText: 'Requested Channel',
                       prefixIcon: const Icon(

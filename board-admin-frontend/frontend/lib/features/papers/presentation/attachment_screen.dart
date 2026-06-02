@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
@@ -24,52 +25,73 @@ class AttachmentScreen extends ConsumerWidget {
 
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Add Attachment'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: fileNameController,
-              decoration: const InputDecoration(labelText: 'File Name'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Add Attachment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: fileNameController,
+                decoration: const InputDecoration(labelText: 'File Name'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final result = await FilePicker.platform.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'],
+                    allowMultiple: false,
+                  );
+                  if (result != null && result.files.isNotEmpty) {
+                    final file = result.files.first;
+                    filePathController.text = file.path ?? '';
+                    if (fileNameController.text.trim().isEmpty) {
+                      fileNameController.text = file.name;
+                    }
+                    setState(() {});
+                  }
+                },
+                icon: const Icon(Icons.attach_file),
+                label: const Text('Choose PDF or Image'),
+              ),
+              if (filePathController.text.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('Selected file: ${fileNameController.text}'),
+              ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: orderController,
+                decoration: const InputDecoration(labelText: 'Display Order'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: filePathController,
-              decoration: const InputDecoration(labelText: 'File Path'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: orderController,
-              decoration: const InputDecoration(labelText: 'Display Order'),
-              keyboardType: TextInputType.number,
+            FilledButton(
+              onPressed: () async {
+                await ref
+                    .read(attachmentListProvider(paperId).notifier)
+                    .addAttachment(
+                      AttachmentRequest(
+                        paperId: paperId,
+                        fileName: fileNameController.text.trim(),
+                        filePath: filePathController.text.trim(),
+                        displayOrder: orderController.text.trim().isEmpty
+                            ? null
+                            : int.parse(orderController.text.trim()),
+                      ),
+                    );
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: const Text('Add'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await ref
-                  .read(attachmentListProvider(paperId).notifier)
-                  .addAttachment(
-                    AttachmentRequest(
-                      paperId: paperId,
-                      fileName: fileNameController.text.trim(),
-                      filePath: filePathController.text.trim(),
-                      displayOrder: orderController.text.trim().isEmpty
-                          ? null
-                          : int.parse(orderController.text.trim()),
-                    ),
-                  );
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
   }
