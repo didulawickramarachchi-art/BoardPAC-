@@ -26,8 +26,8 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const currentUserId = 1;
     final authState = ref.watch(authProvider);
+    final currentUserId = authState.userId ?? 1;
     final role = authState.role ?? 'User';
     final config = _RoleDashboardConfig.forRole(role);
     final summaryAsync = ref.watch(dashboardSummaryProvider(currentUserId));
@@ -90,7 +90,10 @@ class DashboardScreen extends ConsumerWidget {
 
                     const SizedBox(height: 10),
 
-                    _MenuGrid(tiles: config.tiles),
+                    _MenuGrid(
+                      tiles: config.tiles,
+                      currentUserId: currentUserId,
+                    ),
                   ],
                 ),
               ),
@@ -608,13 +611,17 @@ class _UpcomingMeetingCard extends StatelessWidget {
   }
 }
 
-class _MenuGrid extends StatelessWidget {
+class _MenuGrid extends ConsumerWidget {
   final List<_MenuTileData> tiles;
+  final int currentUserId;
 
-  const _MenuGrid({required this.tiles});
+  const _MenuGrid({
+    required this.tiles,
+    required this.currentUserId,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -633,11 +640,12 @@ class _MenuGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => item.screen),
               );
+              ref.refresh(dashboardSummaryProvider(currentUserId));
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -778,10 +786,10 @@ class _RoleDashboardConfig {
   factory _RoleDashboardConfig.forRole(String role) {
     final access = RoleAccess(role);
 
-    if (access.isSuperAdmin) {
+    if (access.isAdmin) {
       return const _RoleDashboardConfig(
-        title: 'Super Admin Dashboard',
-        subtitle: 'Full system access for users, devices, setup, and reports.',
+        title: 'Admin Dashboard',
+        subtitle: 'Manage users, meetings, approvals, and system settings.',
         menuTitle: 'Management',
         icon: Icons.admin_panel_settings_rounded,
         summaryKeys: [
@@ -789,60 +797,30 @@ class _RoleDashboardConfig {
           'meetings',
           'circulars',
           'approvals',
-          'papers',
-          'comments',
         ],
         tiles: _adminTiles,
       );
     }
 
-    if (access.isBoardAdmin) {
+    if (access.isSecretary) {
       return const _RoleDashboardConfig(
-        title: 'Board Admin Dashboard',
-        subtitle: 'Manage board users and assign their privileges.',
-        menuTitle: 'User Access',
-        icon: Icons.manage_accounts_rounded,
-        summaryKeys: [
-          'users',
-          'privileges',
-        ],
-        tiles: _boardAdminTiles,
-      );
-    }
-
-    if (access.isBoardSecretary) {
-      return const _RoleDashboardConfig(
-        title: 'Board Secretary Dashboard',
-        subtitle: 'Create meetings, upload papers, and manage paper comments.',
-        menuTitle: 'Board Operations',
+        title: 'Secretary Dashboard',
+        subtitle: 'Manage meetings, categories, papers, and agenda attachments.',
+        menuTitle: 'Operations',
         icon: Icons.event_available_rounded,
         summaryKeys: [
           'meetings',
+          'circulars',
           'papers',
           'comments',
-          'documents',
         ],
-        tiles: _organizerTiles,
-      );
-    }
-
-    if (access.isSupportTeam) {
-      return const _RoleDashboardConfig(
-        title: 'Support Dashboard',
-        subtitle: 'View users and handle their assigned privileges.',
-        menuTitle: 'Support Tools',
-        icon: Icons.support_agent_rounded,
-        summaryKeys: [
-          'users',
-          'privileges',
-        ],
-        tiles: _supportTiles,
+        tiles: _secretaryTiles,
       );
     }
 
     return const _RoleDashboardConfig(
       title: 'Member Dashboard',
-      subtitle: 'Attend meetings and read assigned board papers.',
+      subtitle: 'View meetings, papers, and board categories.',
       menuTitle: 'My Workspace',
       icon: Icons.person_rounded,
       summaryKeys: [
@@ -867,24 +845,9 @@ const _adminTiles = [
     DeviceListScreen(),
   ),
   _MenuTileData(
-    'Categories',
-    Icons.category_outlined,
-    CategoryListScreen(),
-  ),
-  _MenuTileData(
-    'Subcategories',
-    Icons.account_tree_outlined,
-    SubcategoryListScreen(),
-  ),
-  _MenuTileData(
     'Privileges',
     Icons.admin_panel_settings_outlined,
     PrivilegeListScreen(),
-  ),
-  _MenuTileData(
-    'Meetings',
-    Icons.event_note_outlined,
-    MeetingListScreen(),
   ),
   _MenuTileData(
     'Reports',
@@ -903,20 +866,7 @@ const _adminTiles = [
   ),
 ];
 
-const _boardAdminTiles = [
-  _MenuTileData(
-    'Users',
-    Icons.people_outline_rounded,
-    UserListScreen(),
-  ),
-  _MenuTileData(
-    'Privileges',
-    Icons.admin_panel_settings_outlined,
-    PrivilegeListScreen(),
-  ),
-];
-
-const _organizerTiles = [
+const _secretaryTiles = [
   _MenuTileData(
     'Meetings',
     Icons.event_note_outlined,
@@ -932,18 +882,10 @@ const _organizerTiles = [
     Icons.account_tree_outlined,
     SubcategoryListScreen(),
   ),
-];
-
-const _supportTiles = [
   _MenuTileData(
-    'Users',
-    Icons.people_outline_rounded,
-    UserListScreen(),
-  ),
-  _MenuTileData(
-    'Privileges',
-    Icons.admin_panel_settings_outlined,
-    PrivilegeListScreen(),
+    'Papers',
+    Icons.picture_as_pdf_outlined,
+    MeetingListScreen(),
   ),
 ];
 
@@ -951,6 +893,11 @@ const _memberTiles = [
   _MenuTileData(
     'Meetings',
     Icons.event_note_outlined,
+    MeetingListScreen(),
+  ),
+  _MenuTileData(
+    'Papers',
+    Icons.picture_as_pdf_outlined,
     MeetingListScreen(),
   ),
 ];
@@ -1018,7 +965,12 @@ List<_SummaryCard> _summaryCardsForRole(
     ),
   };
 
-  return config.summaryKeys.map((key) => cards[key]!).toList();
+  // Some roles' `summaryKeys` may reference keys not present in `cards`.
+  // Map then filter nulls to avoid the null-check operator causing a crash.
+  return config.summaryKeys
+      .map((key) => cards[key])
+      .whereType<_SummaryCard>()
+      .toList();
 }
 
 String _greetingText() {

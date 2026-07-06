@@ -19,7 +19,7 @@ class DeviceListScreen extends ConsumerWidget {
     final devicesAsync = ref.watch(deviceListProvider);
     final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
 
-    if (!access.isSuperAdmin) {
+    if (!access.isAdmin) {
       return const Scaffold(
         backgroundColor: bgColor,
         body: Center(

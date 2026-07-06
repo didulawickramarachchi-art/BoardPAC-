@@ -7,7 +7,7 @@ class UserRequest {
   final String? officeNumber;
   final String? mobileNumber;
   final String? jobTitle;
-  final String? boardType;
+  final String role;
   final bool twoStepEnabled;
 
   UserRequest({
@@ -19,7 +19,7 @@ class UserRequest {
     this.officeNumber,
     this.mobileNumber,
     this.jobTitle,
-    this.boardType,
+    required this.role,
     required this.twoStepEnabled,
   });
 
@@ -33,7 +33,7 @@ class UserRequest {
       'officeNumber': officeNumber,
       'mobileNumber': mobileNumber,
       'jobTitle': jobTitle,
-      'boardType': boardType,
+      'role': role,
       'twoStepEnabled': twoStepEnabled,
     };
   }

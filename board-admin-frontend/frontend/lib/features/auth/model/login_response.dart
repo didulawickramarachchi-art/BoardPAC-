@@ -25,7 +25,6 @@ class LoginResponse {
       username: json['username'],
       role: json['role'] ??
           json['userRole'] ??
-          json['boardType'] ??
           json['assignedRole'],
       message: json['message'],
       requiresTwoFactor: json['requiresTwoFactor'] ?? false,

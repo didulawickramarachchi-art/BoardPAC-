@@ -90,7 +90,7 @@ class SubcategoryListScreen extends ConsumerWidget {
     final subcategoriesAsync = ref.watch(subcategoryListProvider);
     final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
 
-    if (!access.canManageBoardSetup) {
+    if (!access.canViewSubcategories) {
       return const Scaffold(
         backgroundColor: bgColor,
         body: Center(
@@ -111,13 +111,15 @@ class SubcategoryListScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: gold,
-        foregroundColor: darkBlue,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Subcategory'),
-        onPressed: () => _openCreateScreen(context, ref),
-      ),
+      floatingActionButton: access.canManageSubcategories
+          ? FloatingActionButton.extended(
+              backgroundColor: gold,
+              foregroundColor: darkBlue,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Subcategory'),
+              onPressed: () => _openCreateScreen(context, ref),
+            )
+          : null,
       body: subcategoriesAsync.when(
         data: (items) {
           if (items.isEmpty) {

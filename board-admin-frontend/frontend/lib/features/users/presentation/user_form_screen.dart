@@ -27,7 +27,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
   late final TextEditingController _jobTitleController;
 
   bool twoStepEnabled = false;
-  String boardType = 'ORGANIZER';
+  String role = 'MEMBER';
   bool isSaving = false;
 
   static const Color primaryBlue = Color(0xFF12275B);
@@ -49,7 +49,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     _jobTitleController =
         TextEditingController(text: widget.user.jobTitle ?? '');
 
-    boardType = widget.user.boardType ?? 'ORGANIZER';
+    role = widget.user.role?.toUpperCase() ?? 'MEMBER';
     twoStepEnabled = widget.user.twoStepEnabled ?? false;
   }
 
@@ -74,7 +74,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       boardEmail: _boardEmailController.text.trim(),
       mobileNumber: _mobileController.text.trim(),
       jobTitle: _jobTitleController.text.trim(),
-      boardType: boardType,
+      role: role,
       officeEmail: null,
       officeNumber: null,
       twoStepEnabled: twoStepEnabled,
@@ -162,12 +162,12 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            title: 'Board Access',
+            title: 'Role Assignment',
             children: [
               DropdownButtonFormField<String>(
-                initialValue: boardType,
+                initialValue: role,
                 decoration: InputDecoration(
-                  labelText: 'Board type',
+                  labelText: 'Role',
                   labelStyle: const TextStyle(
                     color: Color(0xFF7D8CB2),
                     fontWeight: FontWeight.w600,
@@ -197,21 +197,21 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                 ),
                 items: const [
                   DropdownMenuItem(
+                    value: 'ADMIN',
+                    child: Text('Admin'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'SECRETARY',
+                    child: Text('Secretary'),
+                  ),
+                  DropdownMenuItem(
                     value: 'MEMBER',
                     child: Text('Member'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'ORGANIZER',
-                    child: Text('Organizer'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'SUPPORT_TEAM',
-                    child: Text('Support Team'),
                   ),
                 ],
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() => boardType = value);
+                    setState(() => role = value);
                   }
                 },
               ),

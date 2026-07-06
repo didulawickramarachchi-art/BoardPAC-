@@ -88,7 +88,7 @@ class CategoryListScreen extends ConsumerWidget {
     final categoriesAsync = ref.watch(categoryListProvider);
     final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
 
-    if (!access.canManageBoardSetup) {
+    if (!access.canViewCategories) {
       return const Scaffold(
         backgroundColor: bgColor,
         body: Center(child: Text('You do not have access to categories.')),
@@ -107,13 +107,15 @@ class CategoryListScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: gold,
-        foregroundColor: darkBlue,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Category'),
-        onPressed: () => _openCreateScreen(context, ref),
-      ),
+      floatingActionButton: access.canManageCategories
+          ? FloatingActionButton.extended(
+              backgroundColor: gold,
+              foregroundColor: darkBlue,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Category'),
+              onPressed: () => _openCreateScreen(context, ref),
+            )
+          : null,
       body: categoriesAsync.when(
         data: (categories) {
           if (categories.isEmpty) {

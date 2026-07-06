@@ -72,7 +72,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           requiresTwoFactor: true,
           userId: result.userId,
           username: result.username,
-          role: result.role ?? 'User',
+          role: result.role?.toUpperCase() ?? 'MEMBER',
         );
         return false;
       }
@@ -90,7 +90,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         requiresTwoFactor: false,
         userId: result.userId,
         username: result.username ?? username,
-        role: result.role ?? 'User',
+        role: result.role?.toUpperCase() ?? 'MEMBER',
       );
 
       return true;
@@ -126,7 +126,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         userId: result.userId,
         username: result.username ?? username,
-        role: result.role ?? 'User',
+        role: result.role?.toUpperCase() ?? 'MEMBER',
         requiresTwoFactor: false,
       );
 

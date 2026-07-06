@@ -41,7 +41,7 @@ class _AccessValidationScreenState
   Widget build(BuildContext context) {
     final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
 
-    if (!access.isSuperAdmin) {
+    if (!access.isAdmin) {
       return const Scaffold(
         backgroundColor: bgColor,
         body: Center(
@@ -225,12 +225,6 @@ class _AccessValidationScreenState
                           ),
                           AppStatusChip(label: allowed ? 'ALLOWED' : 'DENIED'),
                         ],
-                      ),
-                      const SizedBox(height: 18),
-                      _InfoTile(
-                        icon: Icons.badge_rounded,
-                        title: 'Board Type',
-                        value: item.boardType ?? '-',
                       ),
                       const SizedBox(height: 12),
                       _InfoTile(

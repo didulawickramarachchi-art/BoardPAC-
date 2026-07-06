@@ -25,6 +25,7 @@ class PaperListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final papersAsync = ref.watch(paperListProvider(meetingId));
     final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final isSecretary = access.isSecretary;
 
     if (!access.canViewPapers) {
       return const Scaffold(
@@ -36,7 +37,9 @@ class PaperListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Papers - $meetingTitle'),
+        title: Text(isSecretary
+            ? 'Papers for $meetingTitle (ID: $meetingId)'
+            : 'Papers - $meetingTitle'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

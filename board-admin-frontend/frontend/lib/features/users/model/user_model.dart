@@ -7,7 +7,7 @@ class UserModel {
   final String boardEmail;
   final String? mobileNumber;
   final String? jobTitle;
-  final String? boardType;
+  final String? role;
   final bool? twoStepEnabled;
   final String? status;
 
@@ -20,7 +20,7 @@ class UserModel {
     required this.boardEmail,
     this.mobileNumber,
     this.jobTitle,
-    this.boardType,
+    this.role,
     this.twoStepEnabled,
     this.status,
   });
@@ -35,7 +35,7 @@ class UserModel {
       boardEmail: json['boardEmail'] ?? '',
       mobileNumber: json['mobileNumber'],
       jobTitle: json['jobTitle'],
-      boardType: json['boardType'],
+      role: json['role'] ?? json['userRole'],
       twoStepEnabled: json['twoStepEnabled'],
       status: json['status'],
     );
