@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin-reports")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminReportController {
 
     private final AdminReportService adminReportService;

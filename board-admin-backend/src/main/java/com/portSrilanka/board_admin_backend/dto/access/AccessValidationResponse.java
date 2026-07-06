@@ -8,7 +8,6 @@ import lombok.Data;
 public class AccessValidationResponse {
     private Long userId;
     private String username;
-    private String boardType;
     private String requestedChannel;
     private boolean allowed;
     private String reason;

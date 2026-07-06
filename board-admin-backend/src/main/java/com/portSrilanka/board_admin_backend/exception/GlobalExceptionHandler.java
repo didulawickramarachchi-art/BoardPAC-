@@ -1,6 +1,7 @@
 package com.portSrilanka.board_admin_backend.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -58,6 +60,8 @@ public class GlobalExceptionHandler {
             DataIntegrityViolationException ex,
             HttpServletRequest request
     ) {
+        log.error("Database error", ex);
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Database constraint error. Check required fields or duplicate values.",
@@ -70,6 +74,8 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException ex,
             HttpServletRequest request
     ) {
+        log.error("Invalid request body", ex);
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Request body is invalid. Check date format and selected values.",
@@ -94,6 +100,8 @@ public class GlobalExceptionHandler {
             AuthenticationException ex,
             HttpServletRequest request
     ) {
+        log.warn("Authentication failed: {}", ex.getMessage());
+
         return buildResponse(
                 HttpStatus.UNAUTHORIZED,
                 "Invalid username or password",
@@ -118,9 +126,13 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
+        // Print the FULL stack trace in the console
+        log.error("Unhandled exception while processing request: {}", request.getRequestURI(), ex);
+
+        // During debugging, return the actual exception message
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Something went wrong. Please check server logs.",
+                ex.getClass().getSimpleName() + ": " + ex.getMessage(),
                 request.getRequestURI()
         );
     }

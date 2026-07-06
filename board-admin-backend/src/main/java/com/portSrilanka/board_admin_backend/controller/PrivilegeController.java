@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/privileges")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('SUPPORT_TEAM')")
+@PreAuthorize("hasRole('ADMIN')")
 public class PrivilegeController {
 
     private final PrivilegeService privilegeService;

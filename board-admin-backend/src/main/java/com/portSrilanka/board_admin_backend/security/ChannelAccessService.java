@@ -27,7 +27,6 @@ public class ChannelAccessService {
         return AccessValidationResponse.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
-                .boardType(user.getBoardType() != null ? user.getBoardType().name() : null)
                 .requestedChannel(requestedChannel.name())
                 .allowed(allowed)
                 .reason(reason)

@@ -18,60 +18,61 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('SUPPORT_TEAM')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponse>> getAll() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('SUPPORT_TEAM')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> update(@PathVariable Long id, @RequestBody UserRequest request) {
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
     @PutMapping("/{id}/deactivate")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deactivate(@PathVariable Long id) {
         return ResponseEntity.ok(userService.deactivateUser(id));
     }
 
     @PutMapping("/{id}/activate")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> activate(@PathVariable Long id) {
         return ResponseEntity.ok(userService.activateUser(id));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> delete(@PathVariable Long id) {
         return ResponseEntity.ok(userService.deleteUser(id));
     }
     @PutMapping("/{id}/reset-password")
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
-public ResponseEntity<String> resetPassword(@PathVariable Long id) {
-    return ResponseEntity.ok(userService.resetPassword(id));
-}
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> resetPassword(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.resetPassword(id));
+    }
 
-@PutMapping("/{id}/lock")
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
-public ResponseEntity<String> lockUser(@PathVariable Long id) {
-    return ResponseEntity.ok(userService.lockUser(id));
-}
+    @PutMapping("/{id}/lock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> lockUser(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.lockUser(id));
+    }
 
-@PutMapping("/{id}/unlock")
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN')")
-public ResponseEntity<String> unlockUser(@PathVariable Long id) {
-    return ResponseEntity.ok(userService.unlockUser(id));
-}
-@GetMapping("/paged")
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_ADMIN') or hasRole('SUPPORT_TEAM')")
-public ResponseEntity<PageResponse<UserResponse>> getPagedUsers(
+    @PutMapping("/{id}/unlock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> unlockUser(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.unlockUser(id));
+    }
+
+    @GetMapping("/paged")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PageResponse<UserResponse>> getPagedUsers(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size,
         @RequestParam(required = false) String search,

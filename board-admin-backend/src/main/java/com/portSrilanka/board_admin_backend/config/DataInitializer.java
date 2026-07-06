@@ -27,9 +27,19 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        Role superAdminRole = roleRepository.findByName(SystemRole.SUPER_ADMIN)
+        Role adminRole = roleRepository.findByName(SystemRole.ADMIN)
                 .orElseGet(() -> roleRepository.save(Role.builder()
-                        .name(SystemRole.SUPER_ADMIN)
+                        .name(SystemRole.ADMIN)
+                        .build()));
+
+        roleRepository.findByName(SystemRole.SECRETARY)
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name(SystemRole.SECRETARY)
+                        .build()));
+
+        roleRepository.findByName(SystemRole.MEMBER)
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name(SystemRole.MEMBER)
                         .build()));
 
         if (userRepository.existsByUsername(DEFAULT_ADMIN_USERNAME)) {
@@ -45,7 +55,7 @@ public class DataInitializer implements CommandLineRunner {
                 .boardEmail("admin@boardsrilanka.local")
                 .boardType(BoardType.ORGANIZER)
                 .status(UserStatus.ACTIVE)
-                .roles(Set.of(superAdminRole))
+                .roles(Set.of(adminRole))
                 .build();
 
         userRepository.save(admin);

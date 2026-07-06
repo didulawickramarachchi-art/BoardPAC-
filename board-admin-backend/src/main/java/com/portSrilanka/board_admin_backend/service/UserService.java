@@ -49,7 +49,6 @@ public class UserService {
         user.setMobileNumber(request.getMobileNumber());
         user.setJobTitle(request.getJobTitle());
         user.setProfilePictureUrl(request.getProfilePictureUrl());
-        user.setBoardType(request.getBoardType());
         user.setTwoStepEnabled(request.isTwoStepEnabled());
 
         userRepository.save(user);
@@ -141,7 +140,6 @@ public class UserService {
                 .boardEmail(user.getBoardEmail())
                 .mobileNumber(user.getMobileNumber())
                 .jobTitle(user.getJobTitle())
-                .boardType(user.getBoardType())
                 .status(user.getStatus())
                 .build();
     }

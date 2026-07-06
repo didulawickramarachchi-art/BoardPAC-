@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/devices")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class DeviceController {
 
     private final DeviceService deviceService;

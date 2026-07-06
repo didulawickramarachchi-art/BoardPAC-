@@ -1,6 +1,5 @@
 package com.portSrilanka.board_admin_backend.dto.user;
 
-import com.portSrilanka.board_admin_backend.enums.BoardType;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +15,5 @@ public class UserResponse {
     private String boardEmail;
     private String mobileNumber;
     private String jobTitle;
-    private BoardType boardType;
     private UserStatus status;
 }

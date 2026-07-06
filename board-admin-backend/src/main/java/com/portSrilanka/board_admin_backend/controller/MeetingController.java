@@ -18,7 +18,7 @@ public class MeetingController {
     private final MeetingService meetingService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<MeetingResponse> create(
             @RequestBody MeetingRequest request,
             Authentication authentication
@@ -27,43 +27,43 @@ public class MeetingController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<MeetingResponse>> getAll() {
         return ResponseEntity.ok(meetingService.getAll());
     }
 
     @GetMapping("/subcategory/{subcategoryId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<MeetingResponse>> getBySubcategory(@PathVariable Long subcategoryId) {
         return ResponseEntity.ok(meetingService.getBySubcategory(subcategoryId));
     }
 
     @PutMapping("/{meetingId}/open")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<MeetingResponse> open(@PathVariable Long meetingId) {
         return ResponseEntity.ok(meetingService.openMeeting(meetingId));
     }
 
     @PutMapping("/{meetingId}/close")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<MeetingResponse> close(@PathVariable Long meetingId) {
         return ResponseEntity.ok(meetingService.closeMeeting(meetingId));
     }
 
     @PostMapping("/participants")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<MeetingParticipantResponse> addParticipant(@RequestBody MeetingParticipantRequest request) {
         return ResponseEntity.ok(meetingService.addParticipant(request));
     }
 
     @GetMapping("/{meetingId}/participants")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<MeetingParticipantResponse>> getParticipants(@PathVariable Long meetingId) {
         return ResponseEntity.ok(meetingService.getParticipants(meetingId));
     }
 
     @PutMapping("/participants/status")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<MeetingParticipantResponse> updateParticipantStatus(
             @RequestBody ParticipantStatusUpdateRequest request
     ) {
@@ -71,7 +71,7 @@ public class MeetingController {
     }
 
     @PostMapping("/notes")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<String> addNote(@RequestBody MeetingNoteRequest request) {
         return ResponseEntity.ok(meetingService.addMeetingNote(request));
     }

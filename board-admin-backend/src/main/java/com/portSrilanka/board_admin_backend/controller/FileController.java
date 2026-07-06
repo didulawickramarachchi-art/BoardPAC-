@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('BOARD_SECRETARY')")
+@PreAuthorize("hasRole('SECRETARY')")
 public class FileController {
 
     private final FileStorageService fileStorageService;

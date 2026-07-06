@@ -1,0 +1,58 @@
+version: '3.9'
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: board-admin-backend:latest
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/board_admin_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 2002
+      SPRING_JDBC_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_JPA_SHOW_SQL: false
+      SPRING_FLYWAY_ENABLED: true
+      SPRING_FLYWAY_URL: jdbc:postgresql://db:5432/board_admin_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: 2002
+      APP_JWT_SECRET: change-this-secret
+      APP_JWT_EXPIRATION: 86400000
+      APP_JWT_REFRESH_EXPIRATION: 604800000
+      APP_TWOFACTOR_CODE_EXPIRATION_MINUTES: 10
+      APP_FILE_UPLOAD_DIR: /data/uploads
+      SPRING_MAIL_HOST: smtp.example.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: your-email@example.com
+      SPRING_MAIL_PASSWORD: your-email-password
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: true
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: true
+    depends_on:
+      db:
+        condition: service_started
+    volumes:
+      - backend-data:/data/uploads
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 2002
+      POSTGRES_DB: board_admin_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  backend-data:

@@ -61,7 +61,6 @@ public class AuthService {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .boardEmail(request.getBoardEmail())
-                .boardType(request.getBoardType())
                 .status(UserStatus.ACTIVE)
                 .roles(Set.of(userRole))
                 .build();
@@ -103,7 +102,6 @@ public class AuthService {
                 .userId(user.getId())
                 .username(user.getUsername())
                 .role(getPrimaryRole(user))
-                .boardType(user.getBoardType() != null ? user.getBoardType().name() : null)
                 .message("Login successful")
                 .build();
     }
@@ -157,7 +155,6 @@ public LoginResponse verifyTwoFactor(String username, String code) {
             .userId(user.getId())
             .username(user.getUsername())
             .role(getPrimaryRole(user))
-            .boardType(user.getBoardType() != null ? user.getBoardType().name() : null)
             .message("2FA verification successful")
             .requiresTwoFactor(false)
             .build();

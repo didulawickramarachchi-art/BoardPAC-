@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: board-admin-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/board_admin_db
+    username: postgres
+    password: 2002
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/board_admin_db
+    user: postgres
+    password: 2002
+
+  mail:
+    host: smtp.example.com
+    port: 587
+    username: your-email@example.com
+    password: your-email-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+app:
+  jwt:
+    secret: MyVeryStrongJwtSecretKeyForBoardAdminApplication2026
+    expiration: 86400000
+    refresh-expiration: 604800000
+
+  file:
+    upload-dir: ./uploads
+
+  twofactor:
+    code-expiration-minutes: 10
