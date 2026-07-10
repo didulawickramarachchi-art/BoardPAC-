@@ -45,8 +45,11 @@ public class PaperService {
         Meeting meeting = meetingRepository.findById(request.getMeetingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Meeting not found"));
 
-        AgendaItem agendaItem = agendaItemRepository.findById(request.getAgendaItemId())
-                .orElseThrow(() -> new ResourceNotFoundException("Agenda item not found"));
+        AgendaItem agendaItem = null;
+        if (request.getAgendaItemId() != null) {
+            agendaItem = agendaItemRepository.findById(request.getAgendaItemId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Agenda item not found"));
+        }
 
         Paper paper = Paper.builder()
                 .meeting(meeting)

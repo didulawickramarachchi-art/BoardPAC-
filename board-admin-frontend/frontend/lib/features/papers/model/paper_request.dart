@@ -1,6 +1,6 @@
 class PaperRequest {
   final int meetingId;
-  final int agendaItemId;
+  final int? agendaItemId;
   final String paperType;
   final String title;
   final String? referenceNumber;
@@ -13,7 +13,7 @@ class PaperRequest {
 
   PaperRequest({
     required this.meetingId,
-    required this.agendaItemId,
+    this.agendaItemId,
     required this.paperType,
     required this.title,
     this.referenceNumber,

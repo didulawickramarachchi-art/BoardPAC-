@@ -88,7 +88,7 @@ class MeetingListScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(22),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
@@ -100,7 +100,7 @@ class MeetingListScreen extends ConsumerWidget {
                           width: 52,
                           height: 52,
                           decoration: BoxDecoration(
-                            color: primaryBlue.withOpacity(0.08),
+                            color: primaryBlue.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Icon(
@@ -135,7 +135,7 @@ class MeetingListScreen extends ConsumerWidget {
                                 children: [
                                   _SmallChip(
                                     text: meeting.type,
-                                    bgColor: gold.withOpacity(0.16),
+                                    bgColor: gold.withValues(alpha: 0.16),
                                     textColor: darkBlue,
                                   ),
                                   const SizedBox(width: 6),
@@ -209,7 +209,7 @@ class MeetingListScreen extends ConsumerWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: primaryBlue.withOpacity(0.08),
+                                color: primaryBlue.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
@@ -218,16 +218,20 @@ class MeetingListScreen extends ConsumerWidget {
                                 size: 22,
                               ),
                             ),
-                            onSelected: (value) async {
+                            onSelected: (value) {
                               final notifier =
                                   ref.read(meetingListProvider.notifier);
 
                               if (value == 'open') {
-                                await notifier.openMeeting(meeting.id);
+                                notifier.openMeeting(meeting.id);
                               }
 
                               if (value == 'close') {
-                                await notifier.closeMeeting(meeting.id);
+                                notifier.closeMeeting(meeting.id);
+                              }
+
+                              if (value == 'delete') {
+                                _showDeleteDialog(context, ref, meeting);
                               }
                             },
                             itemBuilder: (_) => const [
@@ -243,6 +247,13 @@ class MeetingListScreen extends ConsumerWidget {
                                 child: _PopupItem(
                                   icon: Icons.lock_outline,
                                   text: 'Close',
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: _PopupItem(
+                                  icon: Icons.delete_outline,
+                                  text: 'Delete',
                                 ),
                               ),
                             ],
@@ -271,6 +282,64 @@ class MeetingListScreen extends ConsumerWidget {
         loading: () => const AppLoading(),
       ),
     );
+  }
+
+  static void _showDeleteDialog(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic meeting,
+  ) {
+    showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete meeting?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This action will permanently delete ${meeting.title} and all related items.',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            const Text('This will remove:'),
+            const SizedBox(height: 6),
+            const Text('• All agenda sections and items'),
+            const Text('• All papers and attachments'),
+            const Text('• All approval records'),
+            const Text('• All participants'),
+            const Text('• All notes'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    ).then((confirmed) async {
+      if (confirmed != true) return;
+
+      try {
+        await ref.read(meetingListProvider.notifier).deleteMeeting(meeting.id);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Meeting deleted successfully')),
+        );
+      } catch (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete meeting: $error')),
+        );
+      }
+    });
   }
 
   static void _showMeetingOptions(
@@ -488,7 +557,7 @@ class _BottomSheetTile extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: primaryBlue.withOpacity(0.08),
+          color: primaryBlue.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Icon(icon, color: primaryBlue, size: 23),

@@ -1,26 +1,24 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/features/agendas/model/agenda_item_model.dart';
+import 'package:frontend/features/agendas/provider/agenda_provider.dart';
 
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/app_text_field.dart';
 import '../model/paper_request.dart';
 import '../provider/paper_provider.dart';
 
 class PaperFormScreen extends ConsumerStatefulWidget {
   final int meetingId;
 
-  const PaperFormScreen({
-    super.key,
-    required this.meetingId,
-  });
+  const PaperFormScreen({super.key, required this.meetingId});
 
   @override
   ConsumerState<PaperFormScreen> createState() => _PaperFormScreenState();
 }
 
 class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
-  final _agendaItemIdController = TextEditingController();
   final _titleController = TextEditingController();
   final _referenceController = TextEditingController();
   final _filePathController = TextEditingController();
@@ -29,9 +27,13 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
   final _disclaimerController = TextEditingController();
 
   String paperType = 'APPROVAL';
+  int? selectedAgendaItemId;
   bool requiresApproval = true;
   bool isMainPaper = true;
   bool isSaving = false;
+  PlatformFile? selectedFile;
+  Uint8List? selectedFileBytes;
+  String? selectedFilePath;
 
   static const Color navy = Color(0xFF14275B);
   static const Color bgColor = Color(0xFFF6F7FC);
@@ -45,6 +47,7 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
       type: FileType.custom,
       allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'],
       allowMultiple: false,
+      withData: kIsWeb,
     );
 
     if (result == null || result.files.isEmpty) return;
@@ -54,6 +57,9 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
     if (!mounted) return;
 
     setState(() {
+      selectedFile = file;
+      selectedFileBytes = file.bytes;
+      selectedFilePath = file.path;
       _filePathController.text = file.path ?? '';
       _fileNameController.text = file.name;
     });
@@ -62,33 +68,58 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
   Future<void> _save() async {
     setState(() => isSaving = true);
 
-    final request = PaperRequest(
-      meetingId: widget.meetingId,
-      agendaItemId: int.parse(_agendaItemIdController.text.trim()),
-      paperType: paperType,
-      title: _titleController.text.trim(),
-      referenceNumber: _referenceController.text.trim(),
-      filePath: _filePathController.text.trim(),
-      fileName: _fileNameController.text.trim(),
-      versionNumber: int.tryParse(_versionController.text.trim()),
-      requiresApproval: requiresApproval,
-      isMainPaper: isMainPaper,
-      disclaimerMessage: _disclaimerController.text.trim(),
-    );
+    final versionNumber = int.tryParse(_versionController.text.trim());
 
-    await ref
-        .read(paperListProvider(widget.meetingId).notifier)
-        .createPaper(request);
+    try {
+      var filePath = _filePathController.text.trim();
+      var fileName = _fileNameController.text.trim();
 
-    if (mounted) {
-      setState(() => isSaving = false);
-      Navigator.pop(context);
+      if (selectedFile != null) {
+        fileName = fileName.isEmpty ? selectedFile!.name : fileName;
+        filePath = await ref
+            .read(paperRepositoryProvider)
+            .uploadAttachment(
+              fileName: fileName,
+              filePath: selectedFilePath,
+              fileBytes: selectedFileBytes,
+            );
+      }
+
+      final request = PaperRequest(
+        meetingId: widget.meetingId,
+        agendaItemId: selectedAgendaItemId,
+        paperType: paperType,
+        title: _titleController.text.trim(),
+        referenceNumber: _referenceController.text.trim(),
+        filePath: filePath,
+        fileName: fileName,
+        versionNumber: versionNumber,
+        requiresApproval: requiresApproval,
+        isMainPaper: isMainPaper,
+        disclaimerMessage: _disclaimerController.text.trim(),
+      );
+
+      await ref
+          .read(paperListProvider(widget.meetingId).notifier)
+          .createPaper(request);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create paper: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
     }
   }
 
   @override
   void dispose() {
-    _agendaItemIdController.dispose();
     _titleController.dispose();
     _referenceController.dispose();
     _filePathController.dispose();
@@ -100,6 +131,8 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final agendaItemsAsync = ref.watch(agendaItemProvider(widget.meetingId));
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -126,7 +159,7 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 14,
                   offset: const Offset(0, 6),
                 ),
@@ -134,35 +167,39 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
             ),
             child: Column(
               children: [
-                _ModernTextField(
-                  controller: _agendaItemIdController,
-                  hintText: 'Agenda Item ID',
-                  icon: Icons.format_list_numbered_rounded,
-                  keyboardType: TextInputType.number,
+                agendaItemsAsync.when(
+                  data: (items) => _AgendaItemDropdown(
+                    items: items,
+                    value: selectedAgendaItemId,
+                    onChanged: (value) {
+                      setState(() => selectedAgendaItemId = value);
+                    },
+                  ),
+                  loading: () => const _LoadingDropdownField(),
+                  error: (error, _) => _AgendaLoadError(
+                    message: 'Failed to load agenda items',
+                    onRetry: () {
+                      ref.invalidate(agendaItemProvider(widget.meetingId));
+                    },
+                  ),
                 ),
 
                 const SizedBox(height: 14),
 
                 DropdownButtonFormField<String>(
-                  value: paperType,
+                  initialValue: paperType,
                   decoration: InputDecoration(
                     labelText: 'Paper Type',
-                    prefixIcon: const Icon(
-                      Icons.category_rounded,
-                      color: navy,
-                    ),
+                    prefixIcon: const Icon(Icons.category_rounded, color: navy),
                     filled: true,
-                    fillColor: iconBg.withOpacity(0.5),
+                    fillColor: iconBg.withValues(alpha: 0.5),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(
-                        color: navy,
-                        width: 1.4,
-                      ),
+                      borderSide: const BorderSide(color: navy, width: 1.4),
                     ),
                   ),
                   items: const [
@@ -218,11 +255,9 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: iconBg.withOpacity(0.5),
+                      color: iconBg.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: navy.withOpacity(0.08),
-                      ),
+                      border: Border.all(color: navy.withValues(alpha: 0.08)),
                     ),
                     child: Row(
                       children: [
@@ -347,6 +382,137 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
   }
 }
 
+class _AgendaItemDropdown extends StatelessWidget {
+  final List<AgendaItemModel> items;
+  final int? value;
+  final ValueChanged<int?> onChanged;
+
+  const _AgendaItemDropdown({
+    required this.items,
+    required this.value,
+    required this.onChanged,
+  });
+
+  static const Color navy = Color(0xFF14275B);
+  static const Color iconBg = Color(0xFFE9ECF3);
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSelectedItem = items.any((item) => item.id == value);
+    final effectiveValue = hasSelectedItem ? value : null;
+
+    return DropdownButtonFormField<int>(
+      key: ValueKey(effectiveValue),
+      initialValue: effectiveValue,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Agenda Item',
+        prefixIcon: const Icon(Icons.format_list_numbered_rounded, color: navy),
+        suffixIcon: effectiveValue == null
+            ? null
+            : IconButton(
+                tooltip: 'Clear agenda item',
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () => onChanged(null),
+              ),
+        filled: true,
+        fillColor: iconBg.withValues(alpha: 0.5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: navy, width: 1.4),
+        ),
+      ),
+      hint: const Text('No agenda item'),
+      items: items.map((item) {
+        return DropdownMenuItem<int>(
+          value: item.id,
+          child: Text(
+            _agendaItemLabel(item),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      }).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  static String _agendaItemLabel(AgendaItemModel item) {
+    final number = item.numberLabel?.trim();
+    if (number != null && number.isNotEmpty) {
+      return '$number - ${item.title}';
+    }
+
+    return item.title.isEmpty ? 'Agenda Item ${item.id}' : item.title;
+  }
+}
+
+class _LoadingDropdownField extends StatelessWidget {
+  const _LoadingDropdownField();
+
+  static const Color navy = Color(0xFF14275B);
+  static const Color iconBg = Color(0xFFE9ECF3);
+
+  @override
+  Widget build(BuildContext context) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: 'Agenda Item',
+        prefixIcon: const Icon(Icons.format_list_numbered_rounded, color: navy),
+        filled: true,
+        fillColor: iconBg.withValues(alpha: 0.5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      child: const Text('Loading agenda items...'),
+    );
+  }
+}
+
+class _AgendaLoadError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _AgendaLoadError({required this.message, required this.onRetry});
+
+  static const Color navy = Color(0xFF14275B);
+  static const Color iconBg = Color(0xFFE9ECF3);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: iconBg.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded, color: navy),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: navy,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+}
+
 class _ModernTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
@@ -375,17 +541,14 @@ class _ModernTextField extends StatelessWidget {
         hintText: hintText,
         prefixIcon: Icon(icon, color: navy),
         filled: true,
-        fillColor: iconBg.withOpacity(0.5),
+        fillColor: iconBg.withValues(alpha: 0.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: navy,
-            width: 1.4,
-          ),
+          borderSide: const BorderSide(color: navy, width: 1.4),
         ),
       ),
     );
@@ -416,7 +579,7 @@ class _ModernSwitchTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: iconBg.withOpacity(0.45),
+        color: iconBg.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -455,10 +618,7 @@ class _ModernSwitchTile extends StatelessWidget {
               ],
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-          ),
+          Switch(value: value, onChanged: onChanged),
         ],
       ),
     );

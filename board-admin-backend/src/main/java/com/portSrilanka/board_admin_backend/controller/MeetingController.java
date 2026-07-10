@@ -75,4 +75,13 @@ public class MeetingController {
     public ResponseEntity<String> addNote(@RequestBody MeetingNoteRequest request) {
         return ResponseEntity.ok(meetingService.addMeetingNote(request));
     }
+
+    @DeleteMapping("/{meetingId}")
+    @PreAuthorize("hasRole('SECRETARY')")
+    public ResponseEntity<String> deleteMeeting(
+            @PathVariable Long meetingId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(meetingService.deleteMeeting(meetingId, authentication.getName()));
+    }
 }

@@ -17,7 +17,7 @@ public class CommentController {
     private final CommentService commentService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<CommentResponse> create(@RequestBody CommentRequest request) {
         return ResponseEntity.ok(commentService.create(request));
     }

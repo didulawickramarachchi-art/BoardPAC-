@@ -5,6 +5,8 @@ import '../model/attachment_model.dart';
 import '../model/attachment_request.dart';
 import '../model/paper_model.dart';
 import '../model/paper_request.dart';
+import '../../../core/network/api_error_message.dart';
+import 'package:dio/dio.dart';
 
 final paperRepositoryProvider = Provider<PaperRepository>((ref) {
   return PaperRepository(ref.read(dioProvider));
@@ -36,8 +38,15 @@ class PaperNotifier extends StateNotifier<AsyncValue<List<PaperModel>>> {
   }
 
   Future<void> createPaper(PaperRequest request) async {
-    await repository.createPaper(request);
-    await load();
+    try {
+      await repository.createPaper(request);
+      await load();
+    } catch (e) {
+      if (e is DioException) {
+        throw Exception(ApiErrorMessage.from(e, fallback: 'Failed to create paper'));
+      }
+      rethrow;
+    }
   }
 }
 

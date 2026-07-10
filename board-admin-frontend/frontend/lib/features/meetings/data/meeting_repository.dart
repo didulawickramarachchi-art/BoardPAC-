@@ -29,6 +29,10 @@ class MeetingRepository {
     await dio.put('/meetings/$meetingId/close');
   }
 
+  Future<void> deleteMeeting(int meetingId) async {
+    await dio.delete('/meetings/$meetingId');
+  }
+
   Future<List<MeetingParticipantModel>> getParticipants(int meetingId) async {
     final response = await dio.get('/meetings/$meetingId/participants');
     return (response.data as List)

@@ -3,6 +3,8 @@ package com.portSrilanka.board_admin_backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "comments")
 @Getter
@@ -28,4 +30,7 @@ public class Comment extends BaseEntity {
     private String commentText;
 
     private boolean annotated;
+
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CommentShare> shares;
 }

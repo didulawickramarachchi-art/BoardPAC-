@@ -22,9 +22,9 @@ class CommentScreen extends ConsumerWidget {
   });
 
   Future<void> _showAddDialog(BuildContext context, WidgetRef ref) async {
-    final userIdController = TextEditingController(text: '1');
     final textController = TextEditingController();
     bool annotated = false;
+    String? errorMessage;
 
     await showDialog(
       context: context,
@@ -35,12 +35,6 @@ class CommentScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: userIdController,
-                  decoration: const InputDecoration(labelText: 'User ID'),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
                 TextField(
                   controller: textController,
                   decoration: const InputDecoration(labelText: 'Comment'),
@@ -56,6 +50,13 @@ class CommentScreen extends ConsumerWidget {
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                 ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
               ],
             ),
           ),
@@ -66,11 +67,29 @@ class CommentScreen extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
+                final auth = ref.read(authProvider);
+                final userId = auth.userId;
+                final text = textController.text.trim();
+
+                if (userId == null) {
+                  setLocalState(() {
+                    errorMessage = 'Please log in again before commenting.';
+                  });
+                  return;
+                }
+
+                if (text.isEmpty) {
+                  setLocalState(() {
+                    errorMessage = 'Please enter a comment.';
+                  });
+                  return;
+                }
+
                 final request = CommentRequest(
                   meetingId: meetingId,
                   paperId: paperId,
-                  createdByUserId: int.parse(userIdController.text.trim()),
-                  commentText: textController.text.trim(),
+                  createdByUserId: userId,
+                  commentText: text,
                   annotated: annotated,
                 );
 

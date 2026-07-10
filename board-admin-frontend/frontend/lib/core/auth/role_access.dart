@@ -45,7 +45,7 @@ class RoleAccess {
 
   bool get canViewPapers => isSecretary || isMember;
   bool get canUploadPapers => isSecretary;
-  bool get canCommentPapers => isSecretary;
+  bool get canCommentPapers => isSecretary || isMember;
 
   bool get canViewReports => isAdmin;
   bool get canManageSettings => isAdmin;

@@ -47,6 +47,14 @@ class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
     await repository.closeMeeting(meetingId);
     await loadMeetings();
   }
+
+  Future<void> deleteMeeting(int meetingId) async {
+    await repository.deleteMeeting(meetingId);
+    final current = state.valueOrNull ?? <MeetingModel>[];
+    state = AsyncData(
+      current.where((meeting) => meeting.id != meetingId).toList(),
+    );
+  }
 }
 
 final participantListProvider =

@@ -18,7 +18,7 @@ services:
       SPRING_FLYWAY_URL: jdbc:postgresql://db:5432/board_admin_db
       SPRING_FLYWAY_USER: postgres
       SPRING_FLYWAY_PASSWORD: 2002
-      APP_JWT_SECRET: change-this-secret
+      APP_JWT_SECRET: change-this-development-jwt-secret-32-bytes-minimum
       APP_JWT_EXPIRATION: 86400000
       APP_JWT_REFRESH_EXPIRATION: 604800000
       APP_TWOFACTOR_CODE_EXPIRATION_MINUTES: 10

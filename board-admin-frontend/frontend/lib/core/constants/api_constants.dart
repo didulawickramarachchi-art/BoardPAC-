@@ -16,6 +16,7 @@ class ApiConstants {
   static const String login = '/auth/login';
   static const String verify2fa = '/auth/verify-2fa';
   static const String refreshToken = '/tokens/refresh';
+  static const String filesUpload = '/files/upload';
 
   // 📊 Dashboard
   static const String dashboardSummary = '/dashboard/summary';

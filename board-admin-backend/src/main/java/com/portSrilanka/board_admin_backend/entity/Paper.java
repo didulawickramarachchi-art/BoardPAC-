@@ -4,6 +4,8 @@ import com.portSrilanka.board_admin_backend.enums.PaperType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "papers")
 @Getter
@@ -18,7 +20,7 @@ public class Paper extends BaseEntity {
     private Meeting meeting;
 
     @ManyToOne
-    @JoinColumn(name = "agenda_item_id", nullable = false)
+    @JoinColumn(name = "agenda_item_id")
     private AgendaItem agendaItem;
 
     @Enumerated(EnumType.STRING)
@@ -37,4 +39,19 @@ public class Paper extends BaseEntity {
 
     @Column(length = 2000)
     private String disclaimerMessage;
+
+    @OneToMany(mappedBy = "paper", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PaperAttachment> attachments;
+
+    @OneToMany(mappedBy = "paper", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PaperApproval> approvals;
+
+    @OneToMany(mappedBy = "paper", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PaperShare> shares;
+
+    @OneToMany(mappedBy = "paper", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Annotation> annotations;
+
+    @OneToMany(mappedBy = "paper", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments;
 }

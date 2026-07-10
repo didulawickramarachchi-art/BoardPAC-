@@ -9,6 +9,7 @@ import '../../auth/provider/auth_provider.dart';
 import '../../comments/presentation/comment_screen.dart';
 import '../provider/paper_provider.dart';
 import 'attachment_screen.dart';
+import 'paper_detail_screen.dart';
 import 'paper_form_screen.dart';
 
 class PaperListScreen extends ConsumerWidget {
@@ -130,6 +131,13 @@ class PaperListScreen extends ConsumerWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
+                            builder: (_) => PaperDetailScreen(paper: paper),
+                          ),
+                        );
+                      } else if (value == 'attachments') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
                             builder: (_) => AttachmentScreen(
                               paperId: paper.id,
                               paperTitle: paper.title,
@@ -167,7 +175,11 @@ class PaperListScreen extends ConsumerWidget {
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'open',
-                        child: Text('Open'),
+                        child: Text('View Paper'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'attachments',
+                        child: Text('Attachments'),
                       ),
                       const PopupMenuItem(
                         value: 'annotations',
@@ -190,10 +202,7 @@ class PaperListScreen extends ConsumerWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => AttachmentScreen(
-                          paperId: paper.id,
-                          paperTitle: paper.title,
-                        ),
+                        builder: (_) => PaperDetailScreen(paper: paper),
                       ),
                     );
                   },

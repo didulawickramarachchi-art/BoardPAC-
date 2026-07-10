@@ -299,6 +299,26 @@ public class MeetingService {
         return "Meeting note added successfully";
     }
 
+    @Transactional
+    public String deleteMeeting(Long meetingId, String username) {
+        Meeting meeting = findMeeting(meetingId);
+
+        String meetingTitle = meeting.getTitle();
+        
+        // Cascade delete is handled by JPA, so just delete the meeting
+        meetingRepository.delete(meeting);
+
+        auditService.logInfo(
+                "MEETING",
+                "DELETE_MEETING",
+                username,
+                "Meeting deleted: " + meetingTitle + " (All related agendas, sections, papers, participants, and notes were automatically deleted)",
+                "WEB"
+        );
+
+        return "Meeting and all related agendas, papers, and participants deleted successfully";
+    }
+
     private Meeting findMeeting(Long id) {
         if (id == null) {
             throw new BadRequestException("Meeting id is required");

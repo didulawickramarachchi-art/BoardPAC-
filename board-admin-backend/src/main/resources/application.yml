@@ -1,11 +1,14 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: board-admin-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/board_admin_db
-    username: postgres
-    password: 2002
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/board_admin_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:2002}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -15,15 +18,15 @@ spring:
 
   flyway:
     enabled: true
-    url: jdbc:postgresql://localhost:5432/board_admin_db
-    user: postgres
-    password: 2002
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/board_admin_db}
+    user: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:2002}
 
   mail:
     host: smtp.example.com
     port: 587
-    username: your-email@example.com
-    password: your-email-password
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -31,14 +34,26 @@ spring:
           starttls:
             enable: true
 
+  servlet:
+    multipart:
+      enabled: true
+      # increase limits to avoid LimitedInputStream errors; adjust as needed
+      max-file-size: 50MB
+      max-request-size: 50MB
+
 app:
   jwt:
-    secret: MyVeryStrongJwtSecretKeyForBoardAdminApplication2026
-    expiration: 86400000
-    refresh-expiration: 604800000
+    secret: ${APP_JWT_SECRET:${JWT_SECRET:change-this-development-jwt-secret-32-bytes-minimum}}
+    expiration: ${APP_JWT_EXPIRATION:${JWT_EXPIRATION_MS:86400000}}
+    refresh-expiration: ${APP_JWT_REFRESH_EXPIRATION:${JWT_REFRESH_EXPIRATION_MS:604800000}}
 
   file:
     upload-dir: ./uploads
 
   twofactor:
     code-expiration-minutes: 10
+
+supabase:
+  url: ${SUPABASE_URL:}
+  key: ${SUPABASE_KEY:}
+  bucket: ${SUPABASE_BUCKET:Files}

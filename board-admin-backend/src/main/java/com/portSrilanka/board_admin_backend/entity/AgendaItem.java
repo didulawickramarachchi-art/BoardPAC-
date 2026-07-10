@@ -4,6 +4,8 @@ import com.portSrilanka.board_admin_backend.enums.AgendaItemType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "agenda_items")
 @Getter
@@ -35,4 +37,7 @@ public class AgendaItem extends BaseEntity {
     private String description;
 
     private String mediaPath;
+
+    @OneToMany(mappedBy = "sourceAgendaItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SharedAgendaItem> sharedAgendaItems;
 }
