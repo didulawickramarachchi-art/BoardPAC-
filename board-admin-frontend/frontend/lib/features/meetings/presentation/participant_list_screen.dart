@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../model/meeting_participant_request.dart';
@@ -28,87 +29,240 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
   static const Color bgColor = Color(0xFFF6F7FB);
 
   Future<void> _showAddDialog() async {
-    final userIdController = TextEditingController();
     final sequenceController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    int? selectedUserId;
+    var isSubmitting = false;
 
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        title: const Text(
-          'Add Participant',
-          style: TextStyle(
-            color: darkBlue,
-            fontWeight: FontWeight.w900,
+      barrierDismissible: true,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _DialogTextField(
-              controller: userIdController,
-              label: 'User ID',
+          title: const Text(
+            'Add Participant',
+            style: TextStyle(
+              color: darkBlue,
+              fontWeight: FontWeight.w900,
             ),
-            const SizedBox(height: 12),
-            _DialogTextField(
-              controller: sequenceController,
-              label: 'Display Sequence',
+          ),
+          content: Consumer(
+            builder: (context, dialogRef, _) {
+              final usersAsync = dialogRef.watch(
+                participantOptionsProvider(widget.meetingId),
+              );
+
+              return SizedBox(
+                width: 360,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      usersAsync.when(
+                        data: (users) {
+                          final availableUsers = users.toList()
+                            ..sort(
+                              (a, b) => a.username.toLowerCase().compareTo(
+                                b.username.toLowerCase(),
+                              ),
+                            );
+
+                          if (availableUsers.isEmpty) {
+                            return const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'No eligible users are available.',
+                                style: TextStyle(color: Color(0xFF7D8CB2)),
+                              ),
+                            );
+                          }
+
+                          return DropdownButtonFormField<int>(
+                            initialValue: selectedUserId,
+                            isExpanded: true,
+                            decoration: _dialogInputDecoration('Select User'),
+                            dropdownColor: Colors.white,
+                            items: availableUsers.map((user) {
+                              final fullName =
+                                  '${user.firstName} ${user.lastName}'.trim();
+                              final label = fullName.isEmpty
+                                  ? user.username
+                                  : '$fullName (${user.username})';
+                              return DropdownMenuItem<int>(
+                                value: user.id,
+                                enabled:
+                                    !user.isParticipant && user.isEligible,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        label,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (user.isParticipant) ...[
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'Already added',
+                                        style: TextStyle(
+                                          color: Color(0xFF20A67A),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ] else if (!user.isEligible) ...[
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'No access',
+                                        style: TextStyle(
+                                          color: Color(0xFFC88824),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            validator: (value) => value == null
+                                ? 'Please select a user'
+                                : null,
+                            onChanged: isSubmitting
+                                ? null
+                                : (value) => selectedUserId = value,
+                          );
+                        },
+                        loading: () => const LinearProgressIndicator(
+                          color: gold,
+                        ),
+                        error: (error, _) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Unable to load users.',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => dialogRef.invalidate(
+                                participantOptionsProvider(widget.meetingId),
+                              ),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _DialogTextField(
+                        controller: sequenceController,
+                        label: 'Display Sequence (optional)',
+                        textInputAction: TextInputAction.done,
+                        validator: (value) {
+                          final text = value?.trim() ?? '';
+                          if (text.isNotEmpty && int.tryParse(text) == null) {
+                            return 'Enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Color(0xFF7D8CB2)),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: primaryBlue.withOpacity(0.65),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      if (!(formKey.currentState?.validate() ?? false) ||
+                          selectedUserId == null) {
+                        return;
+                      }
+
+                      FocusScope.of(dialogContext).unfocus();
+                      setDialogState(() => isSubmitting = true);
+
+                      final sequenceText = sequenceController.text.trim();
+
+                      try {
+                        await ref
+                            .read(
+                              participantListProvider(widget.meetingId).notifier,
+                            )
+                            .addParticipant(
+                              MeetingParticipantRequest(
+                                meetingId: widget.meetingId,
+                                userId: selectedUserId!,
+                                displaySequence: sequenceText.isEmpty
+                                    ? null
+                                    : int.parse(sequenceText),
+                              ),
+                            );
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                        }
+                      } catch (error) {
+                        if (dialogContext.mounted) {
+                          setDialogState(() => isSubmitting = false);
+                        }
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to add participant: $error'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Add'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF7D8CB2)),
-            ),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: primaryBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            onPressed: () async {
-              final userId = int.tryParse(userIdController.text.trim());
-
-              if (userId == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter valid User ID')),
-                );
-                return;
-              }
-
-              final displaySequence =
-                  sequenceController.text.trim().isEmpty
-                      ? null
-                      : int.tryParse(sequenceController.text.trim());
-
-              await ref
-                  .read(participantListProvider(widget.meetingId).notifier)
-                  .addParticipant(
-                    MeetingParticipantRequest(
-                      meetingId: widget.meetingId,
-                      userId: userId,
-                      displaySequence: displaySequence,
-                    ),
-                  );
-
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
 
-    userIdController.dispose();
+    // showDialog completes as soon as the route is popped, before its reverse
+    // animation and IME teardown have necessarily finished. Disposing a
+    // controller while the Android keyboard still references its field can
+    // stall the platform input channel.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
     sequenceController.dispose();
   }
 
@@ -203,6 +357,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
       ),
     );
 
+    await Future<void>.delayed(const Duration(milliseconds: 500));
     reasonController.dispose();
   }
 
@@ -544,11 +699,15 @@ class _DialogTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final TextInputType keyboardType;
+  final TextInputAction? textInputAction;
+  final String? Function(String?)? validator;
 
   const _DialogTextField({
     required this.controller,
     required this.label,
     this.keyboardType = TextInputType.number,
+    this.textInputAction,
+    this.validator,
   });
 
   static const Color gold = Color(0xFFFFB52E);
@@ -556,9 +715,14 @@ class _DialogTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      inputFormatters: keyboardType == TextInputType.number
+          ? [FilteringTextInputFormatter.digitsOnly]
+          : null,
+      validator: validator,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(

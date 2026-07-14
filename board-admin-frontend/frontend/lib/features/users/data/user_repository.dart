@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import '../model/user_model.dart';
 import '../model/user_request.dart';
@@ -6,6 +8,26 @@ class UserRepository {
   final Dio dio;
 
   UserRepository(this.dio);
+
+  Future<UserModel> getCurrentUser() async {
+    final response = await dio.get('/users/me');
+    return UserModel.fromJson(response.data);
+  }
+
+  Future<UserModel> uploadProfilePicture({
+    required String fileName,
+    String? filePath,
+    Uint8List? fileBytes,
+  }) async {
+    final file = filePath != null && filePath.isNotEmpty
+        ? await MultipartFile.fromFile(filePath, filename: fileName)
+        : MultipartFile.fromBytes(fileBytes ?? Uint8List(0), filename: fileName);
+    final response = await dio.post(
+      '/users/me/profile-picture',
+      data: FormData.fromMap({'file': file}),
+    );
+    return UserModel.fromJson(response.data);
+  }
 
   Future<List<UserModel>> getUsers() async {
     final response = await dio.get('/users');

@@ -13,18 +13,20 @@ import 'paper_detail_screen.dart';
 import 'paper_form_screen.dart';
 
 class PaperListScreen extends ConsumerWidget {
-  final int meetingId;
+  final int? meetingId;
   final String meetingTitle;
 
   const PaperListScreen({
     super.key,
-    required this.meetingId,
-    required this.meetingTitle,
+    this.meetingId,
+    this.meetingTitle = '',
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final papersAsync = ref.watch(paperListProvider(meetingId));
+    final papersAsync = meetingId == null
+        ? ref.watch(allPaperListProvider)
+        : ref.watch(paperListProvider(meetingId!));
     final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
     final isSecretary = access.isSecretary;
 
@@ -38,20 +40,26 @@ class PaperListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isSecretary
-            ? 'Papers for $meetingTitle (ID: $meetingId)'
-            : 'Papers - $meetingTitle'),
+        title: Text(meetingId == null
+            ? 'Papers'
+            : isSecretary
+                ? 'Papers for $meetingTitle (ID: $meetingId)'
+                : 'Papers - $meetingTitle'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.refresh(paperListProvider(meetingId));
+              if (meetingId == null) {
+                ref.invalidate(allPaperListProvider);
+              } else {
+                ref.invalidate(paperListProvider(meetingId!));
+              }
             },
           ),
         ],
       ),
 
-      floatingActionButton: access.canUploadPapers
+      floatingActionButton: access.canUploadPapers && meetingId != null
           ? FloatingActionButton.extended(
               icon: const Icon(Icons.add),
               label: const Text('Add Paper'),
@@ -59,11 +67,11 @@ class PaperListScreen extends ConsumerWidget {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => PaperFormScreen(meetingId: meetingId),
+                    builder: (_) => PaperFormScreen(meetingId: meetingId!),
                   ),
                 );
 
-                ref.refresh(paperListProvider(meetingId));
+                ref.invalidate(paperListProvider(meetingId!));
               },
             )
           : null,

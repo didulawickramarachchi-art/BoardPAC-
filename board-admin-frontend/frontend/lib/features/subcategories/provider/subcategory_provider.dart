@@ -8,6 +8,6 @@ final subcategoryRepositoryProvider = Provider<SubcategoryRepository>((ref) {
 });
 
 final subcategoryListProvider =
-    FutureProvider<List<SubcategoryModel>>((ref) async {
+    FutureProvider.autoDispose<List<SubcategoryModel>>((ref) async {
   return ref.read(subcategoryRepositoryProvider).getSubcategories();
 });

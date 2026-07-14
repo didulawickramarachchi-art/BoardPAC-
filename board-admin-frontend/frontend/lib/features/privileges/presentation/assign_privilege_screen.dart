@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../subcategories/provider/subcategory_provider.dart';
+import '../../users/provider/user_provider.dart';
 import '../model/privilege_request.dart';
 import '../provider/privilege_provider.dart';
 
@@ -14,10 +16,10 @@ class AssignPrivilegeScreen extends ConsumerStatefulWidget {
 }
 
 class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
-  final _userIdController = TextEditingController();
-  final _subcategoryIdController = TextEditingController();
   final _displaySequenceController = TextEditingController();
 
+  int? selectedUserId;
+  int? selectedSubcategoryId;
   String selectedRole = 'MEMBER';
   bool isSaving = false;
 
@@ -28,34 +30,48 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
 
   @override
   void dispose() {
-    _userIdController.dispose();
-    _subcategoryIdController.dispose();
     _displaySequenceController.dispose();
     super.dispose();
   }
 
   Future<void> _assign() async {
+    if (selectedUserId == null || selectedSubcategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a user and subcategory')),
+      );
+      return;
+    }
+
     setState(() => isSaving = true);
 
-    final request = PrivilegeRequest(
-      userId: int.parse(_userIdController.text.trim()),
-      subcategoryId: int.parse(_subcategoryIdController.text.trim()),
-      assignedRole: selectedRole,
-      displaySequence: _displaySequenceController.text.trim().isEmpty
-          ? null
-          : int.parse(_displaySequenceController.text.trim()),
-    );
+    try {
+      final sequenceText = _displaySequenceController.text.trim();
+      final request = PrivilegeRequest(
+        userId: selectedUserId!,
+        subcategoryId: selectedSubcategoryId!,
+        assignedRole: selectedRole,
+        displaySequence: sequenceText.isEmpty ? null : int.parse(sequenceText),
+      );
 
-    await ref.read(privilegeListProvider.notifier).assign(request);
+      await ref.read(privilegeListProvider.notifier).assign(request);
 
-    if (mounted) {
-      setState(() => isSaving = false);
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to assign privilege: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isSaving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final usersAsync = ref.watch(userListProvider);
+    final subcategoriesAsync = ref.watch(subcategoryListProvider);
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -78,18 +94,85 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
           _SectionCard(
             title: 'Privilege Details',
             children: [
-              AppTextField(
-                controller: _userIdController,
-                hintText: 'User ID',
-                keyboardType: TextInputType.number,
+              usersAsync.when(
+                data: (users) => DropdownButtonFormField<int>(
+                  initialValue: selectedUserId,
+                  isExpanded: true,
+                  decoration: _dropdownDecoration('Select User'),
+                  dropdownColor: Colors.white,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: primaryBlue,
+                  ),
+                  items: (users.toList()
+                        ..sort(
+                          (a, b) => a.username.toLowerCase().compareTo(
+                            b.username.toLowerCase(),
+                          ),
+                        ))
+                      .map((user) {
+                        final fullName =
+                            '${user.firstName} ${user.lastName}'.trim();
+                        final label = fullName.isEmpty
+                            ? user.username
+                            : '$fullName (${user.username})';
+                        return DropdownMenuItem<int>(
+                          value: user.id,
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      })
+                      .toList(),
+                  onChanged: isSaving
+                      ? null
+                      : (value) => setState(() => selectedUserId = value),
+                ),
+                loading: () => const LinearProgressIndicator(color: gold),
+                error: (error, _) => _SelectorError(
+                  label: 'Unable to load users',
+                  onRetry: () =>
+                      ref.read(userListProvider.notifier).loadUsers(),
+                ),
               ),
 
               const SizedBox(height: 12),
 
-              AppTextField(
-                controller: _subcategoryIdController,
-                hintText: 'Subcategory ID',
-                keyboardType: TextInputType.number,
+              subcategoriesAsync.when(
+                data: (subcategories) => DropdownButtonFormField<int>(
+                  initialValue: selectedSubcategoryId,
+                  isExpanded: true,
+                  decoration: _dropdownDecoration('Select Subcategory'),
+                  dropdownColor: Colors.white,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: primaryBlue,
+                  ),
+                  items: subcategories.map((subcategory) {
+                    final name = subcategory.displayName.trim().isNotEmpty
+                        ? subcategory.displayName.trim()
+                        : subcategory.name;
+                    return DropdownMenuItem<int>(
+                      value: subcategory.id,
+                      child: Text(
+                        '${subcategory.categoryName} - $name',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: isSaving
+                      ? null
+                      : (value) =>
+                            setState(() => selectedSubcategoryId = value),
+                ),
+                loading: () => const LinearProgressIndicator(color: gold),
+                error: (error, _) => _SelectorError(
+                  label: 'Unable to load subcategories',
+                  onRetry: () => ref.invalidate(subcategoryListProvider),
+                ),
               ),
 
               const SizedBox(height: 12),
@@ -169,6 +252,53 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  InputDecoration _dropdownDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: Color(0xFF7D8CB2),
+        fontWeight: FontWeight.w600,
+      ),
+      filled: true,
+      fillColor: bgColor,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: gold, width: 1.5),
+      ),
+    );
+  }
+}
+
+class _SelectorError extends StatelessWidget {
+  final String label;
+  final VoidCallback onRetry;
+
+  const _SelectorError({required this.label, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label, style: const TextStyle(color: Colors.red)),
+        ),
+        TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Retry'),
+        ),
+      ],
     );
   }
 }

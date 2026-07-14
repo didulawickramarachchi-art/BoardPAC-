@@ -5,9 +5,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../../core/widgets/reaction_bar.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../comments/model/comment_request.dart';
 import '../../comments/provider/comment_provider.dart';
+import '../../comments/presentation/comment_card.dart';
 import '../model/attachment_model.dart';
 import '../model/paper_model.dart';
 import '../provider/paper_provider.dart';
@@ -203,6 +205,9 @@ class PaperDetailScreen extends ConsumerWidget {
                       (attachment) => _AttachmentCard(
                         attachment: attachment,
                         onOpen: () => _openFile(context, attachment.filePath),
+                        onReact: (reaction) => ref
+                            .read(attachmentListProvider(paper.id).notifier)
+                            .react(attachment.id, reaction),
                       ),
                     )
                     .toList(),
@@ -231,15 +236,11 @@ class PaperDetailScreen extends ConsumerWidget {
               return Column(
                 children: items
                     .map(
-                      (comment) => Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.comment_outlined),
-                          title: Text(comment.createdByUsername),
-                          subtitle: Text(comment.commentText),
-                          trailing: comment.annotated
-                              ? const Icon(Icons.draw_outlined)
-                              : null,
-                        ),
+                      (comment) => CommentCard(
+                        comment: comment,
+                        onReact: (reaction) => ref
+                            .read(paperCommentProvider(paper.id).notifier)
+                            .react(comment.id, reaction),
                       ),
                     )
                     .toList(),
@@ -312,10 +313,12 @@ class _PaperHeaderCard extends StatelessWidget {
 class _AttachmentCard extends StatelessWidget {
   final AttachmentModel attachment;
   final VoidCallback onOpen;
+  final ValueChanged<String> onReact;
 
   const _AttachmentCard({
     required this.attachment,
     required this.onOpen,
+    required this.onReact,
   });
 
   @override
@@ -323,10 +326,12 @@ class _AttachmentCard extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: _FilePreview(
-          fileName: attachment.fileName,
-          filePath: attachment.filePath,
-          onOpen: onOpen,
+        child: Column(
+          children: [
+            _FilePreview(fileName: attachment.fileName, filePath: attachment.filePath, onOpen: onOpen),
+            const Divider(height: 20),
+            ReactionBar(currentReaction: attachment.currentReaction, counts: attachment.reactionCounts, onReact: onReact),
+          ],
         ),
       ),
     );

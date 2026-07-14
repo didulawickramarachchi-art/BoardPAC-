@@ -8,6 +8,7 @@ class MeetingModel {
   final String? location;
   final String? description;
   final String? categoryName;
+  final int? subcategoryId;
   final String? subcategoryName;
 
   MeetingModel({
@@ -20,6 +21,7 @@ class MeetingModel {
     this.location,
     this.description,
     this.categoryName,
+    this.subcategoryId,
     this.subcategoryName,
   });
 
@@ -34,6 +36,7 @@ class MeetingModel {
       location: json['location'],
       description: json['description'],
       categoryName: json['categoryName'],
+      subcategoryId: (json['subcategoryId'] as num?)?.toInt(),
       subcategoryName: json['subcategoryName'],
     );
   }

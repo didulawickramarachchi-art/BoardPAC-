@@ -1,11 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../../core/network/dio_provider.dart';
+import '../../auth/provider/auth_provider.dart';
+import '../../privileges/data/privilege_repository.dart';
+import '../../privileges/provider/privilege_provider.dart';
 import '../data/meeting_repository.dart';
 import '../model/meeting_model.dart';
 import '../model/meeting_participant_model.dart';
 import '../model/meeting_participant_request.dart';
 import '../model/meeting_request.dart';
 import '../model/participant_status_request.dart';
+import '../model/participant_option_model.dart';
 
 final meetingRepositoryProvider = Provider<MeetingRepository>((ref) {
   return MeetingRepository(ref.read(dioProvider));
@@ -15,18 +20,58 @@ final meetingListProvider =
     StateNotifierProvider<MeetingNotifier, AsyncValue<List<MeetingModel>>>((
       ref,
     ) {
-      return MeetingNotifier(ref.read(meetingRepositoryProvider))
+      final auth = ref.watch(authProvider);
+      return MeetingNotifier(
+        ref.read(meetingRepositoryProvider),
+        ref.read(privilegeRepositoryProvider),
+        role: auth.role,
+        userId: auth.userId,
+      )
         ..loadMeetings();
     });
 
 class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
   final MeetingRepository repository;
+  final PrivilegeRepository privilegeRepository;
+  final String? role;
+  final int? userId;
 
-  MeetingNotifier(this.repository) : super(const AsyncLoading());
+  MeetingNotifier(
+    this.repository,
+    this.privilegeRepository, {
+    required this.role,
+    required this.userId,
+  })
+    : super(const AsyncLoading());
 
   Future<void> loadMeetings() async {
     try {
-      final data = await repository.getMeetings();
+      final access = RoleAccess(role ?? 'MEMBER');
+      List<MeetingModel> data;
+      if (access.isMember) {
+        final memberId = userId;
+        if (memberId == null) {
+          data = <MeetingModel>[];
+        } else {
+          final memberPrivileges = await privilegeRepository
+              .getPrivilegesByUser(memberId);
+          data = await repository.getMeetingsForMember(
+            userId: memberId,
+            privilegedSubcategoryIds: memberPrivileges
+                .map((privilege) => privilege.subcategoryId)
+                .toSet(),
+            privilegedSubcategoryNames: memberPrivileges
+                .map(
+                  (privilege) =>
+                      privilege.subcategoryName.trim().toLowerCase(),
+                )
+                .where((name) => name.isNotEmpty)
+                .toSet(),
+          );
+        }
+      } else {
+        data = await repository.getMeetings();
+      }
       state = AsyncData(data);
     } catch (e) {
       state = AsyncError(e, StackTrace.current);
@@ -65,6 +110,16 @@ final participantListProvider =
     >((ref, meetingId) {
       return ParticipantNotifier(ref.read(meetingRepositoryProvider), meetingId)
         ..load();
+    });
+
+final participantOptionsProvider =
+    FutureProvider.autoDispose.family<List<ParticipantOptionModel>, int>((
+      ref,
+      meetingId,
+    ) {
+      return ref
+          .read(meetingRepositoryProvider)
+          .getParticipantOptions(meetingId);
     });
 
 class ParticipantNotifier

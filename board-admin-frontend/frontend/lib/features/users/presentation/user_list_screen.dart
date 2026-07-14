@@ -72,27 +72,24 @@ class UserListScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(14),
                   child: Row(
                     children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: gold.withOpacity(0.18),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: gold,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            initials,
-                            style: const TextStyle(
-                              color: darkBlue,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor: gold.withOpacity(0.18),
+                        backgroundImage: user.profilePictureUrl != null &&
+                                user.profilePictureUrl!.isNotEmpty
+                            ? NetworkImage(user.profilePictureUrl!)
+                            : null,
+                        child: user.profilePictureUrl == null ||
+                                user.profilePictureUrl!.isEmpty
+                            ? Text(
+                                initials,
+                                style: const TextStyle(
+                                  color: darkBlue,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              )
+                            : null,
                       ),
 
                       const SizedBox(width: 14),
@@ -285,13 +282,31 @@ class UserListScreen extends ConsumerWidget {
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Text(
-              'Failed to load users: $error',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.red,
+                  size: 40,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Unable to load users.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: () =>
+                      ref.read(userListProvider.notifier).loadUsers(),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry'),
+                ),
+              ],
             ),
           ),
         ),

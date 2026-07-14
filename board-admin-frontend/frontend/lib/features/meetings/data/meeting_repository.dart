@@ -4,6 +4,7 @@ import '../model/meeting_participant_model.dart';
 import '../model/meeting_participant_request.dart';
 import '../model/meeting_request.dart';
 import '../model/participant_status_request.dart';
+import '../model/participant_option_model.dart';
 
 class MeetingRepository {
   final Dio dio;
@@ -37,6 +38,59 @@ class MeetingRepository {
     final response = await dio.get('/meetings/$meetingId/participants');
     return (response.data as List)
         .map((e) => MeetingParticipantModel.fromJson(e))
+        .toList();
+  }
+
+  Future<List<MeetingModel>> getMeetingsForMember({
+    required int userId,
+    required Set<int> privilegedSubcategoryIds,
+    required Set<String> privilegedSubcategoryNames,
+  }) async {
+    final meetings = await getMeetings();
+    final participantChecks = await Future.wait(
+      meetings.map((meeting) async {
+        final participants = await getParticipants(meeting.id);
+        return participants.any((participant) => participant.userId == userId);
+      }),
+    );
+
+    return [
+      for (var index = 0; index < meetings.length; index++)
+        if (participantChecks[index] &&
+            _hasSubcategoryPrivilege(
+              meetings[index],
+              privilegedSubcategoryIds,
+              privilegedSubcategoryNames,
+            ))
+          meetings[index],
+    ];
+  }
+
+  bool _hasSubcategoryPrivilege(
+    MeetingModel meeting,
+    Set<int> privilegedSubcategoryIds,
+    Set<String> privilegedSubcategoryNames,
+  ) {
+    final subcategoryId = meeting.subcategoryId;
+    if (subcategoryId != null &&
+        privilegedSubcategoryIds.contains(subcategoryId)) {
+      return true;
+    }
+
+    final subcategoryName = meeting.subcategoryName?.trim().toLowerCase();
+    return subcategoryName != null &&
+        subcategoryName.isNotEmpty &&
+        privilegedSubcategoryNames.contains(subcategoryName);
+  }
+
+  Future<List<ParticipantOptionModel>> getParticipantOptions(
+    int meetingId,
+  ) async {
+    final response = await dio.get(
+      '/meetings/$meetingId/participant-options',
+    );
+    return (response.data as List)
+        .map((item) => ParticipantOptionModel.fromJson(item))
         .toList();
   }
 

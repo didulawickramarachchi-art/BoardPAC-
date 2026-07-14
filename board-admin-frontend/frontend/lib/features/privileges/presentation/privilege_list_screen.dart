@@ -182,10 +182,24 @@ class PrivilegeListScreen extends ConsumerWidget {
                           size: 22,
                         ),
                         onPressed: () async {
-                          await ref.read(privilegeListProvider.notifier).remove(
-                                userId: item.userId,
-                                subcategoryId: item.subcategoryId,
+                          try {
+                            await ref
+                                .read(privilegeListProvider.notifier)
+                                .remove(
+                                  userId: item.userId,
+                                  subcategoryId: item.subcategoryId,
+                                );
+                          } catch (error) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Failed to remove privilege: $error',
+                                  ),
+                                ),
                               );
+                            }
+                          }
                         },
                       ),
                     ],

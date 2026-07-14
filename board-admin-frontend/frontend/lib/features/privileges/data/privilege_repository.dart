@@ -14,6 +14,13 @@ class PrivilegeRepository {
         .toList();
   }
 
+  Future<List<PrivilegeModel>> getPrivilegesByUser(int userId) async {
+    final response = await dio.get('/privileges/user/$userId');
+    return (response.data as List)
+        .map((item) => PrivilegeModel.fromJson(item))
+        .toList();
+  }
+
   Future<void> assignPrivilege(PrivilegeRequest request) async {
     await dio.post('/privileges', data: request.toJson());
   }

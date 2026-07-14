@@ -8,6 +8,7 @@ import '../model/comment_request.dart';
 import '../model/share_comment_request.dart';
 import '../model/share_paper_request.dart';
 import '../provider/comment_provider.dart';
+import 'comment_card.dart';
 
 class CommentScreen extends ConsumerWidget {
   final int? paperId;
@@ -246,20 +247,16 @@ class CommentScreen extends ConsumerWidget {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final comment = items[index];
-              return Card(
-                child: ListTile(
-                  title: Text(comment.createdByUsername),
-                  subtitle: Text(
-                    '${comment.commentText}\nAnnotated: ${comment.annotated ? 'Yes' : 'No'}',
-                  ),
-                  isThreeLine: true,
-                  trailing: paperId != null
-                      ? IconButton(
-                          icon: const Icon(Icons.share),
-                          onPressed: () => _showShareCommentDialog(context, ref, comment.id),
-                        )
-                      : null,
-                ),
+              return CommentCard(
+                comment: comment,
+                onReact: paperId != null
+                    ? (reaction) => ref
+                        .read(paperCommentProvider(paperId!).notifier)
+                        .react(comment.id, reaction)
+                    : null,
+                onShare: paperId != null
+                    ? () => _showShareCommentDialog(context, ref, comment.id)
+                    : null,
               );
             },
           );

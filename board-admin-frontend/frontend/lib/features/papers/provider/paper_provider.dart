@@ -12,6 +12,10 @@ final paperRepositoryProvider = Provider<PaperRepository>((ref) {
   return PaperRepository(ref.read(dioProvider));
 });
 
+final allPaperListProvider = FutureProvider<List<PaperModel>>((ref) async {
+  return ref.read(paperRepositoryProvider).getAllPapers();
+});
+
 final paperListProvider =
     StateNotifierProvider.family<
       PaperNotifier,
@@ -79,6 +83,11 @@ class AttachmentNotifier
 
   Future<void> addAttachment(AttachmentRequest request) async {
     await repository.addAttachment(request);
+    await load();
+  }
+
+  Future<void> react(int attachmentId, String reactionType) async {
+    await repository.reactToAttachment(attachmentId, reactionType);
     await load();
   }
 }

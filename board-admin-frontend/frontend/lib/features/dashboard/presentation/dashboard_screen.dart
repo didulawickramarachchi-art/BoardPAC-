@@ -9,9 +9,12 @@ import '../../auth/provider/auth_provider.dart';
 import '../../categories/presentation/category_list_screen.dart';
 import '../../devices/presentation/device_list_screen.dart';
 import '../../meetings/presentation/meeting_list_screen.dart';
+import '../../papers/presentation/paper_list_screen.dart';
 import '../../privileges/presentation/privilege_list_screen.dart';
 import '../../subcategories/presentation/subcategory_list_screen.dart';
 import '../../users/presentation/user_list_screen.dart';
+import '../../users/presentation/profile_picture_screen.dart';
+import '../../users/provider/user_provider.dart';
 import '../model/dashboard_summary_model.dart';
 import '../provider/dashboard_provider.dart';
 
@@ -70,6 +73,7 @@ class DashboardScreen extends ConsumerWidget {
 
                     summaryAsync.when(
                       data: (summary) => _UpcomingMeetingCard(
+                        currentUserId: currentUserId,
                         title:
                             summary.upcomingMeetingTitle ??
                             'No upcoming meeting',
@@ -116,10 +120,14 @@ class _Header extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final authState = ref.watch(authProvider);
+    final currentUser = ref.watch(currentUserProvider).valueOrNull;
 
-    final userName = authState.username ?? 'Admin';
+    final userName = currentUser?.displayName?.trim().isNotEmpty == true
+        ? currentUser!.displayName!
+        : authState.username ?? 'User';
     final role = authState.role ?? 'User';
     final initials = _getInitials(userName);
+    final profilePictureUrl = currentUser?.profilePictureUrl;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -196,22 +204,59 @@ class _Header extends ConsumerWidget {
 
               const SizedBox(width: 8),
 
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: gold,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      color: darkBlue,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
+              GestureDetector(
+                onTap: () async {
+                  final updated = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProfilePictureScreen(),
                     ),
-                  ),
+                  );
+                  if (updated == true) {
+                    ref.invalidate(currentUserProvider);
+                  }
+                },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 23,
+                      backgroundColor: gold,
+                      child: ClipOval(
+                        child: SizedBox.square(
+                          dimension: 46,
+                          child: profilePictureUrl != null &&
+                                  profilePictureUrl.isNotEmpty
+                              ? Image.network(
+                                  profilePictureUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => _ProfileInitials(
+                                    initials: initials,
+                                  ),
+                                )
+                              : _ProfileInitials(initials: initials),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: -2,
+                      bottom: -2,
+                      child: Container(
+                        width: 19,
+                        height: 19,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF25D366),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: primaryBlue, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.white,
+                          size: 10,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -298,6 +343,30 @@ class _Header extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+}
+
+class _ProfileInitials extends StatelessWidget {
+  final String initials;
+
+  const _ProfileInitials({required this.initials});
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: _Header.gold,
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            color: _Header.darkBlue,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ),
     );
   }
@@ -485,13 +554,15 @@ class _RoleOverview extends StatelessWidget {
   }
 }
 
-class _UpcomingMeetingCard extends StatelessWidget {
+class _UpcomingMeetingCard extends ConsumerWidget {
+  final int currentUserId;
   final String title;
   final String dateTimeText;
   final String location;
   final String daysText;
 
   const _UpcomingMeetingCard({
+    required this.currentUserId,
     required this.title,
     required this.dateTimeText,
     required this.location,
@@ -499,17 +570,18 @@ class _UpcomingMeetingCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Material(
       color: const Color(0xFF233E8B),
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const MeetingListScreen()),
           );
+          ref.refresh(dashboardSummaryProvider(currentUserId));
         },
         child: Container(
           width: double.infinity,
@@ -885,7 +957,7 @@ const _secretaryTiles = [
   _MenuTileData(
     'Papers',
     Icons.picture_as_pdf_outlined,
-    MeetingListScreen(),
+    PaperListScreen(),
   ),
 ];
 
@@ -898,7 +970,7 @@ const _memberTiles = [
   _MenuTileData(
     'Papers',
     Icons.picture_as_pdf_outlined,
-    MeetingListScreen(),
+    PaperListScreen(),
   ),
 ];
 

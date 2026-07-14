@@ -12,6 +12,11 @@ class PaperRepository {
 
   PaperRepository(this.dio);
 
+  Future<List<PaperModel>> getAllPapers() async {
+    final response = await dio.get('/papers');
+    return (response.data as List).map((e) => PaperModel.fromJson(e)).toList();
+  }
+
   Future<List<PaperModel>> getPapersByMeeting(int meetingId) async {
     final response = await dio.get('/papers/meeting/$meetingId');
     return (response.data as List).map((e) => PaperModel.fromJson(e)).toList();
@@ -30,6 +35,10 @@ class PaperRepository {
 
   Future<void> addAttachment(AttachmentRequest request) async {
     await dio.post('/attachments', data: request.toJson());
+  }
+
+  Future<void> reactToAttachment(int attachmentId, String reactionType) async {
+    await dio.post('/attachments/$attachmentId/reaction', data: {'reactionType': reactionType});
   }
 
   Future<String> uploadAttachment({

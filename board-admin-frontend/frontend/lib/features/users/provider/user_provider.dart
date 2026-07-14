@@ -9,10 +9,17 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
   return UserRepository(dio);
 });
 
-final userListProvider =
-    StateNotifierProvider<UserNotifier, AsyncValue<List<UserModel>>>((ref) {
-  return UserNotifier(ref.read(userRepositoryProvider))..loadUsers();
+final currentUserProvider = FutureProvider<UserModel>((ref) {
+  return ref.read(userRepositoryProvider).getCurrentUser();
 });
+
+final userListProvider =
+    StateNotifierProvider.autoDispose<
+      UserNotifier,
+      AsyncValue<List<UserModel>>
+    >((ref) {
+      return UserNotifier(ref.read(userRepositoryProvider))..loadUsers();
+    });
 
 class UserNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
   final UserRepository repository;

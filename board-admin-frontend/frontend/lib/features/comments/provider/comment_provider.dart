@@ -40,6 +40,11 @@ class CommentNotifier extends StateNotifier<AsyncValue<List<CommentModel>>> {
     await load();
   }
 
+  Future<void> react(int commentId, String reactionType) async {
+    await repository.react(commentId, reactionType);
+    await load();
+  }
+
   Future<void> shareComment(ShareCommentRequest request) async {
     await repository.shareComment(request);
     await load();
