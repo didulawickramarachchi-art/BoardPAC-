@@ -5,6 +5,7 @@ import com.portSrilanka.board_admin_backend.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,7 +17,12 @@ public class DashboardController {
 
     @GetMapping("/summary/{userId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<DashboardSummaryResponse> getSummary(@PathVariable Long userId) {
-        return ResponseEntity.ok(dashboardService.getSummaryForUser(userId));
+    public ResponseEntity<DashboardSummaryResponse> getSummary(
+            @PathVariable Long userId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                dashboardService.getSummaryForUser(userId, authentication.getName())
+        );
     }
 }

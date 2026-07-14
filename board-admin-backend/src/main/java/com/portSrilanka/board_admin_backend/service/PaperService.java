@@ -90,6 +90,13 @@ public class PaperService {
                 .toList();
     }
 
+    public List<PaperResponse> getAll() {
+        return paperRepository.findAll()
+                .stream()
+                .map(this::mapPaper)
+                .toList();
+    }
+
     public List<PaperResponse> getByAgendaItem(Long agendaItemId) {
         return paperRepository.findByAgendaItemId(agendaItemId)
                 .stream()

@@ -14,8 +14,12 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +28,12 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final SupabaseStorageService supabaseStorageService;
+
+    private static final long MAX_PROFILE_PICTURE_SIZE = 5 * 1024 * 1024;
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp"
+    );
 
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
@@ -34,6 +44,24 @@ public class UserService {
 
     public UserResponse getUserById(Long id) {
         return mapToResponse(findUser(id));
+    }
+
+    public UserResponse getCurrentUser(String username) {
+        return mapToResponse(findByUsername(username));
+    }
+
+    public UserResponse uploadProfilePicture(String username, MultipartFile file) throws IOException {
+        validateProfilePicture(file);
+        User user = findByUsername(username);
+        String extension = extensionFor(file.getContentType());
+        String objectPath = "profile-pictures/users/" + user.getId() + "/profile." + extension;
+        String profilePictureUrl = supabaseStorageService.uploadFile(file, objectPath);
+
+        user.setProfilePictureUrl(profilePictureUrl);
+        userRepository.save(user);
+        auditService.logInfo("USER", "UPDATE_PROFILE_PICTURE", username,
+                "Profile picture updated", "DEVICE");
+        return mapToResponse(user);
     }
 
     public UserResponse updateUser(Long id, UserRequest request) {
@@ -130,6 +158,34 @@ public class UserService {
                         new ResourceNotFoundException("User not found"));
     }
 
+    private User findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private void validateProfilePicture(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new com.portSrilanka.board_admin_backend.exception.BadRequestException("Please select a profile picture");
+        }
+        if (file.getSize() > MAX_PROFILE_PICTURE_SIZE) {
+            throw new com.portSrilanka.board_admin_backend.exception.BadRequestException("Profile picture must be 5 MB or smaller");
+        }
+        String contentType = file.getContentType() == null
+                ? ""
+                : file.getContentType().toLowerCase(Locale.ROOT);
+        if (!ALLOWED_IMAGE_TYPES.contains(contentType)) {
+            throw new com.portSrilanka.board_admin_backend.exception.BadRequestException("Only JPEG, PNG, and WebP images are allowed");
+        }
+    }
+
+    private String extensionFor(String contentType) {
+        return switch (contentType == null ? "" : contentType.toLowerCase(Locale.ROOT)) {
+            case "image/png" -> "png";
+            case "image/webp" -> "webp";
+            default -> "jpg";
+        };
+    }
+
     private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -140,6 +196,7 @@ public class UserService {
                 .boardEmail(user.getBoardEmail())
                 .mobileNumber(user.getMobileNumber())
                 .jobTitle(user.getJobTitle())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .status(user.getStatus())
                 .build();
     }

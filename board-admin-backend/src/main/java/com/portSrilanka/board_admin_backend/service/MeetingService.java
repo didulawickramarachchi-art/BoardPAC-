@@ -4,6 +4,7 @@ import com.portSrilanka.board_admin_backend.dto.meeting.*;
 import com.portSrilanka.board_admin_backend.entity.*;
 import com.portSrilanka.board_admin_backend.enums.MeetingStatus;
 import com.portSrilanka.board_admin_backend.enums.ParticipantStatus;
+import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import com.portSrilanka.board_admin_backend.exception.BadRequestException;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -202,6 +204,49 @@ public class MeetingService {
                 .stream()
                 .map(this::mapParticipant)
                 .toList();
+    }
+
+    public List<ParticipantOptionResponse> getParticipantOptions(Long meetingId) {
+        if (meetingId == null) {
+            throw new BadRequestException("Meeting id is required");
+        }
+
+        Meeting meeting = findMeeting(meetingId);
+        Set<Long> participantIds = meetingParticipantRepository
+                .findByMeetingIdOrderByDisplaySequenceAsc(meetingId)
+                .stream()
+                .map(participant -> participant.getUser().getId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        Set<Long> eligibleUserIds = accessRepository
+                .findBySubcategoryId(meeting.getSubcategory().getId())
+                .stream()
+                .map(UserSubcategoryAccess::getUser)
+                .map(User::getId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        return userRepository.findAll()
+                .stream()
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                .filter(this::isMember)
+                .distinct()
+                .sorted(java.util.Comparator.comparing(User::getUsername, String.CASE_INSENSITIVE_ORDER))
+                .map(user -> ParticipantOptionResponse.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .firstName(user.getFirstName())
+                        .lastName(user.getLastName())
+                        .displayName(user.getDisplayName())
+                        .participant(participantIds.contains(user.getId()))
+                        .eligible(eligibleUserIds.contains(user.getId()))
+                        .build())
+                .toList();
+    }
+
+    private boolean isMember(User user) {
+        return user.getRoles().stream()
+                .anyMatch(role -> role.getName().authorityName()
+                        .equals(SystemRole.MEMBER.name()));
     }
 
     @Transactional

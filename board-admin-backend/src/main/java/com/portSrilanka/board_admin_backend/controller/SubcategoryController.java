@@ -23,7 +23,7 @@ public class SubcategoryController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<SubcategoryResponse>> getAll() {
         return ResponseEntity.ok(subcategoryService.getAll());
     }

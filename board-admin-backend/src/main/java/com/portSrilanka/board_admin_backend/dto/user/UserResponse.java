@@ -15,5 +15,6 @@ public class UserResponse {
     private String boardEmail;
     private String mobileNumber;
     private String jobTitle;
+    private String profilePictureUrl;
     private UserStatus status;
 }

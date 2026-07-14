@@ -22,6 +22,12 @@ public class PaperController {
         return ResponseEntity.ok(paperService.create(request));
     }
 
+    @GetMapping
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    public ResponseEntity<List<PaperResponse>> getAll() {
+        return ResponseEntity.ok(paperService.getAll());
+    }
+
     @GetMapping("/meeting/{meetingId}")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<PaperResponse>> getByMeeting(@PathVariable Long meetingId) {

@@ -49,7 +49,7 @@ public class RefreshTokenService {
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
                 .authorities(user.getRoles().stream()
-                        .map(r -> "ROLE_" + r.getName().name())
+                        .map(r -> "ROLE_" + r.getName().authorityName())
                         .toArray(String[]::new))
                 .build();
 

@@ -10,6 +10,7 @@ import com.portSrilanka.board_admin_backend.repository.UserRepository;
 import com.portSrilanka.board_admin_backend.repository.UserSubcategoryAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -52,6 +53,13 @@ public class PrivilegeService {
         return accessRepository.findByUserId(userId).stream().map(this::map).toList();
     }
 
+    public boolean isUser(Long userId, String username) {
+        return userRepository.findById(userId)
+                .map(user -> user.getUsername().equals(username))
+                .orElse(false);
+    }
+
+    @Transactional
     public String remove(Long userId, Long subcategoryId) {
         accessRepository.deleteByUserIdAndSubcategoryId(userId, subcategoryId);
         auditService.logInfo("PRIVILEGE", "REMOVE_PRIVILEGE",

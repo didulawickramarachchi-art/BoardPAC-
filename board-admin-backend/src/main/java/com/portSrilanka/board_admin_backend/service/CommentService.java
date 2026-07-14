@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
+import com.portSrilanka.board_admin_backend.enums.ReactionType;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +21,7 @@ public class CommentService {
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final CommentShareRepository commentShareRepository;
+    private final CommentReactionRepository commentReactionRepository;
     private final AuditService auditService;
 
     // ✅ NEW INJECTION
@@ -62,16 +66,37 @@ public class CommentService {
                 .build();
     }
 
-    public List<CommentResponse> getByPaper(Long paperId) {
+    public List<CommentResponse> getByPaper(Long paperId, String username) {
+        User currentUser = findUser(username);
         return commentRepository.findByPaperId(paperId).stream()
-                .map(this::mapComment)
+                .map(comment -> mapComment(comment, currentUser.getId()))
                 .toList();
     }
 
-    public List<CommentResponse> getByMeeting(Long meetingId) {
+    public List<CommentResponse> getByMeeting(Long meetingId, String username) {
+        User currentUser = findUser(username);
         return commentRepository.findByMeetingId(meetingId).stream()
-                .map(this::mapComment)
+                .map(comment -> mapComment(comment, currentUser.getId()))
                 .toList();
+    }
+
+    public CommentResponse react(Long commentId, ReactionType reactionType, String username) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        User user = findUser(username);
+
+        CommentReaction existing = commentReactionRepository
+                .findByCommentIdAndUserId(commentId, user.getId()).orElse(null);
+        if (existing != null && existing.getReactionType() == reactionType) {
+            commentReactionRepository.delete(existing);
+        } else if (existing != null) {
+            existing.setReactionType(reactionType);
+            commentReactionRepository.save(existing);
+        } else {
+            commentReactionRepository.save(CommentReaction.builder()
+                    .comment(comment).user(user).reactionType(reactionType).build());
+        }
+        return mapComment(comment, user.getId());
     }
 
     public String shareComment(ShareCommentRequest request) {
@@ -106,12 +131,33 @@ public class CommentService {
         return "Comment shared successfully";
     }
 
-    private CommentResponse mapComment(Comment comment) {
+    private User findUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private CommentResponse mapComment(Comment comment, Long currentUserId) {
+        List<CommentReaction> reactions = commentReactionRepository.findByCommentId(comment.getId());
+        Map<String, Long> counts = new java.util.HashMap<>();
+        for (ReactionType type : ReactionType.values()) {
+            counts.put(type.name(), reactions.stream()
+                    .filter(reaction -> reaction.getReactionType() == type).count());
+        }
+        CommentReaction currentReaction = reactions.stream()
+                .filter(reaction -> reaction.getUser().getId().equals(currentUserId))
+                .findFirst().orElse(null);
         return CommentResponse.builder()
                 .id(comment.getId())
                 .createdByUsername(comment.getCreatedBy().getUsername())
                 .commentText(comment.getCommentText())
                 .annotated(comment.isAnnotated())
+                .createdAt(comment.getCreatedAt())
+                .reactionCount(commentReactionRepository.countByCommentId(comment.getId()))
+                .reactedByCurrentUser(commentReactionRepository
+                        .findByCommentIdAndUserId(comment.getId(), currentUserId)
+                        .isPresent())
+                .currentReaction(currentReaction != null ? currentReaction.getReactionType().name() : null)
+                .reactionCounts(counts)
                 .build();
     }
 }

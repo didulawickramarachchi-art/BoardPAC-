@@ -25,8 +25,16 @@ public class SupabaseStorageService {
     private String bucket;
 
     public String uploadFile(MultipartFile file, String path) throws IOException {
+        return uploadFile(file, path, bucket);
+    }
+
+    public String uploadFile(MultipartFile file, String path, String targetBucket) throws IOException {
         if (supabaseUrl == null || supabaseUrl.isBlank() || supabaseKey == null || supabaseKey.isBlank()) {
             throw new IllegalStateException("SUPABASE_URL or SUPABASE_KEY not set in environment variables or application properties");
+        }
+
+        if (targetBucket == null || targetBucket.isBlank()) {
+            throw new IllegalArgumentException("Storage bucket is missing");
         }
 
         String filename = (path != null && !path.isBlank()) ? path : file.getOriginalFilename();
@@ -34,8 +42,9 @@ public class SupabaseStorageService {
             throw new IllegalArgumentException("File name missing");
         }
 
-        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8.toString()).replace("+", "%20");
-        String urlStr = supabaseUrl + "/storage/v1/object/" + bucket + "/" + encoded;
+        String encoded = encodeObjectPath(filename);
+        String encodedBucket = URLEncoder.encode(targetBucket, StandardCharsets.UTF_8).replace("+", "%20");
+        String urlStr = supabaseUrl + "/storage/v1/object/" + encodedBucket + "/" + encoded;
 
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -59,7 +68,7 @@ public class SupabaseStorageService {
 
         int resp = conn.getResponseCode();
         if (resp >= 200 && resp < 300) {
-            return supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + encoded;
+            return supabaseUrl + "/storage/v1/object/public/" + encodedBucket + "/" + encoded;
         } else {
             String body = "";
             try (InputStream err = conn.getErrorStream()) {
@@ -67,5 +76,11 @@ public class SupabaseStorageService {
             }
             throw new IOException("Upload failed: HTTP " + resp + " - " + body);
         }
+    }
+
+    private String encodeObjectPath(String path) {
+        return java.util.Arrays.stream(path.split("/"))
+                .map(segment -> URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20"))
+                .collect(java.util.stream.Collectors.joining("/"));
     }
 }

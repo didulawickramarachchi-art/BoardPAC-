@@ -28,7 +28,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                 true,
                 !user.getStatus().name().equals("LOCKED"),
                 user.getRoles().stream()
-                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
+                        .map(role -> new SimpleGrantedAuthority(
+                                "ROLE_" + role.getName().authorityName()))
                         .collect(Collectors.toSet())
         );
     }

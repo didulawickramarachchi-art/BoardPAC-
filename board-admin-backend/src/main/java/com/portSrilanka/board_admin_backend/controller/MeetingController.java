@@ -62,6 +62,14 @@ public class MeetingController {
         return ResponseEntity.ok(meetingService.getParticipants(meetingId));
     }
 
+    @GetMapping("/{meetingId}/participant-options")
+    @PreAuthorize("hasRole('SECRETARY')")
+    public ResponseEntity<List<ParticipantOptionResponse>> getParticipantOptions(
+            @PathVariable Long meetingId
+    ) {
+        return ResponseEntity.ok(meetingService.getParticipantOptions(meetingId));
+    }
+
     @PutMapping("/participants/status")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<MeetingParticipantResponse> updateParticipantStatus(

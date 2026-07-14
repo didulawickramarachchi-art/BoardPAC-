@@ -12,27 +12,30 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/privileges")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class PrivilegeController {
 
     private final PrivilegeService privilegeService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PrivilegeResponse> assign(@RequestBody PrivilegeAssignRequest request) {
         return ResponseEntity.ok(privilegeService.assign(request));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PrivilegeResponse>> getAll() {
         return ResponseEntity.ok(privilegeService.getAll());
     }
 
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MEMBER') and @privilegeService.isUser(#userId, authentication.name))")
     public ResponseEntity<List<PrivilegeResponse>> getByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(privilegeService.getByUser(userId));
     }
 
     @DeleteMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> remove(
             @RequestParam Long userId,
             @RequestParam Long subcategoryId
