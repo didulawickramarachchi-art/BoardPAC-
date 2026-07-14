@@ -29,6 +29,14 @@ class UserRepository {
     return UserModel.fromJson(response.data);
   }
 
+  Future<Uint8List> getProfilePicture(String url) async {
+    final response = await dio.get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(response.data ?? const <int>[]);
+  }
+
   Future<List<UserModel>> getUsers() async {
     final response = await dio.get('/users');
     return (response.data as List)

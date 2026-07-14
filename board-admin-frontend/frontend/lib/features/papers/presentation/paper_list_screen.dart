@@ -13,6 +13,10 @@ import 'paper_detail_screen.dart';
 import 'paper_form_screen.dart';
 
 class PaperListScreen extends ConsumerWidget {
+  static const Color _primaryBlue = Color(0xFF12275B);
+  static const Color _cardBlue = Color(0xFF233E8B);
+  static const Color _background = Color(0xFFF6F7FB);
+
   final int? meetingId;
   final String meetingTitle;
 
@@ -39,7 +43,11 @@ class PaperListScreen extends ConsumerWidget {
     }
 
     return Scaffold(
+      backgroundColor: _background,
       appBar: AppBar(
+        backgroundColor: _primaryBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
         title: Text(meetingId == null
             ? 'Papers'
             : isSecretary
@@ -47,6 +55,7 @@ class PaperListScreen extends ConsumerWidget {
                 : 'Papers - $meetingTitle'),
         actions: [
           IconButton(
+            tooltip: 'Refresh papers',
             icon: const Icon(Icons.refresh),
             onPressed: () {
               if (meetingId == null) {
@@ -61,6 +70,8 @@ class PaperListScreen extends ConsumerWidget {
 
       floatingActionButton: access.canUploadPapers && meetingId != null
           ? FloatingActionButton.extended(
+              backgroundColor: _primaryBlue,
+              foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('Add Paper'),
               onPressed: () async {
@@ -83,51 +94,82 @@ class PaperListScreen extends ConsumerWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 96),
             itemCount: items.length,
             itemBuilder: (context, index) {
               final paper = items[index];
 
               return Card(
-                elevation: 3,
-                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 0,
+                color: Colors.white,
+                margin: const EdgeInsets.only(bottom: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: const BorderSide(color: Color(0xFFE8EBF2)),
+                ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
+                  contentPadding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
+
+                  leading: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _cardBlue.withOpacity(0.09),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Icon(
+                      Icons.description_outlined,
+                      color: _cardBlue,
+                      size: 25,
+                    ),
+                  ),
 
                   title: Text(
                     paper.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF00184A),
+                      fontSize: 15,
+                      height: 1.25,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
 
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Text(
                         '${paper.paperType} • Ref: ${paper.referenceNumber ?? '-'}',
                       ),
-                      const SizedBox(height: 4),
-                      Row(
+                      const SizedBox(height: 9),
+                      Wrap(
+                        spacing: 7,
+                        runSpacing: 7,
                         children: [
-                          Icon(
-                            paper.requiresApproval
-                                ? Icons.verified
-                                : Icons.check_circle,
-                            size: 16,
-                            color: paper.requiresApproval
-                                ? Colors.orange
-                                : Colors.green,
+                          _PaperStatusChip(
+                            icon: paper.requiresApproval
+                                ? Icons.pending_actions_rounded
+                                : Icons.check_circle_outline_rounded,
+                            label: paper.requiresApproval
+                                ? 'Approval required'
+                                : 'No approval needed',
+                            foreground: paper.requiresApproval
+                                ? const Color(0xFF9A5B00)
+                                : const Color(0xFF16835B),
+                            background: paper.requiresApproval
+                                ? const Color(0xFFFFF3DC)
+                                : const Color(0xFFE0F8F1),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            paper.requiresApproval
-                                ? 'Approval Required'
-                                : 'No Approval Needed',
+                          _PaperStatusChip(
+                            icon: Icons.layers_outlined,
+                            label: 'Version ${paper.versionNumber ?? 1}',
+                            foreground: _cardBlue,
+                            background: const Color(0xFFEAF0FF),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text('Version: ${paper.versionNumber ?? 1}'),
                     ],
                   ),
 
@@ -228,6 +270,46 @@ class PaperListScreen extends ConsumerWidget {
         ),
 
         loading: () => const AppLoading(),
+      ),
+    );
+  }
+}
+
+class _PaperStatusChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color foreground;
+  final Color background;
+
+  const _PaperStatusChip({
+    required this.icon,
+    required this.label,
+    required this.foreground,
+    required this.background,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: foreground),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: foreground,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

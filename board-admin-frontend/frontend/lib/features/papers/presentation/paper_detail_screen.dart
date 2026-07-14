@@ -16,6 +16,9 @@ import '../provider/paper_provider.dart';
 import 'attachment_screen.dart';
 
 class PaperDetailScreen extends ConsumerWidget {
+  static const Color primaryBlue = Color(0xFF12275B);
+  static const Color background = Color(0xFFF6F7FB);
+
   final PaperModel paper;
 
   const PaperDetailScreen({
@@ -145,8 +148,15 @@ class PaperDetailScreen extends ConsumerWidget {
     }
 
     return Scaffold(
+      backgroundColor: background,
       appBar: AppBar(
-        title: Text(paper.title),
+        backgroundColor: primaryBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Paper Details',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -160,6 +170,8 @@ class PaperDetailScreen extends ConsumerWidget {
       ),
       floatingActionButton: access.canCommentPapers
           ? FloatingActionButton.extended(
+              backgroundColor: primaryBlue,
+              foregroundColor: Colors.white,
               icon: const Icon(Icons.add_comment_outlined),
               label: const Text('Comment'),
               onPressed: () => _showAddCommentDialog(context, ref),
@@ -175,6 +187,7 @@ class PaperDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _SectionHeader(
             title: 'Attachments',
+            icon: Icons.attach_file_rounded,
             action: access.canUploadPapers
                 ? TextButton.icon(
                     icon: const Icon(Icons.attach_file),
@@ -219,6 +232,7 @@ class PaperDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _SectionHeader(
             title: 'Comments',
+            icon: Icons.forum_outlined,
             action: access.canCommentPapers
                 ? TextButton.icon(
                     icon: const Icon(Icons.add_comment_outlined),
@@ -269,34 +283,69 @@ class _PaperHeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasFile = paper.filePath?.trim().isNotEmpty == true;
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF12275B), Color(0xFF233E8B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x2612275B),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Icon(
+                Icons.description_outlined,
+                color: Color(0xFFFFB52E),
+                size: 25,
+              ),
+            ),
+            const SizedBox(height: 16),
             Text(
               paper.title,
-              style: Theme.of(context).textTheme.titleLarge,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                height: 1.2,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                Chip(label: Text(paper.paperType)),
-                Chip(label: Text('Version ${paper.versionNumber ?? 1}')),
+                _InfoChip(label: paper.paperType),
+                _InfoChip(label: 'Version ${paper.versionNumber ?? 1}'),
                 if (paper.referenceNumber?.trim().isNotEmpty == true)
-                  Chip(label: Text('Ref ${paper.referenceNumber}')),
-                Chip(
-                  label: Text(
-                    paper.requiresApproval ? 'Approval required' : 'No approval needed',
-                  ),
+                  _InfoChip(label: 'Ref ${paper.referenceNumber}'),
+                _InfoChip(
+                  label: paper.requiresApproval
+                      ? 'Approval required'
+                      : 'No approval needed',
+                  highlighted: paper.requiresApproval,
                 ),
               ],
             ),
             if (hasFile) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 18),
               _FilePreview(
                 fileName: paper.fileName ?? paper.title,
                 filePath: paper.filePath!,
@@ -324,13 +373,27 @@ class _AttachmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFE8EBF2)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           children: [
-            _FilePreview(fileName: attachment.fileName, filePath: attachment.filePath, onOpen: onOpen),
+            _FilePreview(
+              fileName: attachment.fileName,
+              filePath: attachment.filePath,
+              onOpen: onOpen,
+            ),
             const Divider(height: 20),
-            ReactionBar(currentReaction: attachment.currentReaction, counts: attachment.reactionCounts, onReact: onReact),
+            ReactionBar(
+              currentReaction: attachment.currentReaction,
+              counts: attachment.reactionCounts,
+              onReact: onReact,
+            ),
           ],
         ),
       ),
@@ -353,54 +416,68 @@ class _FilePreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final isImage = _isImage(fileName) || _isImage(filePath);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (isImage)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Image.network(
-                filePath,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const ColoredBox(
-                  color: Color(0xFFE9ECF3),
-                  child: Center(child: Icon(Icons.broken_image_outlined)),
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isImage)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  filePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const ColoredBox(
+                    color: Color(0xFFE9ECF3),
+                    child: Center(child: Icon(Icons.broken_image_outlined)),
+                  ),
+                ),
+              ),
+            )
+          else
+            Container(
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F2F7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.picture_as_pdf_rounded,
+                  size: 46,
+                  color: Color(0xFFE74C3C),
                 ),
               ),
             ),
-          )
-        else
-          Container(
-            height: 120,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE9ECF3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Center(
-              child: Icon(Icons.picture_as_pdf_outlined, size: 44),
-            ),
-          ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                fileName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  fileName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF00184A),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
-            TextButton.icon(
-              onPressed: onOpen,
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('Open'),
-            ),
-          ],
-        ),
-      ],
+              TextButton.icon(
+                onPressed: onOpen,
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: const Text('Open'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -416,10 +493,12 @@ class _FilePreview extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+  final IconData icon;
   final Widget? action;
 
   const _SectionHeader({
     required this.title,
+    required this.icon,
     this.action,
   });
 
@@ -429,14 +508,59 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF233E8B).withOpacity(0.09),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: const Color(0xFF233E8B), size: 19),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: const TextStyle(
+                color: Color(0xFF00184A),
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           if (action != null) action!,
         ],
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final String label;
+  final bool highlighted;
+
+  const _InfoChip({required this.label, this.highlighted = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: highlighted
+            ? const Color(0xFFFFB52E)
+            : Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: highlighted
+            ? null
+            : Border.all(color: Colors.white.withOpacity(0.16)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: highlighted ? const Color(0xFF00184A) : Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

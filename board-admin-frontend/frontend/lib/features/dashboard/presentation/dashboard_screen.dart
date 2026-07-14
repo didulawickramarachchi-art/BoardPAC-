@@ -128,6 +128,9 @@ class _Header extends ConsumerWidget {
     final role = authState.role ?? 'User';
     final initials = _getInitials(userName);
     final profilePictureUrl = currentUser?.profilePictureUrl;
+    final profilePicture = profilePictureUrl?.trim().isNotEmpty == true
+        ? ref.watch(profilePictureProvider(profilePictureUrl!.trim()))
+        : null;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -214,6 +217,7 @@ class _Header extends ConsumerWidget {
                   );
                   if (updated == true) {
                     ref.invalidate(currentUserProvider);
+                    ref.invalidate(profilePictureProvider);
                   }
                 },
                 child: Stack(
@@ -225,10 +229,9 @@ class _Header extends ConsumerWidget {
                       child: ClipOval(
                         child: SizedBox.square(
                           dimension: 46,
-                          child: profilePictureUrl != null &&
-                                  profilePictureUrl.isNotEmpty
-                              ? Image.network(
-                                  profilePictureUrl,
+                          child: profilePicture?.valueOrNull != null
+                              ? Image.memory(
+                                  profilePicture!.valueOrNull!,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, _, _) => _ProfileInitials(
                                     initials: initials,

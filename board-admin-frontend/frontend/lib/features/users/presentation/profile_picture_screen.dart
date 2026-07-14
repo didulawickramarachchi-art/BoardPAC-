@@ -57,6 +57,7 @@ class _ProfilePictureScreenState
             fileBytes: file.bytes,
           );
       ref.invalidate(currentUserProvider);
+      ref.invalidate(profilePictureProvider);
       if (mounted) {
         Navigator.pop(context, true);
       }
@@ -80,6 +81,10 @@ class _ProfilePictureScreenState
         ? user!.displayName!
         : user?.username ?? 'User';
     final initials = _initials(displayName);
+    final imageUrl = user?.profilePictureUrl?.trim();
+    final picture = imageUrl?.isNotEmpty == true
+        ? ref.watch(profilePictureProvider(imageUrl!)).valueOrNull
+        : null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -105,7 +110,7 @@ class _ProfilePictureScreenState
                   children: [
                     _PicturePreview(
                       selectedBytes: _selectedFile?.bytes,
-                      imageUrl: user?.profilePictureUrl,
+                      imageBytes: picture,
                       initials: initials,
                     ),
                     const SizedBox(height: 22),
@@ -183,12 +188,12 @@ class _ProfilePictureScreenState
 
 class _PicturePreview extends StatelessWidget {
   final Uint8List? selectedBytes;
-  final String? imageUrl;
+  final Uint8List? imageBytes;
   final String initials;
 
   const _PicturePreview({
     required this.selectedBytes,
-    required this.imageUrl,
+    required this.imageBytes,
     required this.initials,
   });
 
@@ -215,9 +220,9 @@ class _PicturePreview extends StatelessWidget {
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => fallback(),
       );
-    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
-      picture = Image.network(
-        imageUrl!,
+    } else if (imageBytes != null) {
+      picture = Image.memory(
+        imageBytes!,
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => fallback(),
       );

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_provider.dart';
 import '../data/user_repository.dart';
@@ -12,6 +14,14 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 final currentUserProvider = FutureProvider<UserModel>((ref) {
   return ref.read(userRepositoryProvider).getCurrentUser();
 });
+
+/// Loads protected profile images through the configured Dio client so the
+/// authentication interceptor is applied. This also supports relative URLs
+/// returned by the API, which Image.network cannot resolve on its own.
+final profilePictureProvider = FutureProvider.autoDispose
+    .family<Uint8List, String>((ref, url) {
+      return ref.read(userRepositoryProvider).getProfilePicture(url);
+    });
 
 final userListProvider =
     StateNotifierProvider.autoDispose<
