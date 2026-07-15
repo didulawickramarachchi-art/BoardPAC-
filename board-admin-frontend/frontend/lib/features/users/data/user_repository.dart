@@ -32,9 +32,22 @@ class UserRepository {
   Future<Uint8List> getProfilePicture(String url) async {
     final response = await dio.get<List<int>>(
       url,
-      options: Options(responseType: ResponseType.bytes),
+      // The backend commonly keeps the same URL after a profile-picture
+      // update. Force this real network refresh to bypass the browser/HTTP
+      // cache; Riverpod caches the returned bytes inside the app afterward.
+      queryParameters: {
+        'profilePictureVersion': DateTime.now().millisecondsSinceEpoch,
+      },
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: const {'Accept': 'image/*'},
+      ),
     );
-    return Uint8List.fromList(response.data ?? const <int>[]);
+    final bytes = Uint8List.fromList(response.data ?? const <int>[]);
+    if (bytes.isEmpty) {
+      throw StateError('The profile picture response was empty.');
+    }
+    return bytes;
   }
 
   Future<List<UserModel>> getUsers() async {

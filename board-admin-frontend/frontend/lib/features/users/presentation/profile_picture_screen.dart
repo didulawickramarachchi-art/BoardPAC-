@@ -83,7 +83,11 @@ class _ProfilePictureScreenState
     final initials = _initials(displayName);
     final imageUrl = user?.profilePictureUrl?.trim();
     final picture = imageUrl?.isNotEmpty == true
-        ? ref.watch(profilePictureProvider(imageUrl!)).valueOrNull
+        ? ref
+              .watch(
+                profilePictureProvider((userId: user!.id, url: imageUrl!)),
+              )
+              .valueOrNull
         : null;
 
     return Scaffold(

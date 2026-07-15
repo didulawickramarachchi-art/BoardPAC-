@@ -4,7 +4,21 @@ import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/app_status_chip.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../users/model/user_model.dart';
+import '../../users/provider/user_provider.dart';
 import '../provider/access_provider.dart';
+
+String _userLabel(UserModel user) {
+  final displayName = user.displayName?.trim();
+  if (displayName != null && displayName.isNotEmpty) {
+    return displayName == user.username
+        ? displayName
+        : '$displayName (${user.username})';
+  }
+
+  final fullName = '${user.firstName} ${user.lastName}'.trim();
+  return fullName.isNotEmpty ? '$fullName (${user.username})' : user.username;
+}
 
 class AccessValidationScreen extends ConsumerStatefulWidget {
   const AccessValidationScreen({super.key});
@@ -16,7 +30,8 @@ class AccessValidationScreen extends ConsumerStatefulWidget {
 
 class _AccessValidationScreenState
     extends ConsumerState<AccessValidationScreen> {
-  final userIdController = TextEditingController(text: '1');
+  int? selectedUserId;
+  ({int userId, String channel})? submittedArgs;
   String channel = 'WEB';
 
   static const Color navy = Color(0xFF14275B);
@@ -26,15 +41,19 @@ class _AccessValidationScreenState
   static const Color arrowBg = Color(0xFFFFF1D8);
   static const Color subTextColor = Color(0xFF6E7FA8);
 
-  @override
-  void dispose() {
-    userIdController.dispose();
-    super.dispose();
-  }
-
   void _validate() {
+    final userId = selectedUserId;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a user.')),
+      );
+      return;
+    }
+
     FocusScope.of(context).unfocus();
-    setState(() {});
+    setState(() {
+      submittedArgs = (userId: userId, channel: channel);
+    });
   }
 
   @override
@@ -50,12 +69,11 @@ class _AccessValidationScreenState
       );
     }
 
-    final args = (
-      userId: int.tryParse(userIdController.text.trim()) ?? 1,
-      channel: channel,
-    );
+    final usersAsync = ref.watch(userListProvider);
 
-    final asyncData = ref.watch(accessValidationProvider(args));
+    final asyncData = submittedArgs == null
+        ? null
+        : ref.watch(accessValidationProvider(submittedArgs!));
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -93,12 +111,61 @@ class _AccessValidationScreenState
               ),
               child: Column(
                 children: [
-                  _InputField(
-                    controller: userIdController,
-                    label: 'User ID',
-                    icon: Icons.person_search_rounded,
-                    keyboardType: TextInputType.number,
-                    onSubmitted: (_) => _validate(),
+                  usersAsync.when(
+                    data: (users) => DropdownButtonFormField<int>(
+                      initialValue: users.any(
+                        (user) => user.id == selectedUserId,
+                      )
+                          ? selectedUserId
+                          : null,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: 'Select User',
+                        prefixIcon: const Icon(
+                          Icons.person_search_rounded,
+                          color: navy,
+                        ),
+                        filled: true,
+                        fillColor: iconBg.withOpacity(0.55),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: navy,
+                            width: 1.4,
+                          ),
+                        ),
+                      ),
+                      hint: const Text('Choose a user'),
+                      items: users
+                          .map(
+                            (user) => DropdownMenuItem<int>(
+                              value: user.id,
+                              child: Text(
+                                _userLabel(user),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedUserId = value;
+                          submittedArgs = null;
+                        });
+                      },
+                    ),
+                    loading: () => const SizedBox(
+                      height: 56,
+                      child: Center(child: LinearProgressIndicator()),
+                    ),
+                    error: (error, _) => _UserLoadError(
+                      onRetry: () => ref.invalidate(userListProvider),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
@@ -126,7 +193,10 @@ class _AccessValidationScreenState
                     ],
                     onChanged: (value) {
                       if (value != null) {
-                        setState(() => channel = value);
+                        setState(() {
+                          channel = value;
+                          submittedArgs = null;
+                        });
                       }
                     },
                   ),
@@ -154,7 +224,10 @@ class _AccessValidationScreenState
               ),
             ),
             const SizedBox(height: 18),
-            asyncData.when(
+            if (asyncData == null)
+              const _ValidationPrompt()
+            else
+              asyncData.when(
               data: (item) {
                 final allowed = item.allowed;
 
@@ -261,7 +334,7 @@ class _AccessValidationScreenState
                 padding: EdgeInsets.only(top: 40),
                 child: AppLoading(),
               ),
-            ),
+              ),
           ],
         ),
       ),
@@ -269,43 +342,62 @@ class _AccessValidationScreenState
   }
 }
 
-class _InputField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final IconData icon;
-  final TextInputType keyboardType;
-  final ValueChanged<String>? onSubmitted;
+class _UserLoadError extends StatelessWidget {
+  final VoidCallback onRetry;
 
-  const _InputField({
-    required this.controller,
-    required this.label,
-    required this.icon,
-    required this.keyboardType,
-    this.onSubmitted,
-  });
-
-  static const Color navy = Color(0xFF14275B);
-  static const Color iconBg = Color(0xFFE9ECF3);
+  const _UserLoadError({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      onSubmitted: onSubmitted,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: navy),
-        filled: true,
-        fillColor: iconBg.withOpacity(0.55),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: navy, width: 1.4),
-        ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFECEC),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'Could not load users.',
+              style: TextStyle(
+                color: Color(0xFFD64545),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+}
+
+class _ValidationPrompt extends StatelessWidget {
+  const _ValidationPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: Color(0xFF14275B)),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Select a user and channel, then validate access.',
+              style: TextStyle(
+                color: Color(0xFF6E7FA8),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

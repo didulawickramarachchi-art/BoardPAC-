@@ -68,6 +68,7 @@ public class DashboardService {
         long sharedDocuments = paperShareRepository.findBySharedToId(userId).size();
 
         return DashboardSummaryResponse.builder()
+                .totalUsers(userRepository.count())
                 .totalMeetings(totalMeetings)
                 .totalCirculars(totalCirculars)
                 .pendingApprovals(pendingApprovals)

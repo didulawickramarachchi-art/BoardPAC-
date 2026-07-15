@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_provider.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../data/user_repository.dart';
 import '../model/user_model.dart';
 import '../model/user_request.dart';
@@ -12,15 +13,21 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 });
 
 final currentUserProvider = FutureProvider<UserModel>((ref) {
+  // Re-fetch /users/me whenever a different account logs in. Without this
+  // dependency Riverpod can keep the previous account's UserModel cached.
+  ref.watch(
+    authProvider.select((auth) => (auth.userId, auth.username)),
+  );
   return ref.read(userRepositoryProvider).getCurrentUser();
 });
 
-/// Loads protected profile images through the configured Dio client so the
-/// authentication interceptor is applied. This also supports relative URLs
-/// returned by the API, which Image.network cannot resolve on its own.
-final profilePictureProvider = FutureProvider.autoDispose
-    .family<Uint8List, String>((ref, url) {
-      return ref.read(userRepositoryProvider).getProfilePicture(url);
+/// Loads protected profile images through the configured Dio client and keeps
+/// the downloaded bytes cached for the lifetime of the app. The user ID is
+/// part of the key so accounts never share an image when the API returns the
+/// same relative URL for multiple users.
+final profilePictureProvider =
+    FutureProvider.family<Uint8List, ({int userId, String url})>((ref, request) {
+      return ref.read(userRepositoryProvider).getProfilePicture(request.url);
     });
 
 final userListProvider =

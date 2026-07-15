@@ -129,7 +129,12 @@ class _Header extends ConsumerWidget {
     final initials = _getInitials(userName);
     final profilePictureUrl = currentUser?.profilePictureUrl;
     final profilePicture = profilePictureUrl?.trim().isNotEmpty == true
-        ? ref.watch(profilePictureProvider(profilePictureUrl!.trim()))
+        ? ref.watch(
+            profilePictureProvider((
+              userId: currentUser!.id,
+              url: profilePictureUrl!.trim(),
+            )),
+          )
         : null;
 
     return Container(
@@ -229,15 +234,37 @@ class _Header extends ConsumerWidget {
                       child: ClipOval(
                         child: SizedBox.square(
                           dimension: 46,
-                          child: profilePicture?.valueOrNull != null
-                              ? Image.memory(
-                                  profilePicture!.valueOrNull!,
+                          child: profilePicture?.when(
+                                data: (bytes) => Image.memory(
+                                  bytes,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => _ProfileInitials(
-                                    initials: initials,
+                                  errorBuilder: (_, error, _) {
+                                    debugPrint(
+                                      'Could not decode profile picture: $error',
+                                    );
+                                    return _ProfileInitials(
+                                      initials: initials,
+                                    );
+                                  },
+                                ),
+                                loading: () => const Center(
+                                  child: SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                )
-                              : _ProfileInitials(initials: initials),
+                                ),
+                                error: (error, _) {
+                                  debugPrint(
+                                    'Could not load profile picture from '
+                                    '$profilePictureUrl: $error',
+                                  );
+                                  return _ProfileInitials(initials: initials);
+                                },
+                              ) ??
+                              _ProfileInitials(initials: initials),
                         ),
                       ),
                     ),

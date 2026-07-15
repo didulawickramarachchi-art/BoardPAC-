@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class DashboardSummaryResponse {
+    private long totalUsers;
     private long totalMeetings;
     private long totalCirculars;
     private long pendingApprovals;

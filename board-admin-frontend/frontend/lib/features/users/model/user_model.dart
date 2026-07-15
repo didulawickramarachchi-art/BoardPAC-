@@ -37,7 +37,11 @@ class UserModel {
       boardEmail: json['boardEmail'] ?? '',
       mobileNumber: json['mobileNumber'],
       jobTitle: json['jobTitle'],
-      profilePictureUrl: json['profilePictureUrl'],
+      profilePictureUrl:
+          json['profilePictureUrl'] ??
+          json['profilePictureURL'] ??
+          json['profile_picture_url'] ??
+          json['profilePicture'],
       role: json['role'] ?? json['userRole'],
       twoStepEnabled: json['twoStepEnabled'],
       status: json['status'],
