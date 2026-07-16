@@ -433,7 +433,7 @@ class _FilePreview extends StatelessWidget {
                 child: Image.network(
                   filePath,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const ColoredBox(
+                  errorBuilder: (_, _, _) => const ColoredBox(
                     color: Color(0xFFE9ECF3),
                     child: Center(child: Icon(Icons.broken_image_outlined)),
                   ),
@@ -528,7 +528,7 @@ class _SectionHeader extends StatelessWidget {
               ),
             ),
           ),
-          if (action != null) action!,
+          ?action,
         ],
       ),
     );

@@ -4,6 +4,7 @@ class LoginResponse {
   final int? userId;
   final String? username;
   final String? role;
+  final String? status;
   final String? message;
   final bool requiresTwoFactor;
 
@@ -13,6 +14,7 @@ class LoginResponse {
     this.userId,
     this.username,
     this.role,
+    this.status,
     this.message,
     required this.requiresTwoFactor,
   });
@@ -26,8 +28,17 @@ class LoginResponse {
       role: json['role'] ??
           json['userRole'] ??
           json['assignedRole'],
+      status: json['status'] ??
+          json['userStatus'] ??
+          json['accountStatus'] ??
+          (json['user'] is Map ? json['user']['status'] : null),
       message: json['message'],
       requiresTwoFactor: json['requiresTwoFactor'] ?? false,
     );
+  }
+
+  bool get isDeactivated {
+    final normalizedStatus = status?.trim().toUpperCase();
+    return normalizedStatus == 'DEACTIVATED' || normalizedStatus == 'INACTIVE';
   }
 }

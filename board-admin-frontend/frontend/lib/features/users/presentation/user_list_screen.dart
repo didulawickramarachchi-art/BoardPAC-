@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../../core/widgets/app_status_chip.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../provider/user_provider.dart';
 import 'user_form_screen.dart';
@@ -134,6 +135,15 @@ class UserListScreen extends ConsumerWidget {
                               ],
                             ),
 
+                            if (user.status != null &&
+                                user.status!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: AppStatusChip(label: user.status!),
+                              ),
+                            ],
+
                             const SizedBox(height: 4),
 
                             Row(
@@ -187,69 +197,96 @@ class UserListScreen extends ConsumerWidget {
                             final notifier =
                                 ref.read(userListProvider.notifier);
 
-                            switch (value) {
-                              case 'edit':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => UserFormScreen(user: user),
+                            if (value == 'edit') {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => UserFormScreen(user: user),
+                                ),
+                              );
+                              return;
+                            }
+
+                            final actionLabel = _actionLabel(value);
+                            if (actionLabel == null) return;
+
+                            if (value == 'activate' || value == 'deactivate') {
+                              final confirmed = await _confirmStatusChange(
+                                context,
+                                userName: fullName.isEmpty
+                                    ? user.username
+                                    : fullName,
+                                activate: value == 'activate',
+                              );
+                              if (!confirmed || !context.mounted) return;
+                            }
+
+                            try {
+                              switch (value) {
+                                case 'deactivate':
+                                  await notifier.deactivateUser(user.id);
+                                  break;
+                                case 'activate':
+                                  await notifier.activateUser(user.id);
+                                  break;
+                                case 'lock':
+                                  await notifier.lockUser(user.id);
+                                  break;
+                                case 'unlock':
+                                  await notifier.unlockUser(user.id);
+                                  break;
+                                case 'reset':
+                                  await notifier.resetPassword(user.id);
+                                  break;
+                              }
+
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('$actionLabel successful'),
                                   ),
                                 );
-                                break;
-
-                              case 'deactivate':
-                                await notifier.deactivateUser(user.id);
-                                break;
-
-                              case 'activate':
-                                await notifier.activateUser(user.id);
-                                break;
-
-                              case 'lock':
-                                await notifier.lockUser(user.id);
-                                break;
-
-                              case 'unlock':
-                                await notifier.unlockUser(user.id);
-                                break;
-
-                              case 'reset':
-                                await notifier.resetPassword(user.id);
-
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Password reset sent'),
+                              }
+                            } catch (error) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Could not ${actionLabel.toLowerCase()}. '
+                                      'Please try again.',
                                     ),
-                                  );
-                                }
-                                break;
+                                    backgroundColor: Colors.red.shade700,
+                                  ),
+                                );
+                              }
                             }
                           },
-                          itemBuilder: (context) => const [
-                            PopupMenuItem(
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
                               value: 'edit',
                               child: _PopupItem(
                                 icon: Icons.edit_outlined,
                                 text: 'Edit',
                               ),
                             ),
-                            PopupMenuItem(
-                              value: 'activate',
-                              child: _PopupItem(
-                                icon: Icons.check_circle_outline,
-                                text: 'Activate',
+                            if (user.isDeactivated)
+                              const PopupMenuItem(
+                                value: 'activate',
+                                child: _PopupItem(
+                                  icon: Icons.check_circle_outline,
+                                  text: 'Activate',
+                                ),
                               ),
-                            ),
-                            PopupMenuItem(
-                              value: 'deactivate',
-                              child: _PopupItem(
-                                icon: Icons.block_outlined,
-                                text: 'Deactivate',
+                            if (!user.isDeactivated)
+                              const PopupMenuItem(
+                                value: 'deactivate',
+                                child: _PopupItem(
+                                  icon: Icons.block_outlined,
+                                  text: 'Deactivate',
+                                ),
                               ),
-                            ),
-                            PopupMenuDivider(),
-                            PopupMenuItem(
+                            const PopupMenuDivider(),
+                            const PopupMenuItem(
                               value: 'lock',
                               child: _PopupItem(
                                 icon: Icons.lock_outline,
@@ -360,4 +397,41 @@ String _getInitials(String name) {
 
   return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
       .toUpperCase();
+}
+
+String? _actionLabel(String value) {
+  return switch (value) {
+    'activate' => 'User activation',
+    'deactivate' => 'User deactivation',
+    'lock' => 'User lock',
+    'unlock' => 'User unlock',
+    'reset' => 'Password reset',
+    _ => null,
+  };
+}
+
+Future<bool> _confirmStatusChange(
+  BuildContext context, {
+  required String userName,
+  required bool activate,
+}) async {
+  final verb = activate ? 'activate' : 'deactivate';
+  return await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('${activate ? 'Activate' : 'Deactivate'} user?'),
+          content: Text('Are you sure you want to $verb $userName?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(activate ? 'Activate' : 'Deactivate'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 }

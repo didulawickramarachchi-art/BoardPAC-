@@ -22,6 +22,7 @@ class AppStatusChip extends StatelessWidget {
       case 'REJECT':
       case 'DECLINED':
       case 'DEACTIVATED':
+      case 'INACTIVE':
       case 'LOCKED':
         return Colors.red.shade100;
       default:

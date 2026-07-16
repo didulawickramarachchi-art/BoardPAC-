@@ -65,6 +65,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
         LoginRequest(username: username, password: password),
       );
 
+      if (result.isDeactivated) {
+        await storage.clearAll();
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Your account has been deactivated. Contact an administrator.',
+          requiresTwoFactor: false,
+        );
+        return false;
+      }
+
       if (result.requiresTwoFactor) {
         state = state.copyWith(
           isLoading: false,
@@ -113,6 +123,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final result = await repository.verify2FA(
         Verify2FARequest(username: username, code: code),
       );
+
+      if (result.isDeactivated) {
+        await storage.clearAll();
+        state = const AuthState(
+          error: 'Your account has been deactivated. Contact an administrator.',
+        );
+        return false;
+      }
 
       if (result.token != null && result.username != null) {
         await storage.saveTokens(

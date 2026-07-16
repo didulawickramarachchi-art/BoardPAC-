@@ -47,4 +47,14 @@ class UserModel {
       status: json['status'],
     );
   }
+
+  /// User lifecycle values are supplied by the backend as strings. Keep the
+  /// checks here so every screen handles casing and the common INACTIVE alias
+  /// consistently.
+  bool get isDeactivated {
+    final normalizedStatus = status?.trim().toUpperCase();
+    return normalizedStatus == 'DEACTIVATED' || normalizedStatus == 'INACTIVE';
+  }
+
+  bool get isActive => status?.trim().toUpperCase() == 'ACTIVE';
 }
