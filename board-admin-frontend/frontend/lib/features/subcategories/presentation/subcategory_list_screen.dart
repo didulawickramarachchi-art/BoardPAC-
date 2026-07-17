@@ -6,6 +6,8 @@ import '../../../core/network/api_error_message.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../meetings/provider/meeting_provider.dart';
+import '../../privileges/provider/privilege_provider.dart';
 import '../provider/subcategory_provider.dart';
 import 'subcategory_form_screen.dart';
 
@@ -43,7 +45,11 @@ class SubcategoryListScreen extends ConsumerWidget {
       builder: (context) {
         return AlertDialog(
           title: const Text('Delete subcategory'),
-          content: Text('Are you sure you want to delete "$title"?'),
+          content: Text(
+            'Delete "$title"? This will also permanently delete its '
+            'privileges, meetings, agendas, papers, attachments, comments, '
+            'participants, notes, approvals, and sharing records.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -70,10 +76,14 @@ class SubcategoryListScreen extends ConsumerWidget {
     try {
       await ref.read(subcategoryRepositoryProvider).deleteSubcategory(item.id);
       ref.invalidate(subcategoryListProvider);
+      ref.invalidate(privilegeListProvider);
+      ref.invalidate(meetingListProvider);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Subcategory deleted successfully.')),
+          const SnackBar(
+            content: Text('Subcategory and all related data deleted.'),
+          ),
         );
       }
     } catch (error) {
@@ -233,22 +243,23 @@ class SubcategoryListScreen extends ConsumerWidget {
                         ),
                       ),
 
-                      GestureDetector(
-                        onTap: () => _deleteSubcategory(context, ref, sub),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: primaryBlue.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
+                      if (access.canManageSubcategories)
+                        IconButton(
+                          tooltip: 'Delete subcategory',
+                          style: IconButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFEAEA),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Icon(
+                          onPressed: () =>
+                              _deleteSubcategory(context, ref, sub),
+                          icon: const Icon(
                             Icons.delete_outline_rounded,
                             color: Colors.redAccent,
-                            size: 18,
+                            size: 20,
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),

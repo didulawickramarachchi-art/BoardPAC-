@@ -8,6 +8,7 @@ import com.portSrilanka.board_admin_backend.repository.CategoryRepository;
 import com.portSrilanka.board_admin_backend.repository.SubcategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -51,11 +52,12 @@ public class SubcategoryService {
         return map(subcategoryRepository.save(subcategory));
     }
 
+    @Transactional
     public String delete(Long id) {
         Subcategory subcategory = subcategoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subcategory not found"));
         subcategoryRepository.delete(subcategory);
-        return "Subcategory deleted successfully";
+        return "Subcategory and all related data deleted successfully";
     }
 
     private SubcategoryResponse map(Subcategory subcategory) {

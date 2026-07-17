@@ -947,11 +947,6 @@ const _adminTiles = [
     DeviceListScreen(),
   ),
   _MenuTileData(
-    'Privileges',
-    Icons.admin_panel_settings_outlined,
-    PrivilegeListScreen(),
-  ),
-  _MenuTileData(
     'Reports',
     Icons.bar_chart_rounded,
     ReportHomeScreen(),
@@ -969,6 +964,11 @@ const _adminTiles = [
 ];
 
 const _secretaryTiles = [
+  _MenuTileData(
+    'Privileges',
+    Icons.admin_panel_settings_outlined,
+    PrivilegeListScreen(),
+  ),
   _MenuTileData(
     'Meetings',
     Icons.event_note_outlined,

@@ -6,6 +6,7 @@ import '../../auth/provider/auth_provider.dart';
 import '../data/user_repository.dart';
 import '../model/user_model.dart';
 import '../model/user_request.dart';
+import '../model/create_user_request.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
   final dio = ref.read(dioProvider);
@@ -54,6 +55,11 @@ class UserNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
 
   Future<void> updateUser(int id, UserRequest request) async {
     await repository.updateUser(id, request);
+    await loadUsers();
+  }
+
+  Future<void> createUser(CreateUserRequest request) async {
+    await repository.createUser(request);
     await loadUsers();
   }
 

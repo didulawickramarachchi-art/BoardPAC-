@@ -6,6 +6,7 @@ import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -52,6 +53,23 @@ public class AgendaService {
                         .displayOrder(section.getDisplayOrder())
                         .build())
                 .toList();
+    }
+
+    @Transactional
+    public String deleteSection(Long sectionId) {
+        AgendaSection section = agendaSectionRepository.findById(sectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agenda section not found"));
+
+        List<AgendaItem> sectionItems = agendaItemRepository.findBySectionId(sectionId);
+        sectionItems.forEach(item -> item.setSection(null));
+        agendaItemRepository.saveAll(sectionItems);
+
+        agendaSectionRepository.delete(section);
+
+        auditService.logInfo("AGENDA", "DELETE_SECTION", "SYSTEM",
+                "Agenda section deleted: " + section.getTitle(), "WEB");
+
+        return "Agenda section deleted successfully";
     }
 
     public AgendaItemResponse createItem(AgendaItemRequest request) {

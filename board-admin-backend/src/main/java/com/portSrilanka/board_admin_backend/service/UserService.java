@@ -197,6 +197,11 @@ public class UserService {
                 .mobileNumber(user.getMobileNumber())
                 .jobTitle(user.getJobTitle())
                 .profilePictureUrl(user.getProfilePictureUrl())
+                .role(user.getRoles().stream()
+                        .map(role -> role.getName().authorityName())
+                        .sorted()
+                        .findFirst()
+                        .orElse("MEMBER"))
                 .status(user.getStatus())
                 .build();
     }

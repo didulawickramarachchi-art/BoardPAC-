@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../model/user_model.dart';
 import '../model/user_request.dart';
+import '../model/create_user_request.dart';
 
 class UserRepository {
   final Dio dio;
@@ -55,6 +56,10 @@ class UserRepository {
     return (response.data as List)
         .map((e) => UserModel.fromJson(e))
         .toList();
+  }
+
+  Future<void> createUser(CreateUserRequest request) async {
+    await dio.post('/users', data: request.toJson());
   }
 
   Future<UserModel> updateUser(int id, UserRequest request) async {

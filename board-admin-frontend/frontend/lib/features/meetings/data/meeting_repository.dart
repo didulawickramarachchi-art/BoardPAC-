@@ -47,23 +47,15 @@ class MeetingRepository {
     required Set<String> privilegedSubcategoryNames,
   }) async {
     final meetings = await getMeetings();
-    final participantChecks = await Future.wait(
-      meetings.map((meeting) async {
-        final participants = await getParticipants(meeting.id);
-        return participants.any((participant) => participant.userId == userId);
-      }),
-    );
-
-    return [
-      for (var index = 0; index < meetings.length; index++)
-        if (participantChecks[index] &&
-            _hasSubcategoryPrivilege(
-              meetings[index],
-              privilegedSubcategoryIds,
-              privilegedSubcategoryNames,
-            ))
-          meetings[index],
-    ];
+    return meetings
+        .where(
+          (meeting) => _hasSubcategoryPrivilege(
+            meeting,
+            privilegedSubcategoryIds,
+            privilegedSubcategoryNames,
+          ),
+        )
+        .toList();
   }
 
   bool _hasSubcategoryPrivilege(

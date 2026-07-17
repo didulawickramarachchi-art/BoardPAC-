@@ -37,7 +37,7 @@ class RoleAccess {
 
   bool get canManageUsers => isAdmin;
   bool get canViewUsers => isAdmin;
-  bool get canManagePrivileges => isAdmin;
+  bool get canManagePrivileges => isSecretary;
   bool get canManageDevices => isAdmin;
 
   bool get canViewMeetings => isSecretary || isMember;

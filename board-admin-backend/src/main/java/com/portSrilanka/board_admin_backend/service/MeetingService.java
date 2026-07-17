@@ -60,6 +60,25 @@ public class MeetingService {
                 .build();
 
         meeting = meetingRepository.save(meeting);
+        final Meeting savedMeeting = meeting;
+
+        // Category membership is represented by subcategory privileges. Every
+        // active user assigned to the selected subcategory automatically
+        // participates in the meeting, so secretaries do not add members again.
+        List<MeetingParticipant> categoryParticipants = accessRepository
+                .findBySubcategoryId(subcategory.getId())
+                .stream()
+                .map(UserSubcategoryAccess::getUser)
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                .distinct()
+                .map(user -> MeetingParticipant.builder()
+                        .meeting(savedMeeting)
+                        .user(user)
+                        .participantStatus(ParticipantStatus.PENDING)
+                        .build())
+                .toList();
+
+        meetingParticipantRepository.saveAll(categoryParticipants);
 
         auditService.logInfo(
                 "MEETING",
@@ -203,6 +222,30 @@ public class MeetingService {
         return meetingParticipantRepository.findByMeetingIdOrderByDisplaySequenceAsc(meetingId)
                 .stream()
                 .map(this::mapParticipant)
+                .toList();
+    }
+
+    public List<MeetingResponse> getAllForUser(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        boolean isSecretary = user.getRoles().stream()
+                .anyMatch(role -> role.getName().authorityName()
+                        .equals(SystemRole.SECRETARY.name()));
+        if (isSecretary) {
+            return getAll();
+        }
+
+        Set<Long> allowedSubcategoryIds = accessRepository.findByUserId(user.getId())
+                .stream()
+                .map(access -> access.getSubcategory().getId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        return meetingRepository.findAll()
+                .stream()
+                .filter(meeting -> meeting.getSubcategory() != null
+                        && allowedSubcategoryIds.contains(meeting.getSubcategory().getId()))
+                .map(this::mapMeeting)
                 .toList();
     }
 

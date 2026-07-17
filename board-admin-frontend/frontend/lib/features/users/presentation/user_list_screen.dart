@@ -7,6 +7,7 @@ import '../../../core/widgets/app_status_chip.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../provider/user_provider.dart';
 import 'user_form_screen.dart';
+import 'add_user_screen.dart';
 
 class UserListScreen extends ConsumerWidget {
   const UserListScreen({super.key});
@@ -42,6 +43,25 @@ class UserListScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
+      floatingActionButton: access.canManageUsers
+          ? FloatingActionButton.extended(
+              backgroundColor: gold,
+              foregroundColor: darkBlue,
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Add User'),
+              onPressed: () async {
+                final created = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddUserScreen()),
+                );
+                if (created == true && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('User created successfully.')),
+                  );
+                }
+              },
+            )
+          : null,
       body: usersAsync.when(
         data: (users) {
           if (users.isEmpty) {
@@ -135,12 +155,18 @@ class UserListScreen extends ConsumerWidget {
                               ],
                             ),
 
-                            if (user.status != null &&
-                                user.status!.trim().isNotEmpty) ...[
+                            if ((user.status?.trim().isNotEmpty ?? false) ||
+                                (user.role?.trim().isNotEmpty ?? false)) ...[
                               const SizedBox(height: 8),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: AppStatusChip(label: user.status!),
+                              Wrap(
+                                spacing: 7,
+                                runSpacing: 7,
+                                children: [
+                                  if (user.role?.trim().isNotEmpty ?? false)
+                                    _RoleChip(role: user.role!),
+                                  if (user.status?.trim().isNotEmpty ?? false)
+                                    AppStatusChip(label: user.status!),
+                                ],
                               ),
                             ],
 
@@ -397,6 +423,52 @@ String _getInitials(String name) {
 
   return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
       .toUpperCase();
+}
+
+class _RoleChip extends StatelessWidget {
+  final String role;
+
+  const _RoleChip({required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = normalizeRole(role);
+    final label = normalized
+        .split('_')
+        .map(
+          (word) => word.isEmpty
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+        )
+        .join(' ');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: UserListScreen.primaryBlue.withOpacity(0.09),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.badge_outlined,
+            size: 13,
+            color: UserListScreen.primaryBlue,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: UserListScreen.primaryBlue,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 String? _actionLabel(String value) {

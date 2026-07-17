@@ -32,6 +32,46 @@ class PrivilegeNotifier extends StateNotifier<AsyncValue<List<PrivilegeModel>>> 
     await load();
   }
 
+  Future<void> assignUserToCategory({
+    required int userId,
+    required Iterable<int> subcategoryIds,
+    String assignedRole = 'MEMBER',
+  }) async {
+    final existingIds = (state.valueOrNull ?? const <PrivilegeModel>[])
+        .where((item) => item.userId == userId)
+        .map((item) => item.subcategoryId)
+        .toSet();
+    for (final subcategoryId in subcategoryIds) {
+      if (existingIds.contains(subcategoryId)) continue;
+      await repository.assignPrivilege(
+        PrivilegeRequest(
+          userId: userId,
+          subcategoryId: subcategoryId,
+          assignedRole: assignedRole,
+        ),
+      );
+    }
+    await load();
+  }
+
+  Future<void> removeUserFromCategory({
+    required int userId,
+    required Iterable<int> subcategoryIds,
+  }) async {
+    final assignedIds = (state.valueOrNull ?? const <PrivilegeModel>[])
+        .where((item) => item.userId == userId)
+        .map((item) => item.subcategoryId)
+        .toSet();
+    for (final subcategoryId in subcategoryIds) {
+      if (!assignedIds.contains(subcategoryId)) continue;
+      await repository.removePrivilege(
+        userId: userId,
+        subcategoryId: subcategoryId,
+      );
+    }
+    await load();
+  }
+
   Future<void> remove({
     required int userId,
     required int subcategoryId,

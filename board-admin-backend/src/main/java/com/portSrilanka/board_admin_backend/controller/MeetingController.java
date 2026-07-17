@@ -28,8 +28,8 @@ public class MeetingController {
 
     @GetMapping
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
-    public ResponseEntity<List<MeetingResponse>> getAll() {
-        return ResponseEntity.ok(meetingService.getAll());
+    public ResponseEntity<List<MeetingResponse>> getAll(Authentication authentication) {
+        return ResponseEntity.ok(meetingService.getAllForUser(authentication.getName()));
     }
 
     @GetMapping("/subcategory/{subcategoryId}")

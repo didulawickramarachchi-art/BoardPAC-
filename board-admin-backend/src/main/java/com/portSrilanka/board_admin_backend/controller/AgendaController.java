@@ -30,6 +30,12 @@ public class AgendaController {
         return ResponseEntity.ok(agendaService.getSections(meetingId));
     }
 
+    @DeleteMapping("/sections/{sectionId}")
+    @PreAuthorize("hasRole('SECRETARY')")
+    public ResponseEntity<String> deleteSection(@PathVariable Long sectionId) {
+        return ResponseEntity.ok(agendaService.deleteSection(sectionId));
+    }
+
     @PostMapping("/items")
     @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<AgendaItemResponse> createItem(@RequestBody AgendaItemRequest request) {

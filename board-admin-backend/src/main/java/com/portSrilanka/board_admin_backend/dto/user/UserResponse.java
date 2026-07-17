@@ -16,5 +16,6 @@ public class UserResponse {
     private String mobileNumber;
     private String jobTitle;
     private String profilePictureUrl;
+    private String role;
     private UserStatus status;
 }

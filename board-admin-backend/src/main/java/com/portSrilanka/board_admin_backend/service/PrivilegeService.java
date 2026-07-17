@@ -4,6 +4,9 @@ import com.portSrilanka.board_admin_backend.dto.privilege.*;
 import com.portSrilanka.board_admin_backend.entity.Subcategory;
 import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.entity.UserSubcategoryAccess;
+import com.portSrilanka.board_admin_backend.enums.SystemRole;
+import com.portSrilanka.board_admin_backend.enums.UserStatus;
+import com.portSrilanka.board_admin_backend.exception.BadRequestException;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.SubcategoryRepository;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
@@ -26,6 +29,17 @@ public class PrivilegeService {
     public PrivilegeResponse assign(PrivilegeAssignRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BadRequestException("Only active users can be assigned to a category");
+        }
+
+        boolean isMember = user.getRoles().stream()
+                .anyMatch(role -> role.getName().authorityName()
+                        .equals(SystemRole.MEMBER.name()));
+        if (!isMember) {
+            throw new BadRequestException("Only users with the Member role can be assigned to a category");
+        }
 
         Subcategory subcategory = subcategoryRepository.findById(request.getSubcategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Subcategory not found"));

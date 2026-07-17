@@ -7,6 +7,7 @@ import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -45,11 +46,12 @@ public class CategoryService {
         return map(categoryRepository.save(category));
     }
 
+    @Transactional
     public String delete(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
         categoryRepository.delete(category);
-        return "Category deleted successfully";
+        return "Category and all related data deleted successfully";
     }
 
     private CategoryResponse map(Category category) {

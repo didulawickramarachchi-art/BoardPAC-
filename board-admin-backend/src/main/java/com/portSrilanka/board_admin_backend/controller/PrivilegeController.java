@@ -17,25 +17,25 @@ public class PrivilegeController {
     private final PrivilegeService privilegeService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<PrivilegeResponse> assign(@RequestBody PrivilegeAssignRequest request) {
         return ResponseEntity.ok(privilegeService.assign(request));
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<List<PrivilegeResponse>> getAll() {
         return ResponseEntity.ok(privilegeService.getAll());
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('MEMBER') and @privilegeService.isUser(#userId, authentication.name))")
+    @PreAuthorize("hasRole('SECRETARY') or (hasRole('MEMBER') and @privilegeService.isUser(#userId, authentication.name))")
     public ResponseEntity<List<PrivilegeResponse>> getByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(privilegeService.getByUser(userId));
     }
 
     @DeleteMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<String> remove(
             @RequestParam Long userId,
             @RequestParam Long subcategoryId

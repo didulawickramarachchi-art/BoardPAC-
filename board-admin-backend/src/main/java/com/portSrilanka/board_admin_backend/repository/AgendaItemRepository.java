@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface AgendaItemRepository extends JpaRepository<AgendaItem, Long> {
     List<AgendaItem> findByMeetingIdOrderByDisplayOrderAsc(Long meetingId);
+    List<AgendaItem> findBySectionId(Long sectionId);
 }

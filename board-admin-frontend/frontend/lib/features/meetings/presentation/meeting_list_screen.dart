@@ -8,7 +8,6 @@ import '../../agendas/presentation/agenda_section_screen.dart';
 import '../../papers/presentation/paper_list_screen.dart';
 import '../provider/meeting_provider.dart';
 import 'meeting_form_screen.dart';
-import 'participant_list_screen.dart';
 
 class MeetingListScreen extends ConsumerWidget {
   const MeetingListScreen({super.key});
@@ -370,25 +369,6 @@ class MeetingListScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-
-              if (access.canManageMeetings)
-                _BottomSheetTile(
-                  icon: Icons.group_outlined,
-                  title: 'Participants',
-                  subtitle: 'View and manage meeting participants',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ParticipantListScreen(
-                          meetingId: meeting.id,
-                          meetingTitle: meeting.title,
-                        ),
-                      ),
-                    );
-                  },
-                ),
 
               if (access.canManageMeetings)
                 _BottomSheetTile(
