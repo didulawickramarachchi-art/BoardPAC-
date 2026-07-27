@@ -23,16 +23,21 @@ spring:
     password: ${DB_PASSWORD:2002}
 
   mail:
-    host: smtp.example.com
-    port: 587
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+            required: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
   servlet:
     multipart:
@@ -52,6 +57,10 @@ app:
 
   twofactor:
     code-expiration-minutes: 10
+
+  password-reset:
+    frontend-url: ${PASSWORD_RESET_FRONTEND_URL:http://localhost:8080/#/reset-password}
+    expiration-minutes: ${PASSWORD_RESET_EXPIRATION_MINUTES:30}
 
 supabase:
   url: ${SUPABASE_URL:}

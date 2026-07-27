@@ -71,4 +71,11 @@ public class RefreshTokenService {
             refreshTokenRepository.save(rt);
         });
     }
+
+    public void revokeAllUserTokens(Long userId) {
+        refreshTokenRepository.findByUserIdAndRevokedFalse(userId).forEach(token -> {
+            token.setRevoked(true);
+            refreshTokenRepository.save(token);
+        });
+    }
 }
