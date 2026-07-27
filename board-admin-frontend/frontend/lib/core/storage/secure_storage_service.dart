@@ -29,8 +29,17 @@ class SecureStorageService {
     return _storage.read(key: usernameKey);
   }
 
+  Future<void> updateTokens({
+    required String accessToken,
+    String? refreshToken,
+  }) async {
+    await _storage.write(key: accessTokenKey, value: accessToken);
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _storage.write(key: refreshTokenKey, value: refreshToken);
+    }
+  }
+
   Future<void> clearAll() async {
     await _storage.deleteAll();
   }
-  
 }

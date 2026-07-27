@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/provider/auth_provider.dart';
 import '../provider/user_provider.dart';
 
 class ProfilePictureScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,7 @@ class _ProfilePictureScreenState
 
   PlatformFile? _selectedFile;
   bool _uploading = false;
+  bool _resettingPassword = false;
 
   Future<void> _choosePicture() async {
     final result = await FilePicker.platform.pickFiles(
@@ -74,6 +76,64 @@ class _ProfilePictureScreenState
     }
   }
 
+  Future<void> _changePassword(String email) async {
+    if (_resettingPassword) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change password?'),
+        content: const Text(
+          'We will email a secure password-change link to your registered '
+          'email address. The link will expire after a limited time.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Change Password'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _resettingPassword = true);
+    try {
+      final resetUrl = Uri.base.replace(
+        path: '/',
+        query: null,
+        fragment: '/reset-password',
+      ).toString();
+      await ref.read(authRepositoryProvider).requestPasswordReset(
+            email: email,
+            resetUrl: resetUrl,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password-change email sent. Check your inbox.'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not send the password email. Please try again later.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _resettingPassword = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).valueOrNull;
@@ -95,7 +155,7 @@ class _ProfilePictureScreenState
       appBar: AppBar(
         backgroundColor: _primaryBlue,
         foregroundColor: Colors.white,
-        title: const Text('Change Profile Picture'),
+        title: const Text('User Profile Settings'),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -170,6 +230,70 @@ class _ProfilePictureScreenState
                         ),
                       ),
                     ],
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFF0F3F8),
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Icon(
+                              Icons.lock_outline_rounded,
+                              color: _primaryBlue,
+                              size: 21,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Password',
+                                style: TextStyle(
+                                  color: _primaryBlue,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              SizedBox(height: 3),
+                              Text(
+                                'Keep your account secure',
+                                style: TextStyle(
+                                  color: Color(0xFF7380A4),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: user == null || _resettingPassword
+                            ? null
+                            : () => _changePassword(user.boardEmail),
+                        icon: _resettingPassword
+                            ? const SizedBox.square(
+                                dimension: 17,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.password_rounded),
+                        label: Text(
+                          _resettingPassword
+                              ? 'Sending Email...'
+                              : 'Change Password',
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

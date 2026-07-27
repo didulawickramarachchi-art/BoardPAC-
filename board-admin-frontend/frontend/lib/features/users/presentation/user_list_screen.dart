@@ -98,7 +98,11 @@ class UserListScreen extends ConsumerWidget {
                         backgroundColor: gold.withOpacity(0.18),
                         backgroundImage: user.profilePictureUrl != null &&
                                 user.profilePictureUrl!.isNotEmpty
-                            ? NetworkImage(user.profilePictureUrl!)
+                            ? ResizeImage(
+                                NetworkImage(user.profilePictureUrl!),
+                                width: 128,
+                                height: 128,
+                              )
                             : null,
                         child: user.profilePictureUrl == null ||
                                 user.profilePictureUrl!.isEmpty

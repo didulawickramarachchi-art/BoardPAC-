@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 
 class AppCard extends StatelessWidget {
   final Widget child;
+  final EdgeInsetsGeometry padding;
 
-  const AppCard({super.key, required this.child});
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(20),
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(padding: const EdgeInsets.all(18), child: child),
+      child: Padding(padding: padding, child: child),
     );
   }
 }

@@ -36,6 +36,34 @@ class AuthRepository {
     }
   }
 
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      await dio.post(
+        '/auth/reset-password',
+        data: {'token': token, 'newPassword': newPassword},
+      );
+    } on DioException catch (e) {
+      throw Exception(_handleError(e));
+    }
+  }
+
+  Future<void> requestPasswordReset({
+    required String email,
+    required String resetUrl,
+  }) async {
+    try {
+      await dio.post(
+        '/auth/password-reset/request',
+        data: {'email': email, 'resetUrl': resetUrl},
+      );
+    } on DioException catch (e) {
+      throw Exception(_handleError(e));
+    }
+  }
+
   // 🔥 Centralized error handler
   String _handleError(DioException e) {
     if (e.response != null) {

@@ -5,6 +5,7 @@ import 'package:frontend/features/reports/presentation/report_home_screen.dart';
 import 'package:frontend/features/settings/presentation/setting_home_screen.dart';
 
 import '../../../core/auth/role_access.dart';
+import '../../../core/responsive/responsive_layout.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../categories/presentation/category_list_screen.dart';
 import '../../devices/presentation/device_list_screen.dart';
@@ -44,8 +45,12 @@ class DashboardScreen extends ConsumerWidget {
             const _Header(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-                child: Column(
+                padding: EdgeInsets.only(
+                  top: 18,
+                  bottom: 24 + MediaQuery.paddingOf(context).bottom,
+                ),
+                child: ResponsivePage(
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _RoleOverview(config: config),
@@ -99,6 +104,7 @@ class DashboardScreen extends ConsumerWidget {
                       currentUserId: currentUserId,
                     ),
                   ],
+                  ),
                 ),
               ),
             ),
@@ -237,7 +243,10 @@ class _Header extends ConsumerWidget {
                           child: profilePicture?.when(
                                 data: (bytes) => Image.memory(
                                   bytes,
+                                  width: double.infinity,
+                                  height: double.infinity,
                                   fit: BoxFit.cover,
+                                  alignment: Alignment.center,
                                   errorBuilder: (_, error, _) {
                                     debugPrint(
                                       'Could not decode profile picture: $error',
@@ -275,14 +284,14 @@ class _Header extends ConsumerWidget {
                         width: 19,
                         height: 19,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF25D366),
+                          color: const Color(0xFF8E95A3),
                           shape: BoxShape.circle,
                           border: Border.all(color: primaryBlue, width: 2),
                         ),
                         child: const Icon(
-                          Icons.camera_alt_rounded,
+                          Icons.settings_rounded,
                           color: Colors.white,
-                          size: 10,
+                          size: 11,
                         ),
                       ),
                     ),
@@ -500,14 +509,25 @@ class _SummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 14,
-      mainAxisSpacing: 14,
-      childAspectRatio: 1.18,
-      children: cards,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = responsiveColumnCount(
+          constraints.maxWidth,
+          compact: constraints.maxWidth < 380 ? 1 : 2,
+          medium: 3,
+          expanded: 4,
+          large: 4,
+        );
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: columns,
+          crossAxisSpacing: 14,
+          mainAxisSpacing: 14,
+          childAspectRatio: columns == 1 ? 2.3 : 1.18,
+          children: cards,
+        );
+      },
     );
   }
 }
@@ -724,17 +744,26 @@ class _MenuGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: tiles.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
-        childAspectRatio: 2.25,
-      ),
-      itemBuilder: (context, index) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = responsiveColumnCount(
+          constraints.maxWidth,
+          compact: constraints.maxWidth < 380 ? 1 : 2,
+          medium: 3,
+          expanded: 4,
+          large: 4,
+        );
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: tiles.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: columns == 1 ? 3.8 : 2.25,
+          ),
+          itemBuilder: (context, index) {
         final item = tiles[index];
 
         return Material(
@@ -802,6 +831,8 @@ class _MenuGrid extends ConsumerWidget {
               ),
             ),
           ),
+        );
+          },
         );
       },
     );
