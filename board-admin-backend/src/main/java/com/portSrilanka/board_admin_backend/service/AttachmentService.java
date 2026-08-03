@@ -5,12 +5,14 @@ import com.portSrilanka.board_admin_backend.entity.Paper;
 import com.portSrilanka.board_admin_backend.entity.PaperAttachment;
 import com.portSrilanka.board_admin_backend.entity.AttachmentReaction;
 import com.portSrilanka.board_admin_backend.entity.User;
+import com.portSrilanka.board_admin_backend.entity.MeetingParticipant;
 import com.portSrilanka.board_admin_backend.enums.ReactionType;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.PaperAttachmentRepository;
 import com.portSrilanka.board_admin_backend.repository.PaperRepository;
 import com.portSrilanka.board_admin_backend.repository.AttachmentReactionRepository;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
+import com.portSrilanka.board_admin_backend.repository.MeetingParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,10 +27,13 @@ public class AttachmentService {
     private final AuditService auditService;
     private final AttachmentReactionRepository attachmentReactionRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final MeetingParticipantRepository meetingParticipantRepository;
 
-    public PaperAttachmentResponse addAttachment(PaperAttachmentRequest request) {
+    public PaperAttachmentResponse addAttachment(PaperAttachmentRequest request, String username) {
         Paper paper = paperRepository.findById(request.getPaperId())
                 .orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+        User createdBy = findUser(username);
 
         PaperAttachment attachment = PaperAttachment.builder()
                 .paper(paper)
@@ -38,8 +43,13 @@ public class AttachmentService {
                 .build();
 
         attachment = paperAttachmentRepository.save(attachment);
+        notificationService.notifyDocumentUploaded(
+                attachment,
+                meetingParticipantRepository.findByMeetingIdOrderByDisplaySequenceAsc(paper.getMeeting().getId()),
+                createdBy
+        );
 
-        auditService.logInfo("PAPER", "ADD_ATTACHMENT", "SYSTEM",
+        auditService.logInfo("PAPER", "ADD_ATTACHMENT", createdBy.getUsername(),
                 "Attachment added to paper " + paper.getTitle(), "WEB");
 
         return map(attachment, null);
@@ -98,3 +108,7 @@ public class AttachmentService {
                 .build();
     }
 }
+
+
+
+

@@ -10,6 +10,9 @@ import '../../auth/provider/auth_provider.dart';
 import '../../categories/presentation/category_list_screen.dart';
 import '../../devices/presentation/device_list_screen.dart';
 import '../../meetings/presentation/meeting_list_screen.dart';
+import '../../notifications/model/notification_model.dart';
+import '../../notifications/model/notification_request.dart';
+import '../../notifications/provider/notification_provider.dart';
 import '../../papers/presentation/paper_list_screen.dart';
 import '../../privileges/presentation/privilege_list_screen.dart';
 import '../../subcategories/presentation/subcategory_list_screen.dart';
@@ -111,7 +114,8 @@ class DashboardScreen extends ConsumerWidget {
                                 summary.upcomingMeetingDateTime ??
                                 'No date available',
                             location:
-                                summary.upcomingMeetingLocation ?? 'No location',
+                                summary.upcomingMeetingLocation ??
+                                'No location',
                             daysText: summary.upcomingMeetingDaysText ?? '',
                           ),
                           loading: () => const SizedBox.shrink(),
@@ -153,6 +157,15 @@ class _Header extends ConsumerWidget {
     final now = DateTime.now();
     final authState = ref.watch(authProvider);
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final currentUserId = authState.userId;
+    final unreadNotifications = currentUserId == null
+        ? 0
+        : ref
+                  .watch(notificationListProvider(currentUserId))
+                  .valueOrNull
+                  ?.where((notification) => !notification.read)
+                  .length ??
+              0;
 
     final userName = currentUser?.displayName?.trim().isNotEmpty == true
         ? currentUser!.displayName!
@@ -221,9 +234,52 @@ class _Header extends ConsumerWidget {
                 ),
               ),
 
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    tooltip: 'Notifications',
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.08),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () {
+                      if (currentUserId != null) {
+                        ref
+                            .read(
+                              notificationListProvider(currentUserId).notifier,
+                            )
+                            .markAllRead();
+                      }
+                      _showNotificationsSheet(
+                        context,
+                        currentUserId: currentUserId,
+                        role: role,
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  if (unreadNotifications > 0)
+                    Positioned(
+                      right: -2,
+                      top: -4,
+                      child: _NotificationBadge(count: unreadNotifications),
+                    ),
+                ],
+              ),
+
+              const SizedBox(width: 8),
+
               IconButton(
+                tooltip: 'Logout',
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.08),
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -367,9 +423,11 @@ class _Header extends ConsumerWidget {
                 width: 78,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.16)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.16),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -406,6 +464,652 @@ class _Header extends ConsumerWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+void _showNotificationsSheet(
+  BuildContext context, {
+  required int? currentUserId,
+  required String role,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (context) =>
+        _NotificationsSheet(currentUserId: currentUserId, role: role),
+  );
+}
+
+class _NotificationsSheet extends ConsumerWidget {
+  final int? currentUserId;
+  final String role;
+
+  const _NotificationsSheet({required this.currentUserId, required this.role});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userId = currentUserId;
+    final notificationsAsync = userId == null
+        ? const AsyncValue<List<NotificationModel>>.data([])
+        : ref.watch(notificationListProvider(userId));
+    final canAnnounce = RoleAccess(role).isSecretary;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE1E6F0),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: DashboardScreen.gold.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: DashboardScreen.darkBlue,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Notifications',
+                          style: TextStyle(
+                            color: DashboardScreen.darkBlue,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (userId != null)
+                        TextButton(
+                          onPressed:
+                              notificationsAsync.valueOrNull?.isEmpty == false
+                              ? () => ref
+                                    .read(
+                                      notificationListProvider(userId).notifier,
+                                    )
+                                    .clear()
+                              : null,
+                          child: const Text('Clear'),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            if (canAnnounce) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: DashboardScreen.primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: userId == null
+                      ? null
+                      : () => _showAnnouncementDialog(context, ref, userId),
+                  icon: const Icon(Icons.campaign_outlined),
+                  label: const Text('Create Announcement'),
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
+            Flexible(
+              child: notificationsAsync.when(
+                data: (items) {
+                  if (items.isEmpty) {
+                    return const _NotificationsEmptyState();
+                  }
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      return _NotificationTile(
+                        notification: items[index],
+                        currentUserId: userId,
+                      );
+                    },
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (error, _) => _NotificationsError(
+                  message: error.toString(),
+                  onRetry: userId == null
+                      ? null
+                      : () => ref
+                            .read(notificationListProvider(userId).notifier)
+                            .load(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAnnouncementDialog(
+    BuildContext context,
+    WidgetRef ref,
+    int userId,
+  ) async {
+    final titleController = TextEditingController();
+    final messageController = TextEditingController();
+    var isSending = false;
+    String? errorMessage;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Create Announcement'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: messageController,
+                  decoration: const InputDecoration(labelText: 'Message'),
+                  maxLines: 4,
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSending ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: isSending
+                  ? null
+                  : () async {
+                      final title = titleController.text.trim();
+                      final message = messageController.text.trim();
+
+                      if (title.isEmpty || message.isEmpty) {
+                        setState(() {
+                          errorMessage = 'Please enter a title and message.';
+                        });
+                        return;
+                      }
+
+                      setState(() {
+                        isSending = true;
+                        errorMessage = null;
+                      });
+
+                      try {
+                        await ref
+                            .read(notificationListProvider(userId).notifier)
+                            .createAnnouncement(
+                              NotificationRequest(
+                                title: title,
+                                message: message,
+                                type: 'ANNOUNCEMENT',
+                                createdByUserId: userId,
+                                announcement: true,
+                              ),
+                            );
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                        }
+                      } catch (error) {
+                        setState(() {
+                          isSending = false;
+                          errorMessage = error.toString();
+                        });
+                      }
+                    },
+              child: Text(isSending ? 'Sending...' : 'Send'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationBadge extends StatelessWidget {
+  final int count;
+
+  const _NotificationBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = count > 99 ? '99+' : count.toString();
+
+    return Container(
+      constraints: const BoxConstraints(minWidth: 19, minHeight: 19),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE74C3C),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: DashboardScreen.primaryBlue, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationTile extends ConsumerWidget {
+  final NotificationModel notification;
+  final int? currentUserId;
+
+  const _NotificationTile({
+    required this.notification,
+    required this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final color = _notificationColor(notification.type);
+    final senderAvatar = _NotificationSenderAvatar(
+      notification: notification,
+      color: color,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: notification.read ? DashboardScreen.bgColor : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: notification.read
+              ? const Color(0xFFE3E8F2)
+              : DashboardScreen.gold.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          senderAvatar,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  notification.createdByName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF6E7FA8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  notification.title,
+                  style: const TextStyle(
+                    color: DashboardScreen.darkBlue,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (notification.message.trim().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.message,
+                    style: const TextStyle(
+                      color: Color(0xFF6E7FA8),
+                      fontSize: 12,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                _NotificationReactions(
+                  notification: notification,
+                  userId: currentUserId,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static IconData _notificationIcon(String type) {
+    switch (type.toUpperCase()) {
+      case 'MEETING_CREATED':
+        return Icons.event_available_outlined;
+      case 'PAPER_CREATED':
+      case 'PAPER_SHARED':
+        return Icons.picture_as_pdf_outlined;
+      case 'DOCUMENT_UPLOADED':
+        return Icons.upload_file_outlined;
+      case 'COMMENT_SHARED':
+        return Icons.comment_outlined;
+      case 'ANNOUNCEMENT':
+        return Icons.campaign_outlined;
+      default:
+        return Icons.notifications_none_rounded;
+    }
+  }
+
+  static Color _notificationColor(String type) {
+    switch (type.toUpperCase()) {
+      case 'ANNOUNCEMENT':
+        return DashboardScreen.gold;
+      case 'COMMENT_SHARED':
+        return const Color(0xFF20C997);
+      case 'DOCUMENT_UPLOADED':
+        return const Color(0xFF7C3AED);
+      case 'PAPER_CREATED':
+      case 'PAPER_SHARED':
+        return const Color(0xFFE74C3C);
+      default:
+        return const Color(0xFF233E8B);
+    }
+  }
+}
+
+class _NotificationReactions extends ConsumerWidget {
+  final NotificationModel notification;
+  final int? userId;
+
+  const _NotificationReactions({
+    required this.notification,
+    required this.userId,
+  });
+
+  static const reactions = [
+    ('LIKE', Icons.thumb_up_alt_outlined),
+    ('LOVE', Icons.favorite_border_rounded),
+    ('OK', Icons.check_circle_outline_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      children: reactions.map((reaction) {
+        final type = reaction.$1;
+        final count = notification.reactionCounts[type] ?? 0;
+        final selected = notification.currentReaction == type;
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(99),
+          onTap: userId == null
+              ? null
+              : () => ref
+                    .read(notificationListProvider(userId!).notifier)
+                    .react(notification.id, type),
+          child: Container(
+            height: 30,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: selected
+                  ? DashboardScreen.primaryBlue
+                  : const Color(0xFFF1F4FA),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(
+                color: selected
+                    ? DashboardScreen.primaryBlue
+                    : const Color(0xFFE1E6F0),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  reaction.$2,
+                  size: 15,
+                  color: selected ? Colors.white : const Color(0xFF6E7FA8),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  count.toString(),
+                  style: TextStyle(
+                    color: selected ? Colors.white : const Color(0xFF6E7FA8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _NotificationSenderAvatar extends ConsumerWidget {
+  final NotificationModel notification;
+  final Color color;
+
+  const _NotificationSenderAvatar({
+    required this.notification,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userId = notification.createdByUserId;
+    final pictureUrl = notification.createdByProfilePictureUrl;
+    final hasPicture = userId != null && pictureUrl != null;
+    final picture = hasPicture
+        ? ref.watch(profilePictureProvider((userId: userId, url: pictureUrl)))
+        : null;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.14),
+            shape: BoxShape.circle,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child:
+              picture?.when(
+                data: (bytes) => Image.memory(
+                  bytes,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _SenderInitials(
+                    name: notification.createdByName,
+                    color: color,
+                  ),
+                ),
+                loading: () => const Center(
+                  child: SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                error: (_, _) => _SenderInitials(
+                  name: notification.createdByName,
+                  color: color,
+                ),
+              ) ??
+              _SenderInitials(name: notification.createdByName, color: color),
+        ),
+        Positioned(
+          right: -2,
+          bottom: -2,
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 1.5),
+            ),
+            child: Icon(
+              _NotificationTile._notificationIcon(notification.type),
+              color: color,
+              size: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SenderInitials extends StatelessWidget {
+  final String name;
+  final Color color;
+
+  const _SenderInitials({required this.name, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        _getInitials(name),
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationsEmptyState extends StatelessWidget {
+  const _NotificationsEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: DashboardScreen.bgColor,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: const Column(
+        children: [
+          Icon(
+            Icons.mark_email_read_outlined,
+            color: Color(0xFF7D8CB2),
+            size: 34,
+          ),
+          SizedBox(height: 10),
+          Text(
+            'No notifications yet',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: DashboardScreen.darkBlue,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationsError extends StatelessWidget {
+  final String message;
+  final VoidCallback? onRetry;
+
+  const _NotificationsError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEAEA),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Failed to load notifications: $message',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.red,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 8),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
         ],
       ),
     );
@@ -477,7 +1181,7 @@ class _SummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.035),
+            color: Colors.black.withValues(alpha: 0.035),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -571,7 +1275,7 @@ class _RoleOverview extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.035),
+            color: Colors.black.withValues(alpha: 0.035),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -583,7 +1287,7 @@ class _RoleOverview extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFF233E8B).withOpacity(0.09),
+              color: const Color(0xFF233E8B).withValues(alpha: 0.09),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Icon(config.icon, color: const Color(0xFF233E8B), size: 23),
@@ -651,7 +1355,7 @@ class _UpcomingMeetingCard extends ConsumerWidget {
             context,
             MaterialPageRoute(builder: (_) => const MeetingListScreen()),
           );
-          ref.refresh(dashboardSummaryProvider(currentUserId));
+          ref.invalidate(dashboardSummaryProvider(currentUserId));
         },
         child: Container(
           width: double.infinity,
@@ -662,7 +1366,7 @@ class _UpcomingMeetingCard extends ConsumerWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
+                  color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
@@ -793,7 +1497,7 @@ class _MenuGrid extends ConsumerWidget {
                     context,
                     MaterialPageRoute(builder: (_) => item.screen),
                   );
-                  ref.refresh(dashboardSummaryProvider(currentUserId));
+                  ref.invalidate(dashboardSummaryProvider(currentUserId));
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -801,7 +1505,7 @@ class _MenuGrid extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withValues(alpha: 0.03),
                         blurRadius: 14,
                         offset: const Offset(0, 7),
                       ),
@@ -813,7 +1517,9 @@ class _MenuGrid extends ConsumerWidget {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF233E8B).withOpacity(0.09),
+                          color: const Color(
+                            0xFF233E8B,
+                          ).withValues(alpha: 0.09),
                           borderRadius: BorderRadius.circular(13),
                         ),
                         child: Icon(
@@ -867,8 +1573,10 @@ class _RoleChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
-        color: const Color(0xFFFFB52E).withOpacity(0.12),
-        border: Border.all(color: const Color(0xFFFFB52E).withOpacity(0.7)),
+        color: const Color(0xFFFFB52E).withValues(alpha: 0.12),
+        border: Border.all(
+          color: const Color(0xFFFFB52E).withValues(alpha: 0.7),
+        ),
       ),
       child: Text(
         role,
@@ -964,7 +1672,7 @@ class _RoleDashboardConfig {
       subtitle: 'View meetings, papers, and board categories.',
       menuTitle: 'My Workspace',
       icon: Icons.person_rounded,
-      summaryKeys: ['meetings', 'papers', 'documents'],
+      summaryKeys: ['meetings', 'approvals', 'papers', 'comments', 'documents'],
       tiles: _memberTiles,
     );
   }

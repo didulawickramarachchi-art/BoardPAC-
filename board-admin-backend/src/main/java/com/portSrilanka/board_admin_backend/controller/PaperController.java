@@ -5,6 +5,7 @@ import com.portSrilanka.board_admin_backend.service.PaperService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,8 +19,8 @@ public class PaperController {
 
     @PostMapping
     @PreAuthorize("hasRole('SECRETARY')")
-    public ResponseEntity<PaperResponse> create(@RequestBody PaperRequest request) {
-        return ResponseEntity.ok(paperService.create(request));
+    public ResponseEntity<PaperResponse> create(@RequestBody PaperRequest request, Authentication authentication) {
+        return ResponseEntity.ok(paperService.create(request, authentication.getName()));
     }
 
     @GetMapping

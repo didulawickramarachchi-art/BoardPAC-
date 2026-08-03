@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/board_admin_db}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:2002}
+    password: ${DB_PASSWORD:12345}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -20,7 +20,7 @@ spring:
     enabled: true
     url: ${DB_URL:jdbc:postgresql://localhost:5432/board_admin_db}
     user: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:2002}
+    password: ${DB_PASSWORD:12345}
 
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}

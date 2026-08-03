@@ -26,8 +26,7 @@ final meetingListProvider =
         ref.read(privilegeRepositoryProvider),
         role: auth.role,
         userId: auth.userId,
-      )
-        ..loadMeetings();
+      )..loadMeetings();
     });
 
 class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
@@ -41,8 +40,7 @@ class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
     this.privilegeRepository, {
     required this.role,
     required this.userId,
-  })
-    : super(const AsyncLoading());
+  }) : super(const AsyncLoading());
 
   Future<void> loadMeetings() async {
     try {
@@ -62,8 +60,7 @@ class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
                 .toSet(),
             privilegedSubcategoryNames: memberPrivileges
                 .map(
-                  (privilege) =>
-                      privilege.subcategoryName.trim().toLowerCase(),
+                  (privilege) => privilege.subcategoryName.trim().toLowerCase(),
                 )
                 .where((name) => name.isNotEmpty)
                 .toSet(),
@@ -112,11 +109,8 @@ final participantListProvider =
         ..load();
     });
 
-final participantOptionsProvider =
-    FutureProvider.autoDispose.family<List<ParticipantOptionModel>, int>((
-      ref,
-      meetingId,
-    ) {
+final participantOptionsProvider = FutureProvider.autoDispose
+    .family<List<ParticipantOptionModel>, int>((ref, meetingId) {
       return ref
           .read(meetingRepositoryProvider)
           .getParticipantOptions(meetingId);

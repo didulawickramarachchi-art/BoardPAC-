@@ -121,7 +121,9 @@ public class CommentService {
         // ✅ NEW: Notification after share
         notificationService.notifyCommentShared(
                 sharedTo,
-                sharedBy.getUsername()
+                sharedBy.getUsername(),
+                comment.getPaper() == null ? null : comment.getPaper().getId(),
+                comment.getId()
         );
 
         auditService.logInfo("COMMENT", "SHARE_COMMENT",
@@ -161,3 +163,5 @@ public class CommentService {
                 .build();
     }
 }
+
+

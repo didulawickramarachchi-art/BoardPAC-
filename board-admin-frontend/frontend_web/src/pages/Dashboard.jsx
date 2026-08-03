@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { CalendarDays, FileText, Users, ClipboardCheck, ArrowUpRight, MapPin, Clock, AlertTriangle, Tags, Layers, ShieldCheck, MonitorSmartphone, BarChart3, Settings } from 'lucide-react'
+import { CalendarDays, FileText, Users, ClipboardCheck, ArrowUpRight, MapPin, Clock, AlertTriangle, Tags, Layers, ShieldCheck, MonitorSmartphone, BarChart3, Settings, Mail, MessageSquareText } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api, errorMessage } from '../api/client'
 import { useAuth } from '../state/AuthContext'
+
+const rowsFrom = response => Array.isArray(response) ? response : response.content || response.items || []
 
 export default function Dashboard() {
   const { user, role } = useAuth()
@@ -12,7 +14,33 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (role === 'ADMIN') { setData({}); return }
-    api.get(`/dashboard/summary/${user?.id}`).then(r => setData(r.data)).catch(e => setError(errorMessage(e)))
+    if (!user?.id) return
+    const load = async () => {
+      try {
+        setError('')
+        const { data: summary } = await api.get(`/dashboard/summary/${user.id}`)
+        if (role !== 'SECRETARY') {
+          setData(summary)
+          return
+        }
+        const [{ data: meetingsResponse }, { data: categoriesResponse }, { data: subcategoriesResponse }] = await Promise.all([
+          api.get('/meetings'),
+          api.get('/categories'),
+          api.get('/subcategories'),
+        ])
+        const meetings = rowsFrom(meetingsResponse)
+        setData({
+          ...summary,
+          meetingCount: meetings.filter(item => String(item.type || '').toUpperCase() !== 'CIRCULAR').length,
+          circularCount: meetings.filter(item => String(item.type || '').toUpperCase() === 'CIRCULAR').length,
+          categoryCount: rowsFrom(categoriesResponse).length,
+          subcategoryCount: rowsFrom(subcategoriesResponse).length,
+        })
+      } catch (e) {
+        setError(errorMessage(e))
+      }
+    }
+    load()
   }, [role, user?.id])
 
   useEffect(() => {
@@ -32,7 +60,14 @@ export default function Dashboard() {
     ['Secretaries', boardUsers.filter(account => secretaryRoles.includes(normalizedRole(account))).length, Users, '/users'],
     ['Admins', boardUsers.filter(account => adminRoles.includes(normalizedRole(account))).length, ShieldCheck, '/users'],
     ['Pending user approvals', pendingUsers.length, ClipboardCheck, '/users', 'danger-stat'],
-  ] : [
+  ] : role === 'SECRETARY' ? [
+    ['Meetings', data?.meetingCount ?? data?.totalMeetings, CalendarDays, '/meetings', 'meeting-stat'],
+    ['Circulars', data?.circularCount ?? data?.totalCirculars, Mail, '/meetings', 'circular-stat'],
+    ['Unread Papers', data?.unreadPapers ?? data?.unreadPaperCount ?? 0, FileText, '/papers', 'paper-stat'],
+    ['Shared Comments', data?.sharedComments ?? data?.sharedCommentCount ?? 0, MessageSquareText, '/papers', 'comment-stat'],
+    ['Categories', data?.categoryCount ?? data?.totalCategories, Tags, '/categories', 'category-stat'],
+    ['Subcategories', data?.subcategoryCount ?? data?.totalSubcategories, Layers, '/subcategories', 'subcategory-stat'],
+  ].filter(c => c[1] != null) : [
     ['Meetings', data?.totalMeetings ?? data?.meetingCount, CalendarDays, '/meetings'],
     ['Board papers', data?.totalPapers ?? data?.paperCount, FileText, '/papers'],
     ['Pending approvals', data?.pendingApprovals, ClipboardCheck, '/approvals'],
@@ -51,7 +86,7 @@ export default function Dashboard() {
       <div className="date-card"><b>{new Date().getDate()}</b><span>{new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span></div>
     </div>
     {error && <div className="alert error"><AlertTriangle />{error}</div>}
-    <div className={`stats ${role === 'ADMIN' ? 'admin-stats' : ''}`}>{(!data || (role === 'ADMIN' && !adminUsers)) && !error ? [1, 2, 3, 4].map(x => <div className="stat skeleton" key={x} />) : cards.map(([name, value, Icon, path, variant]) => <Link className={`stat ${variant || ''}`} to={path} key={name}><div className="stat-icon"><Icon /></div><span>{name}</span><strong>{value}</strong><ArrowUpRight className="stat-arrow" /></Link>)}</div>
+    <div className={`stats ${role === 'ADMIN' ? 'admin-stats' : role === 'SECRETARY' ? 'secretary-stats' : ''}`}>{(!data || (role === 'ADMIN' && !adminUsers)) && !error ? Array.from({ length: role === 'SECRETARY' ? 6 : 4 }, (_, index) => <div className="stat skeleton" key={index} />) : cards.map(([name, value, Icon, path, variant]) => <Link className={`stat ${variant || ''}`} to={path} key={name}><div className="stat-icon"><Icon /></div><span>{name}</span><strong>{value}</strong><ArrowUpRight className="stat-arrow" /></Link>)}</div>
     <div className={`dashboard-grid ${role === 'ADMIN' ? 'admin-dashboard-grid' : ''}`}>
       {role !== 'ADMIN' && <section className="meeting-feature">
         <span className="eyebrow">Next on the calendar</span>

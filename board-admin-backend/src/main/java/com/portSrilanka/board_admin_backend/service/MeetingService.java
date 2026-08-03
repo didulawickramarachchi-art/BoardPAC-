@@ -28,6 +28,7 @@ public class MeetingService {
     private final MeetingNoteRepository meetingNoteRepository;
     private final UserSubcategoryAccessRepository accessRepository;
     private final AuditService auditService;
+    private final NotificationService notificationService;
 
     @Transactional
     public MeetingResponse create(MeetingRequest request, String username) {
@@ -79,6 +80,7 @@ public class MeetingService {
                 .toList();
 
         meetingParticipantRepository.saveAll(categoryParticipants);
+        notificationService.notifyMeetingCreated(savedMeeting, categoryParticipants);
 
         auditService.logInfo(
                 "MEETING",
@@ -465,3 +467,5 @@ public class MeetingService {
                 .build();
     }
 }
+
+

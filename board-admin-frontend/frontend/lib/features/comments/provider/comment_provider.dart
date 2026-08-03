@@ -10,21 +10,34 @@ final commentRepositoryProvider = Provider<CommentRepository>((ref) {
   return CommentRepository(ref.read(dioProvider));
 });
 
-final paperCommentProvider = StateNotifierProvider.family<
-    CommentNotifier, AsyncValue<List<CommentModel>>, int>((ref, paperId) {
-  return CommentNotifier.paper(ref.read(commentRepositoryProvider), paperId)..load();
-});
+final paperCommentProvider =
+    StateNotifierProvider.family<
+      CommentNotifier,
+      AsyncValue<List<CommentModel>>,
+      int
+    >((ref, paperId) {
+      return CommentNotifier.paper(ref.read(commentRepositoryProvider), paperId)
+        ..load();
+    });
 
-final meetingCommentProvider = StateNotifierProvider.family<
-    MeetingCommentNotifier, AsyncValue<List<CommentModel>>, int>((ref, meetingId) {
-  return MeetingCommentNotifier(ref.read(commentRepositoryProvider), meetingId)..load();
-});
+final meetingCommentProvider =
+    StateNotifierProvider.family<
+      MeetingCommentNotifier,
+      AsyncValue<List<CommentModel>>,
+      int
+    >((ref, meetingId) {
+      return MeetingCommentNotifier(
+        ref.read(commentRepositoryProvider),
+        meetingId,
+      )..load();
+    });
 
 class CommentNotifier extends StateNotifier<AsyncValue<List<CommentModel>>> {
   final CommentRepository repository;
   final int paperId;
 
-  CommentNotifier.paper(this.repository, this.paperId) : super(const AsyncLoading());
+  CommentNotifier.paper(this.repository, this.paperId)
+    : super(const AsyncLoading());
 
   Future<void> load() async {
     try {
@@ -56,11 +69,13 @@ class CommentNotifier extends StateNotifier<AsyncValue<List<CommentModel>>> {
   }
 }
 
-class MeetingCommentNotifier extends StateNotifier<AsyncValue<List<CommentModel>>> {
+class MeetingCommentNotifier
+    extends StateNotifier<AsyncValue<List<CommentModel>>> {
   final CommentRepository repository;
   final int meetingId;
 
-  MeetingCommentNotifier(this.repository, this.meetingId) : super(const AsyncLoading());
+  MeetingCommentNotifier(this.repository, this.meetingId)
+    : super(const AsyncLoading());
 
   Future<void> load() async {
     try {

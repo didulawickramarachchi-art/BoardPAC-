@@ -26,7 +26,7 @@ public class PaperService {
     private final WorkflowSettingService workflowSettingService;
     private final NotificationService notificationService;
 
-    public PaperResponse create(PaperRequest request) {
+    public PaperResponse create(PaperRequest request, String username) {
 
         workflowSettingService.validateReferenceNumber(request.getReferenceNumber());
 
@@ -44,6 +44,9 @@ public class PaperService {
 
         Meeting meeting = meetingRepository.findById(request.getMeetingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Meeting not found"));
+
+        User createdBy = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
 
         AgendaItem agendaItem = null;
         if (request.getAgendaItemId() != null) {
@@ -67,7 +70,8 @@ public class PaperService {
 
         paper = paperRepository.save(paper);
 
-        for (MeetingParticipant participant : meetingParticipantRepository.findByMeetingIdOrderByDisplaySequenceAsc(meeting.getId())) {
+        List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetingIdOrderByDisplaySequenceAsc(meeting.getId());
+        for (MeetingParticipant participant : participants) {
             packDeliveryRepository.save(
                     PackDelivery.builder()
                             .paper(paper)
@@ -77,7 +81,9 @@ public class PaperService {
             );
         }
 
-        auditService.logInfo("PAPER", "CREATE_PAPER", "SYSTEM",
+        notificationService.notifyPaperCreated(paper, participants, createdBy);
+
+        auditService.logInfo("PAPER", "CREATE_PAPER", createdBy.getUsername(),
                 "Paper created: " + paper.getTitle(), "WEB");
 
         return mapPaper(paper);
@@ -135,7 +141,8 @@ public class PaperService {
     notificationService.notifyAnnotatedPaperShared(
             sharedTo,
             paper.getTitle(),
-            sharedBy.getUsername()
+            sharedBy.getUsername(),
+            paper.getId()
     );
 
     auditService.logInfo("PAPER", "SHARE_PAPER",
@@ -158,3 +165,5 @@ public class PaperService {
                 .build();
     }
 }
+
+

@@ -20,8 +20,11 @@ public class AttachmentController {
 
     @PostMapping
     @PreAuthorize("hasRole('SECRETARY')")
-    public ResponseEntity<PaperAttachmentResponse> add(@RequestBody PaperAttachmentRequest request) {
-        return ResponseEntity.ok(attachmentService.addAttachment(request));
+    public ResponseEntity<PaperAttachmentResponse> add(
+            @RequestBody PaperAttachmentRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(attachmentService.addAttachment(request, authentication.getName()));
     }
 
     @GetMapping("/paper/{paperId}")

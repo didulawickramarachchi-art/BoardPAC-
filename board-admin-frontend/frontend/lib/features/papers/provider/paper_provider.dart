@@ -47,7 +47,9 @@ class PaperNotifier extends StateNotifier<AsyncValue<List<PaperModel>>> {
       await load();
     } catch (e) {
       if (e is DioException) {
-        throw Exception(ApiErrorMessage.from(e, fallback: 'Failed to create paper'));
+        throw Exception(
+          ApiErrorMessage.from(e, fallback: 'Failed to create paper'),
+        );
       }
       rethrow;
     }
