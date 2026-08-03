@@ -26,4 +26,4 @@ api.interceptors.response.use(response => response, async error => {
     return Promise.reject(refreshError)
   }
 })
-export const errorMessage = (error) => error.response?.data?.message || error.response?.data?.error || (error.code === 'ERR_NETWORK' ? 'Cannot connect to the server.' : 'Something went wrong. Please try again.')
+export const errorMessage = (error) => error.response?.data?.message || error.response?.data?.error || error.message || (error.code === 'ERR_NETWORK' ? 'Cannot connect to the server.' : 'Something went wrong. Please try again.')

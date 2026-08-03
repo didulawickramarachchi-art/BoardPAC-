@@ -5,7 +5,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "devices")
+@Table(
+        name = "devices",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_devices_user_device",
+                columnNames = {"user_id", "device_id"}
+        )
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,7 +19,7 @@ import lombok.*;
 @Builder
 public class Device extends BaseEntity {
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String deviceId;
 
     private String deviceInfo;

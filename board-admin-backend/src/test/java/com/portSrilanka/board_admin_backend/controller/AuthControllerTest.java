@@ -45,7 +45,8 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .param("username", "admin")
-                        .param("password", "123456"))
+                        .param("password", "123456")
+                        .param("deviceId", "test-device"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("jwt-token"));
 

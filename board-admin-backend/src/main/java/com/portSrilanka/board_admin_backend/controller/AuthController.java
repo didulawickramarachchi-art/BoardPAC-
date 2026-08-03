@@ -49,6 +49,6 @@ public class AuthController {
 
     @PostMapping(value = "/verify-2fa", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<LoginResponse> verifyTwoFactor(@Valid @RequestBody TwoFactorVerifyRequest request) {
-        return ResponseEntity.ok(authService.verifyTwoFactor(request.getUsername(), request.getCode()));
+        return ResponseEntity.ok(authService.verifyTwoFactor(request));
     }
 }

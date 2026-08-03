@@ -19,6 +19,6 @@ The default API is `http://localhost:8081/api`.
 
 ## Included areas
 
-Authentication and 2FA, responsive role-aware application shell, dashboard, meetings, board papers, approvals, users, categories, subcategories, privileges, devices, access validation, pack delivery, reports, and settings.
+Authentication and 2FA, responsive role-aware application shell, dashboard, meetings, board papers, approvals, users, categories, subcategories, privileges, devices, access control, pack delivery, reports, and settings.
 
 Roles follow the Flutter application: Admin, Secretary, and Member. Data pages use the same REST endpoints as the existing repositories and include search, responsive tables, loading, empty, and error states.

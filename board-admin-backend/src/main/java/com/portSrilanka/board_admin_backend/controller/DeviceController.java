@@ -37,8 +37,19 @@ public class DeviceController {
         return ResponseEntity.ok(deviceService.deactivate(id));
     }
 
+    @PutMapping("/{id}/activate")
+    public ResponseEntity<String> activate(@PathVariable Long id) {
+        return ResponseEntity.ok(deviceService.activate(id));
+    }
+
     @PutMapping("/{id}/wipe")
     public ResponseEntity<String> wipe(@PathVariable Long id) {
         return ResponseEntity.ok(deviceService.wipe(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        deviceService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

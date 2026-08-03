@@ -10,4 +10,12 @@ public class TwoFactorVerifyRequest {
 
     @NotBlank
     private String code;
+
+    @NotBlank
+    private String deviceId;
+
+    private String deviceInfo;
+    private String boardPacVersion;
+    private String osVersion;
+    private String description;
 }

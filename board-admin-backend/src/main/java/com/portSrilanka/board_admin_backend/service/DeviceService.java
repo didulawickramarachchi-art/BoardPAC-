@@ -21,14 +21,15 @@ public class DeviceService {
     private final UserRepository userRepository;
 
     public DeviceResponse create(DeviceRequest request) {
-        if (deviceRepository.existsByDeviceId(request.getDeviceId())) {
-            throw new BadRequestException("Device already exists");
-        }
-
         User user = null;
         if (request.getUserId() != null) {
             user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        }
+
+        if (user != null && deviceRepository.existsByDeviceIdAndUserId(
+                request.getDeviceId(), user.getId())) {
+            throw new BadRequestException("Device request already exists for this user");
         }
 
         Device device = Device.builder()
@@ -62,11 +63,29 @@ public class DeviceService {
         return "Device deactivated successfully";
     }
 
+    public String activate(Long id) {
+        Device device = findDevice(id);
+        if (device.getStatus() != DeviceStatus.DEACTIVATED) {
+            throw new BadRequestException("Only deactivated devices can be activated");
+        }
+        device.setStatus(DeviceStatus.APPROVED);
+        deviceRepository.save(device);
+        return "Device activated successfully";
+    }
+
     public String wipe(Long id) {
         Device device = findDevice(id);
         device.setStatus(DeviceStatus.WIPED);
         deviceRepository.save(device);
         return "Device wiped successfully";
+    }
+
+    public void delete(Long id) {
+        Device device = findDevice(id);
+        if (device.getStatus() != DeviceStatus.WIPED) {
+            throw new BadRequestException("Only wiped devices can be deleted");
+        }
+        deviceRepository.delete(device);
     }
 
     private Device findDevice(Long id) {

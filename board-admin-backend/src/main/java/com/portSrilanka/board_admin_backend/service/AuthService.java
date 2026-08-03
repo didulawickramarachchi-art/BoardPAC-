@@ -2,13 +2,16 @@ package com.portSrilanka.board_admin_backend.service;
 
 import com.portSrilanka.board_admin_backend.dto.auth.*;
 import com.portSrilanka.board_admin_backend.entity.LoginHistory;
+import com.portSrilanka.board_admin_backend.entity.Device;
 import com.portSrilanka.board_admin_backend.entity.Role;
 import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.LoginStatus;
+import com.portSrilanka.board_admin_backend.enums.DeviceStatus;
 import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import com.portSrilanka.board_admin_backend.exception.BadRequestException;
 import com.portSrilanka.board_admin_backend.repository.LoginHistoryRepository;
+import com.portSrilanka.board_admin_backend.repository.DeviceRepository;
 import com.portSrilanka.board_admin_backend.repository.RoleRepository;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
 import com.portSrilanka.board_admin_backend.security.JwtService;
@@ -38,6 +41,7 @@ public class AuthService {
     private final TwoFactorService twoFactorService;
     private final RefreshTokenService refreshTokenService;
     private final AuditService auditService;
+    private final DeviceRepository deviceRepository;
 
     public String register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -85,6 +89,8 @@ public class AuthService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BadRequestException("Invalid credentials"));
 
+        requireApprovedDevice(request, user);
+
         UserDetails userDetails = org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
@@ -104,6 +110,50 @@ public class AuthService {
                 .role(getPrimaryRole(user))
                 .message("Login successful")
                 .build();
+    }
+
+    private void requireApprovedDevice(LoginRequest request, User user) {
+        Device device = deviceRepository.findByDeviceIdAndUserId(
+                        request.getDeviceId(), user.getId())
+                .orElseGet(() -> deviceRepository.save(Device.builder()
+                        .deviceId(request.getDeviceId())
+                        .deviceInfo(request.getDeviceInfo())
+                        .boardPacVersion(request.getBoardPacVersion())
+                        .osVersion(request.getOsVersion())
+                        .description(request.getDescription())
+                        .status(DeviceStatus.PENDING)
+                        .user(user)
+                        .build()));
+
+        boolean firstDeviceBootstrap =
+                !deviceRepository.existsByStatusAndUserRolesName(
+                        DeviceStatus.APPROVED, SystemRole.ADMIN)
+                        && isAdministrator(user);
+
+        if (firstDeviceBootstrap) {
+            device.setUser(user);
+            device.setStatus(DeviceStatus.APPROVED);
+            deviceRepository.save(device);
+            auditService.logInfo("DEVICE", "BOOTSTRAP_APPROVAL", user.getUsername(),
+                    "Claimed and approved the first administrator device",
+                    device.getDeviceInfo());
+            return;
+        }
+
+        if (device.getStatus() != DeviceStatus.APPROVED) {
+            recordLoginHistory(user, user.getUsername(), LoginStatus.FAILED);
+            if (device.getStatus() == DeviceStatus.PENDING) {
+                throw new BadRequestException(
+                        "This device is awaiting administrator approval. Your request has been sent.");
+            }
+            throw new BadRequestException(
+                    "This device is not authorized. Contact an administrator.");
+        }
+    }
+
+    private boolean isAdministrator(User user) {
+        return user.getRoles().stream()
+                .anyMatch(role -> SystemRole.ADMIN == role.getName());
     }
 
     private String getPrimaryRole(User user) {
@@ -129,11 +179,12 @@ public class AuthService {
             log.warn("Unable to record {} login history for user {}", status, username, ex);
         }
     }
-public LoginResponse verifyTwoFactor(String username, String code) {
-    User user = userRepository.findByUsername(username)
+public LoginResponse verifyTwoFactor(TwoFactorVerifyRequest request) {
+    User user = userRepository.findByUsername(request.getUsername())
             .orElseThrow(() -> new BadRequestException("User not found"));
 
-    twoFactorService.verifyCode(user, code);
+    requireApprovedDevice(toLoginRequest(request), user);
+    twoFactorService.verifyCode(user, request.getCode());
 
     UserDetails userDetails = org.springframework.security.core.userdetails.User
             .withUsername(user.getUsername())
@@ -158,5 +209,16 @@ public LoginResponse verifyTwoFactor(String username, String code) {
             .message("2FA verification successful")
             .requiresTwoFactor(false)
             .build();
+}
+
+private LoginRequest toLoginRequest(TwoFactorVerifyRequest request) {
+    LoginRequest loginRequest = new LoginRequest();
+    loginRequest.setUsername(request.getUsername());
+    loginRequest.setDeviceId(request.getDeviceId());
+    loginRequest.setDeviceInfo(request.getDeviceInfo());
+    loginRequest.setBoardPacVersion(request.getBoardPacVersion());
+    loginRequest.setOsVersion(request.getOsVersion());
+    loginRequest.setDescription(request.getDescription());
+    return loginRequest;
 }
 }

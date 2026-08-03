@@ -1,0 +1,2 @@
+ALTER TABLE devices
+    ALTER COLUMN os_version TYPE VARCHAR(500);

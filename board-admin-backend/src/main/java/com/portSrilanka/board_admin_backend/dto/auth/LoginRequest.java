@@ -10,4 +10,12 @@ public class LoginRequest {
 
     @NotBlank
     private String password;
+
+    @NotBlank
+    private String deviceId;
+
+    private String deviceInfo;
+    private String boardPacVersion;
+    private String osVersion;
+    private String description;
 }
