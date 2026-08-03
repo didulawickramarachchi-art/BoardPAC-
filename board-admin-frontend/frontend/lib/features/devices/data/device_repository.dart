@@ -21,7 +21,15 @@ class DeviceRepository {
     await dio.put('/devices/$id/deactivate');
   }
 
+  Future<void> activateDevice(int id) async {
+    await dio.put('/devices/$id/activate');
+  }
+
   Future<void> wipeDevice(int id) async {
     await dio.put('/devices/$id/wipe');
+  }
+
+  Future<void> deleteDevice(int id) async {
+    await dio.delete('/devices/$id');
   }
 }

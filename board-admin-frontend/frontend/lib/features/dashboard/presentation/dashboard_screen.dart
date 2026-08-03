@@ -16,6 +16,7 @@ import '../../subcategories/presentation/subcategory_list_screen.dart';
 import '../../users/presentation/user_list_screen.dart';
 import '../../users/presentation/profile_picture_screen.dart';
 import '../../users/provider/user_provider.dart';
+import '../../users/model/user_model.dart';
 import '../model/dashboard_summary_model.dart';
 import '../provider/dashboard_provider.dart';
 
@@ -35,6 +36,8 @@ class DashboardScreen extends ConsumerWidget {
     final role = authState.role ?? 'User';
     final config = _RoleDashboardConfig.forRole(role);
     final summaryAsync = ref.watch(dashboardSummaryProvider(currentUserId));
+    final isAdmin = RoleAccess(role).isAdmin;
+    final usersAsync = isAdmin ? ref.watch(userListProvider) : null;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -51,59 +54,82 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 child: ResponsivePage(
                   child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _RoleOverview(config: config),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _RoleOverview(config: config),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    summaryAsync.when(
-                      data: (summary) => _SummaryGrid(
-                        cards: _summaryCardsForRole(summary, config),
+                      summaryAsync.when(
+                        data: (summary) {
+                          if (!isAdmin) {
+                            return _SummaryGrid(
+                              cards: _summaryCardsForRole(summary, config),
+                            );
+                          }
+
+                          return usersAsync!.when(
+                            data: (users) => _SummaryGrid(
+                              cards: _summaryCardsForRole(
+                                summary,
+                                config,
+                                users: users,
+                              ),
+                            ),
+                            loading: () => const Padding(
+                              padding: EdgeInsets.all(40),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                            error: (error, _) =>
+                                _ErrorBox(message: error.toString()),
+                          );
+                        },
+
+                        loading: () => const Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+
+                        error: (error, _) =>
+                            _ErrorBox(message: error.toString()),
                       ),
 
-                      loading: () => const Padding(
-                        padding: EdgeInsets.all(40),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
+                      if (!isAdmin) ...[
+                        const SizedBox(height: 24),
 
-                      error: (error, _) => _ErrorBox(message: error.toString()),
-                    ),
+                        const _SectionTitle(title: 'Upcoming Meeting'),
 
-                    const SizedBox(height: 24),
+                        const SizedBox(height: 10),
 
-                    const _SectionTitle(title: 'Upcoming Meeting'),
+                        summaryAsync.when(
+                          data: (summary) => _UpcomingMeetingCard(
+                            currentUserId: currentUserId,
+                            title:
+                                summary.upcomingMeetingTitle ??
+                                'No upcoming meeting',
+                            dateTimeText:
+                                summary.upcomingMeetingDateTime ??
+                                'No date available',
+                            location:
+                                summary.upcomingMeetingLocation ?? 'No location',
+                            daysText: summary.upcomingMeetingDaysText ?? '',
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
+                        ),
+                      ],
 
-                    const SizedBox(height: 10),
+                      const SizedBox(height: 24),
 
-                    summaryAsync.when(
-                      data: (summary) => _UpcomingMeetingCard(
+                      _SectionTitle(title: config.menuTitle),
+
+                      const SizedBox(height: 10),
+
+                      _MenuGrid(
+                        tiles: config.tiles,
                         currentUserId: currentUserId,
-                        title:
-                            summary.upcomingMeetingTitle ??
-                            'No upcoming meeting',
-                        dateTimeText:
-                            summary.upcomingMeetingDateTime ??
-                            'No date available',
-                        location:
-                            summary.upcomingMeetingLocation ?? 'No location',
-                        daysText: summary.upcomingMeetingDaysText ?? '',
                       ),
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, _) => const SizedBox.shrink(),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    _SectionTitle(title: config.menuTitle),
-
-                    const SizedBox(height: 10),
-
-                    _MenuGrid(
-                      tiles: config.tiles,
-                      currentUserId: currentUserId,
-                    ),
-                  ],
+                    ],
                   ),
                 ),
               ),
@@ -240,7 +266,8 @@ class _Header extends ConsumerWidget {
                       child: ClipOval(
                         child: SizedBox.square(
                           dimension: 46,
-                          child: profilePicture?.when(
+                          child:
+                              profilePicture?.when(
                                 data: (bytes) => Image.memory(
                                   bytes,
                                   width: double.infinity,
@@ -251,9 +278,7 @@ class _Header extends ConsumerWidget {
                                     debugPrint(
                                       'Could not decode profile picture: $error',
                                     );
-                                    return _ProfileInitials(
-                                      initials: initials,
-                                    );
+                                    return _ProfileInitials(initials: initials);
                                   },
                                 ),
                                 loading: () => const Center(
@@ -385,7 +410,6 @@ class _Header extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 class _ProfileInitials extends StatelessWidget {
@@ -562,11 +586,7 @@ class _RoleOverview extends StatelessWidget {
               color: const Color(0xFF233E8B).withOpacity(0.09),
               borderRadius: BorderRadius.circular(15),
             ),
-            child: Icon(
-              config.icon,
-              color: const Color(0xFF233E8B),
-              size: 23,
-            ),
+            child: Icon(config.icon, color: const Color(0xFF233E8B), size: 23),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -737,10 +757,7 @@ class _MenuGrid extends ConsumerWidget {
   final List<_MenuTileData> tiles;
   final int currentUserId;
 
-  const _MenuGrid({
-    required this.tiles,
-    required this.currentUserId,
-  });
+  const _MenuGrid({required this.tiles, required this.currentUserId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -764,74 +781,74 @@ class _MenuGrid extends ConsumerWidget {
             childAspectRatio: columns == 1 ? 3.8 : 2.25,
           ),
           itemBuilder: (context, index) {
-        final item = tiles[index];
+            final item = tiles[index];
 
-        return Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => item.screen),
-              );
-              ref.refresh(dashboardSummaryProvider(currentUserId));
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
+            return Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 14,
-                    offset: const Offset(0, 7),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF233E8B).withOpacity(0.09),
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Icon(
-                      item.icon,
-                      color: const Color(0xFF233E8B),
-                      size: 21,
-                    ),
-                  ),
-
-                  const SizedBox(width: 10),
-
-                  Expanded(
-                    child: Text(
-                      item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF00184A),
-                        fontSize: 12,
-                        height: 1.2,
-                        fontWeight: FontWeight.w800,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => item.screen),
+                  );
+                  ref.refresh(dashboardSummaryProvider(currentUserId));
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 14,
+                        offset: const Offset(0, 7),
                       ),
-                    ),
+                    ],
                   ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF233E8B).withOpacity(0.09),
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: Icon(
+                          item.icon,
+                          color: const Color(0xFF233E8B),
+                          size: 21,
+                        ),
+                      ),
 
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Color(0xFF9AA6C5),
-                    size: 20,
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF00184A),
+                            fontSize: 12,
+                            height: 1.2,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF9AA6C5),
+                        size: 20,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
+            );
           },
         );
       },
@@ -925,12 +942,7 @@ class _RoleDashboardConfig {
         subtitle: 'Manage users, meetings, approvals, and system settings.',
         menuTitle: 'Management',
         icon: Icons.admin_panel_settings_rounded,
-        summaryKeys: [
-          'users',
-          'meetings',
-          'circulars',
-          'approvals',
-        ],
+        summaryKeys: ['members', 'secretaries', 'admins', 'pendingUsers'],
         tiles: _adminTiles,
       );
     }
@@ -938,15 +950,11 @@ class _RoleDashboardConfig {
     if (access.isSecretary) {
       return const _RoleDashboardConfig(
         title: 'Secretary Dashboard',
-        subtitle: 'Manage meetings, categories, papers, and agenda attachments.',
+        subtitle:
+            'Manage meetings, categories, papers, and agenda attachments.',
         menuTitle: 'Operations',
         icon: Icons.event_available_rounded,
-        summaryKeys: [
-          'meetings',
-          'circulars',
-          'papers',
-          'comments',
-        ],
+        summaryKeys: ['meetings', 'circulars', 'papers', 'comments'],
         tiles: _secretaryTiles,
       );
     }
@@ -956,37 +964,17 @@ class _RoleDashboardConfig {
       subtitle: 'View meetings, papers, and board categories.',
       menuTitle: 'My Workspace',
       icon: Icons.person_rounded,
-      summaryKeys: [
-        'meetings',
-        'papers',
-        'documents',
-      ],
+      summaryKeys: ['meetings', 'papers', 'documents'],
       tiles: _memberTiles,
     );
   }
 }
 
 const _adminTiles = [
-  _MenuTileData(
-    'Users',
-    Icons.people_outline_rounded,
-    UserListScreen(),
-  ),
-  _MenuTileData(
-    'Devices',
-    Icons.devices_other_rounded,
-    DeviceListScreen(),
-  ),
-  _MenuTileData(
-    'Reports',
-    Icons.bar_chart_rounded,
-    ReportHomeScreen(),
-  ),
-  _MenuTileData(
-    'Settings',
-    Icons.settings_outlined,
-    SettingHomeScreen(),
-  ),
+  _MenuTileData('Users', Icons.people_outline_rounded, UserListScreen()),
+  _MenuTileData('Devices', Icons.devices_other_rounded, DeviceListScreen()),
+  _MenuTileData('Reports', Icons.bar_chart_rounded, ReportHomeScreen()),
+  _MenuTileData('Settings', Icons.settings_outlined, SettingHomeScreen()),
   _MenuTileData(
     'Access Control',
     Icons.verified_user_outlined,
@@ -1000,46 +988,56 @@ const _secretaryTiles = [
     Icons.admin_panel_settings_outlined,
     PrivilegeListScreen(),
   ),
-  _MenuTileData(
-    'Meetings',
-    Icons.event_note_outlined,
-    MeetingListScreen(),
-  ),
-  _MenuTileData(
-    'Categories',
-    Icons.category_outlined,
-    CategoryListScreen(),
-  ),
+  _MenuTileData('Meetings', Icons.event_note_outlined, MeetingListScreen()),
+  _MenuTileData('Categories', Icons.category_outlined, CategoryListScreen()),
   _MenuTileData(
     'Subcategories',
     Icons.account_tree_outlined,
     SubcategoryListScreen(),
   ),
-  _MenuTileData(
-    'Papers',
-    Icons.picture_as_pdf_outlined,
-    PaperListScreen(),
-  ),
+  _MenuTileData('Papers', Icons.picture_as_pdf_outlined, PaperListScreen()),
 ];
 
 const _memberTiles = [
-  _MenuTileData(
-    'Meetings',
-    Icons.event_note_outlined,
-    MeetingListScreen(),
-  ),
-  _MenuTileData(
-    'Papers',
-    Icons.picture_as_pdf_outlined,
-    PaperListScreen(),
-  ),
+  _MenuTileData('Meetings', Icons.event_note_outlined, MeetingListScreen()),
+  _MenuTileData('Papers', Icons.picture_as_pdf_outlined, PaperListScreen()),
 ];
 
 List<_SummaryCard> _summaryCardsForRole(
   DashboardSummaryModel summary,
-  _RoleDashboardConfig config,
-) {
+  _RoleDashboardConfig config, {
+  List<UserModel>? users,
+}) {
+  final roleCounts = _UserRoleCounts.fromUsers(users ?? const []);
   final cards = <String, _SummaryCard>{
+    'members': _SummaryCard(
+      title: 'Members',
+      value: roleCounts.members.toString(),
+      icon: Icons.groups_2_outlined,
+      iconColor: const Color(0xFF233E8B),
+      iconBg: const Color(0xFFEAF0FF),
+    ),
+    'secretaries': _SummaryCard(
+      title: 'Secretaries',
+      value: roleCounts.secretaries.toString(),
+      icon: Icons.badge_outlined,
+      iconColor: DashboardScreen.gold,
+      iconBg: const Color(0xFFFFF3DC),
+    ),
+    'admins': _SummaryCard(
+      title: 'Admins',
+      value: roleCounts.admins.toString(),
+      icon: Icons.admin_panel_settings_outlined,
+      iconColor: const Color(0xFFE84393),
+      iconBg: const Color(0xFFFFE7F2),
+    ),
+    'pendingUsers': _SummaryCard(
+      title: 'Pending User Approvals',
+      value: roleCounts.pending.toString(),
+      icon: Icons.person_add_alt_1_rounded,
+      iconColor: const Color(0xFF3168F4),
+      iconBg: const Color(0xFFEAF0FF),
+    ),
     'users': _SummaryCard(
       title: 'Users',
       value: summary.totalUsers.toString(),
@@ -1104,6 +1102,64 @@ List<_SummaryCard> _summaryCardsForRole(
       .map((key) => cards[key])
       .whereType<_SummaryCard>()
       .toList();
+}
+
+class _UserRoleCounts {
+  final int members;
+  final int secretaries;
+  final int admins;
+  final int pending;
+
+  const _UserRoleCounts({
+    required this.members,
+    required this.secretaries,
+    required this.admins,
+    required this.pending,
+  });
+
+  factory _UserRoleCounts.fromUsers(List<UserModel> users) {
+    var members = 0;
+    var secretaries = 0;
+    var admins = 0;
+    var pending = 0;
+
+    for (final user in users) {
+      final role = user.role?.trim().toUpperCase().replaceAll('-', '_') ?? '';
+      final status = user.status?.trim().toUpperCase() ?? '';
+
+      if (const {
+        'PENDING',
+        'REQUESTED',
+        'AWAITING_APPROVAL',
+      }.contains(status)) {
+        pending++;
+      }
+
+      if (const {
+        'ADMIN',
+        'SUPER_ADMIN',
+        'BOARD_ADMIN',
+        'SUPPORT_TEAM',
+      }.contains(role)) {
+        admins++;
+      } else if (const {
+        'SECRETARY',
+        'BOARD_SECRETARY',
+        'ORGANIZER',
+      }.contains(role)) {
+        secretaries++;
+      } else if (role == 'MEMBER') {
+        members++;
+      }
+    }
+
+    return _UserRoleCounts(
+      members: members,
+      secretaries: secretaries,
+      admins: admins,
+      pending: pending,
+    );
+  }
 }
 
 String _greetingText() {

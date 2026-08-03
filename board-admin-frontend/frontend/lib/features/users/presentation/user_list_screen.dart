@@ -5,6 +5,7 @@ import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/app_status_chip.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../model/user_model.dart';
 import '../provider/user_provider.dart';
 import 'user_form_screen.dart';
 import 'add_user_screen.dart';
@@ -68,12 +69,17 @@ class UserListScreen extends ConsumerWidget {
             return const AppEmptyState(message: 'No users found');
           }
 
+          final entries = _categorizedEntries(users);
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: users.length,
+            itemCount: entries.length,
             separatorBuilder: (_, _) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
-              final user = users[index];
+              final entry = entries[index];
+              if (entry is _UserSection) {
+                return _UserSectionHeader(section: entry);
+              }
+              final user = entry as UserModel;
               final fullName = '${user.firstName} ${user.lastName}'.trim();
               final initials = _getInitials(fullName);
 
@@ -427,6 +433,54 @@ String _getInitials(String name) {
 
   return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
       .toUpperCase();
+}
+
+List<Object> _categorizedEntries(List<UserModel> users) {
+  const categories = [
+    ('ADMIN', 'Admins', Icons.admin_panel_settings_outlined),
+    ('SECRETARY', 'Secretaries', Icons.business_center_outlined),
+    ('MEMBER', 'Members', Icons.groups_outlined),
+  ];
+  final entries = <Object>[];
+  for (final category in categories) {
+    final categoryUsers = users.where((user) {
+      final role = normalizeRole(user.role);
+      return category.$1 == 'MEMBER'
+          ? role != 'ADMIN' && role != 'SECRETARY'
+          : role == category.$1;
+    }).toList()
+      ..sort((a, b) => a.username.toLowerCase().compareTo(b.username.toLowerCase()));
+    entries.add(_UserSection(category.$2, categoryUsers.length, category.$3));
+    entries.addAll(categoryUsers);
+  }
+  return entries;
+}
+
+class _UserSection {
+  final String title;
+  final int count;
+  final IconData icon;
+  const _UserSection(this.title, this.count, this.icon);
+}
+
+class _UserSectionHeader extends StatelessWidget {
+  final _UserSection section;
+  const _UserSectionHeader({required this.section});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(section.icon, color: UserListScreen.primaryBlue, size: 21),
+      const SizedBox(width: 9),
+      Text(section.title, style: const TextStyle(color: UserListScreen.darkBlue, fontSize: 17, fontWeight: FontWeight.w900)),
+      const SizedBox(width: 8),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+        decoration: BoxDecoration(color: UserListScreen.primaryBlue.withOpacity(0.09), borderRadius: BorderRadius.circular(20)),
+        child: Text('${section.count}', style: const TextStyle(color: UserListScreen.primaryBlue, fontWeight: FontWeight.w800)),
+      ),
+    ],
+  );
 }
 
 class _RoleChip extends StatelessWidget {

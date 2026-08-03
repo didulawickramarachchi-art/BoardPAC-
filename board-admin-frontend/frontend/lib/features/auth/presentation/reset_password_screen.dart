@@ -66,102 +66,102 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ? const _InvalidLink()
                     : _completed
                         ? _Success(onSignIn: () {
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              '/',
-                              (_) => false,
-                            );
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/',
+                            (_) => false,
+                          );
                           })
-                        : Form(
-                            key: _formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(
-                                  Icons.lock_reset_rounded,
-                                  color: AppColors.gold,
-                                  size: 44,
-                                ),
-                                const SizedBox(height: 18),
-                                const Text(
-                                  'Create a new password',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
+                    : Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.lock_reset_rounded,
+                              color: AppColors.gold,
+                              size: 44,
+                            ),
+                            const SizedBox(height: 18),
+                            const Text(
+                              'Create a new password',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Use at least 8 characters with uppercase, '
+                              'lowercase, and a number.',
+                              style: TextStyle(color: AppColors.textMuted),
+                            ),
+                            const SizedBox(height: 24),
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: _hidePassword,
+                              autofillHints: const [AutofillHints.newPassword],
+                              decoration: InputDecoration(
+                                labelText: 'New password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  onPressed: () => setState(
+                                    () => _hidePassword = !_hidePassword,
+                                  ),
+                                  icon: Icon(
+                                    _hidePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Use at least 8 characters with uppercase, '
-                                  'lowercase, and a number.',
-                                  style: TextStyle(color: AppColors.textMuted),
-                                ),
-                                const SizedBox(height: 24),
-                                TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: _hidePassword,
-                                  autofillHints: const [AutofillHints.newPassword],
-                                  decoration: InputDecoration(
-                                    labelText: 'New password',
-                                    prefixIcon: const Icon(Icons.lock_outline),
-                                    suffixIcon: IconButton(
-                                      onPressed: () => setState(
-                                        () => _hidePassword = !_hidePassword,
-                                      ),
-                                      icon: Icon(
-                                        _hidePassword
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                      ),
-                                    ),
-                                  ),
-                                  validator: _validatePassword,
-                                ),
-                                const SizedBox(height: 16),
-                                TextFormField(
-                                  controller: _confirmController,
-                                  obscureText: _hideConfirmation,
-                                  autofillHints: const [AutofillHints.newPassword],
-                                  decoration: InputDecoration(
-                                    labelText: 'Confirm new password',
-                                    prefixIcon: const Icon(Icons.lock_outline),
-                                    suffixIcon: IconButton(
-                                      onPressed: () => setState(
+                              ),
+                              validator: _validatePassword,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _confirmController,
+                              obscureText: _hideConfirmation,
+                              autofillHints: const [AutofillHints.newPassword],
+                              decoration: InputDecoration(
+                                labelText: 'Confirm new password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  onPressed: () => setState(
                                         () => _hideConfirmation =
                                             !_hideConfirmation,
-                                      ),
-                                      icon: Icon(
-                                        _hideConfirmation
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                      ),
-                                    ),
                                   ),
+                                  icon: Icon(
+                                    _hideConfirmation
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                ),
+                              ),
                                   validator: (value) => value !=
                                           _passwordController.text
-                                      ? 'Passwords do not match'
-                                      : null,
-                                ),
-                                const SizedBox(height: 24),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: FilledButton(
-                                    onPressed: _submitting ? null : _submit,
-                                    child: _submitting
-                                        ? const SizedBox.square(
-                                            dimension: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Text('Update Password'),
-                                  ),
-                                ),
-                              ],
+                                  ? 'Passwords do not match'
+                                  : null,
                             ),
-                          ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                onPressed: _submitting ? null : _submit,
+                                child: _submitting
+                                    ? const SizedBox.square(
+                                        dimension: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text('Update Password'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
               ),
             ),
           ),
@@ -191,22 +191,22 @@ class _InvalidLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.link_off_rounded, color: AppColors.danger, size: 48),
-          SizedBox(height: 16),
-          Text(
-            'Invalid password link',
-            style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Request a new password-change email from your profile settings.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textMuted),
-          ),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(Icons.link_off_rounded, color: AppColors.danger, size: 48),
+      SizedBox(height: 16),
+      Text(
+        'Invalid password link',
+        style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
+      ),
+      SizedBox(height: 8),
+      Text(
+        'Request a new password-change email from your profile settings.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: AppColors.textMuted),
+      ),
+    ],
+  );
 }
 
 class _Success extends StatelessWidget {
@@ -216,32 +216,32 @@ class _Success extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.check_circle_rounded,
-            color: AppColors.success,
-            size: 52,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Password updated',
-            style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'You can now sign in using your new password.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 22),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: onSignIn,
-              child: const Text('Back to Sign In'),
-            ),
-          ),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const Icon(
+        Icons.check_circle_rounded,
+        color: AppColors.success,
+        size: 52,
+      ),
+      const SizedBox(height: 16),
+      const Text(
+        'Password updated',
+        style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'You can now sign in using your new password.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: AppColors.textMuted),
+      ),
+      const SizedBox(height: 22),
+      SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: onSignIn,
+          child: const Text('Back to Sign In'),
+        ),
+      ),
+    ],
+  );
 }

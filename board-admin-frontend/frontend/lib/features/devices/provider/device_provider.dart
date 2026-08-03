@@ -9,8 +9,8 @@ final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
 
 final deviceListProvider =
     StateNotifierProvider<DeviceNotifier, AsyncValue<List<DeviceModel>>>((ref) {
-  return DeviceNotifier(ref.read(deviceRepositoryProvider))..loadDevices();
-});
+      return DeviceNotifier(ref.read(deviceRepositoryProvider))..loadDevices();
+    });
 
 class DeviceNotifier extends StateNotifier<AsyncValue<List<DeviceModel>>> {
   final DeviceRepository repository;
@@ -36,8 +36,18 @@ class DeviceNotifier extends StateNotifier<AsyncValue<List<DeviceModel>>> {
     await loadDevices();
   }
 
+  Future<void> activate(int id) async {
+    await repository.activateDevice(id);
+    await loadDevices();
+  }
+
   Future<void> wipe(int id) async {
     await repository.wipeDevice(id);
+    await loadDevices();
+  }
+
+  Future<void> delete(int id) async {
+    await repository.deleteDevice(id);
     await loadDevices();
   }
 }

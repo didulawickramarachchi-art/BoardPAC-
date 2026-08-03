@@ -29,6 +29,11 @@ class SecureStorageService {
     return _storage.read(key: usernameKey);
   }
 
+  Future<String?> read(String key) => _storage.read(key: key);
+
+  Future<void> write(String key, String value) =>
+      _storage.write(key: key, value: value);
+
   Future<void> updateTokens({
     required String accessToken,
     String? refreshToken,
@@ -39,7 +44,12 @@ class SecureStorageService {
     }
   }
 
-  Future<void> clearAll() async {
-    await _storage.deleteAll();
+  Future<void> clearAuth() async {
+    await _storage.delete(key: accessTokenKey);
+    await _storage.delete(key: refreshTokenKey);
+    await _storage.delete(key: usernameKey);
   }
+
+  /// Kept for callers that explicitly need a full application reset.
+  Future<void> clearAll() => _storage.deleteAll();
 }

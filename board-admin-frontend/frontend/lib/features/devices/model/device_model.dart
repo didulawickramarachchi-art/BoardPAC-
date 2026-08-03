@@ -31,4 +31,19 @@ class DeviceModel {
       username: json['username'],
     );
   }
+
+  String get normalizedStatus => status?.trim().toUpperCase() ?? 'UNKNOWN';
+
+  bool get isPending =>
+      normalizedStatus == 'PENDING' ||
+      normalizedStatus == 'REQUESTED' ||
+      normalizedStatus == 'AWAITING_APPROVAL';
+
+  bool get isApproved =>
+      normalizedStatus == 'APPROVED' || normalizedStatus == 'ACTIVE';
+
+  bool get isDeactivated =>
+      normalizedStatus == 'DEACTIVATED' || normalizedStatus == 'INACTIVE';
+
+  bool get isWiped => normalizedStatus == 'WIPED';
 }

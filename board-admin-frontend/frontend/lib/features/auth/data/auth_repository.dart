@@ -19,7 +19,7 @@ class AuthRepository {
 
       return LoginResponse.fromJson(response.data);
     } on DioException catch (e) {
-      throw Exception(_handleError(e));
+      throw AuthException(_handleError(e));
     }
   }
 
@@ -32,7 +32,7 @@ class AuthRepository {
 
       return LoginResponse.fromJson(response.data);
     } on DioException catch (e) {
-      throw Exception(_handleError(e));
+      throw AuthException(_handleError(e));
     }
   }
 
@@ -46,7 +46,7 @@ class AuthRepository {
         data: {'token': token, 'newPassword': newPassword},
       );
     } on DioException catch (e) {
-      throw Exception(_handleError(e));
+      throw AuthException(_handleError(e));
     }
   }
 
@@ -60,15 +60,21 @@ class AuthRepository {
         data: {'email': email, 'resetUrl': resetUrl},
       );
     } on DioException catch (e) {
-      throw Exception(_handleError(e));
+      throw AuthException(_handleError(e));
     }
   }
 
   // 🔥 Centralized error handler
   String _handleError(DioException e) {
     if (e.response != null) {
-      return e.response?.data['message'] ??
-          'Server error (${e.response?.statusCode})';
+      final data = e.response?.data;
+      if (data is Map) {
+        final message = data['message'] ?? data['error'] ?? data['detail'];
+        if (message != null && message.toString().trim().isNotEmpty) {
+          return message.toString();
+        }
+      }
+      return 'Server error (${e.response?.statusCode})';
     } else if (e.type == DioExceptionType.connectionTimeout) {
       return 'Connection timeout';
     } else if (e.type == DioExceptionType.connectionError) {
@@ -77,4 +83,13 @@ class AuthRepository {
       return 'Unexpected error occurred';
     }
   }
+}
+
+class AuthException implements Exception {
+  final String message;
+
+  const AuthException(this.message);
+
+  @override
+  String toString() => message;
 }
