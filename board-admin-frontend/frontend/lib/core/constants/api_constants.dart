@@ -1,16 +1,10 @@
-import 'package:flutter/foundation.dart';
-
 class ApiConstants {
-  // 🔥 Base URL (auto switch)
-  static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:8081/api'; // Web
-    } else {
-      return 'http://10.0.2.2:8081/api'; // Android emulator
-      // If testing on real device, replace with your PC IP:
-      // return 'http://192.168.1.100:8081/api';
-    }
-  }
+  // Override at build/run time with:
+  // --dart-define=API_BASE_URL=https://example.com/api
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://boardpac.onrender.com/api',
+  );
 
   // 🔐 Auth
   static const String login = '/auth/login';

@@ -18,8 +18,9 @@ class MeetingRepository {
         .toList();
   }
 
-  Future<void> createMeeting(MeetingRequest request) async {
-    await dio.post('/meetings', data: request.toJson());
+  Future<MeetingModel> createMeeting(MeetingRequest request) async {
+    final response = await dio.post('/meetings', data: request.toJson());
+    return MeetingModel.fromJson(response.data);
   }
 
   Future<void> openMeeting(int meetingId) async {
@@ -78,9 +79,7 @@ class MeetingRepository {
   Future<List<ParticipantOptionModel>> getParticipantOptions(
     int meetingId,
   ) async {
-    final response = await dio.get(
-      '/meetings/$meetingId/participant-options',
-    );
+    final response = await dio.get('/meetings/$meetingId/participant-options');
     return (response.data as List)
         .map((item) => ParticipantOptionModel.fromJson(item))
         .toList();

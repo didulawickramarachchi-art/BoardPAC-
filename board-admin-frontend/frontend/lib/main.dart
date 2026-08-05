@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
+import 'core/notifications/device_notification_service.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DeviceNotificationService.instance.initialize();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -14,9 +16,5 @@ void main() {
     ),
   );
 
-  runApp(
-    const ProviderScope(
-      child: BoardAdminApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: BoardAdminApp()));
 }
