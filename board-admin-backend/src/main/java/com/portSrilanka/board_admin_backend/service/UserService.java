@@ -50,6 +50,16 @@ public class UserService {
         return mapToResponse(findByUsername(username));
     }
 
+    public UserResponse updateOwnTwoFactor(String username, boolean enabled) {
+        User user = findByUsername(username);
+        user.setTwoStepEnabled(enabled);
+        userRepository.save(user);
+        auditService.logInfo("USER", enabled ? "ENABLE_2FA" : "DISABLE_2FA", username,
+                enabled ? "Two-factor authentication enabled" : "Two-factor authentication disabled",
+                "DEVICE");
+        return mapToResponse(user);
+    }
+
     public UserResponse uploadProfilePicture(String username, MultipartFile file) throws IOException {
         validateProfilePicture(file);
         User user = findByUsername(username);
@@ -197,6 +207,7 @@ public class UserService {
                 .mobileNumber(user.getMobileNumber())
                 .jobTitle(user.getJobTitle())
                 .profilePictureUrl(user.getProfilePictureUrl())
+                .twoStepEnabled(user.isTwoStepEnabled())
                 .role(user.getRoles().stream()
                         .map(role -> role.getName().authorityName())
                         .sorted()

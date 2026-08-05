@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -22,6 +23,12 @@ class _Verify2FAScreenState extends ConsumerState<Verify2FAScreen> {
   }
 
   Future<void> _verify() async {
+    if (_codeController.text.trim().length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter the six-digit code.')),
+      );
+      return;
+    }
     final success = await ref
         .read(authProvider.notifier)
         .verifyCode(_codeController.text.trim());
@@ -61,6 +68,10 @@ class _Verify2FAScreenState extends ConsumerState<Verify2FAScreen> {
                       controller: _codeController,
                       hintText: 'Verification code',
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(6),
+                      ],
                     ),
                     const SizedBox(height: 20),
                     AppButton(

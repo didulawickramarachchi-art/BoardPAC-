@@ -16,6 +16,7 @@ public class UserResponse {
     private String mobileNumber;
     private String jobTitle;
     private String profilePictureUrl;
+    private boolean twoStepEnabled;
     private String role;
     private UserStatus status;
 }

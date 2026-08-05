@@ -38,7 +38,11 @@ class LoginResponse {
           json['deviceStatus'] ??
           json['deviceApprovalStatus'] ??
           (json['device'] is Map ? json['device']['status'] : null),
-      requiresTwoFactor: json['requiresTwoFactor'] ?? false,
+      requiresTwoFactor:
+          json['requiresTwoFactor'] ??
+          json['requires2FA'] ??
+          json['twoFactorRequired'] ??
+          false,
     );
   }
 

@@ -15,14 +15,51 @@ class ProfilePictureScreen extends ConsumerStatefulWidget {
       _ProfilePictureScreenState();
 }
 
-class _ProfilePictureScreenState
-    extends ConsumerState<ProfilePictureScreen> {
+class _ProfilePictureScreenState extends ConsumerState<ProfilePictureScreen> {
   static const _primaryBlue = Color(0xFF12275B);
   static const _gold = Color(0xFFFFB52E);
 
   PlatformFile? _selectedFile;
   bool _uploading = false;
   bool _resettingPassword = false;
+  bool _updatingTwoFactor = false;
+  bool? _twoFactorEnabled;
+
+  Future<void> _setTwoFactor(bool enabled) async {
+    if (_updatingTwoFactor) return;
+
+    final previousValue = _twoFactorEnabled ?? !enabled;
+    setState(() {
+      _twoFactorEnabled = enabled;
+      _updatingTwoFactor = true;
+    });
+    try {
+      await ref.read(userRepositoryProvider).updateOwnTwoFactor(enabled);
+      ref.invalidate(currentUserProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              enabled
+                  ? 'Two-factor authentication enabled. An OTP will be required at your next login.'
+                  : 'Two-factor authentication disabled.',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _twoFactorEnabled = previousValue);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not update two-factor authentication.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updatingTwoFactor = false);
+    }
+  }
 
   Future<void> _choosePicture() async {
     final result = await FilePicker.platform.pickFiles(
@@ -53,7 +90,9 @@ class _ProfilePictureScreenState
 
     setState(() => _uploading = true);
     try {
-      await ref.read(userRepositoryProvider).uploadProfilePicture(
+      await ref
+          .read(userRepositoryProvider)
+          .uploadProfilePicture(
             fileName: file.name,
             filePath: file.path,
             fileBytes: file.bytes,
@@ -103,15 +142,12 @@ class _ProfilePictureScreenState
 
     setState(() => _resettingPassword = true);
     try {
-      final resetUrl = Uri.base.replace(
-        path: '/',
-        query: null,
-        fragment: '/reset-password',
-      ).toString();
-      await ref.read(authRepositoryProvider).requestPasswordReset(
-            email: email,
-            resetUrl: resetUrl,
-          );
+      final resetUrl = Uri.base
+          .replace(path: '/', query: null, fragment: '/reset-password')
+          .toString();
+      await ref
+          .read(authRepositoryProvider)
+          .requestPasswordReset(email: email, resetUrl: resetUrl);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -137,6 +173,7 @@ class _ProfilePictureScreenState
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).valueOrNull;
+    final twoFactorEnabled = _twoFactorEnabled ?? user?.twoStepEnabled ?? false;
     final displayName = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : user?.username ?? 'User';
@@ -144,9 +181,7 @@ class _ProfilePictureScreenState
     final imageUrl = user?.profilePictureUrl?.trim();
     final picture = imageUrl?.isNotEmpty == true
         ? ref
-              .watch(
-                profilePictureProvider((userId: user!.id, url: imageUrl!)),
-              )
+              .watch(profilePictureProvider((userId: user!.id, url: imageUrl!)))
               .valueOrNull
         : null;
 
@@ -233,6 +268,78 @@ class _ProfilePictureScreenState
                     const SizedBox(height: 24),
                     const Divider(),
                     const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F3F8),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: SwitchListTile.adaptive(
+                        value: twoFactorEnabled,
+                        onChanged: user == null || _updatingTwoFactor
+                            ? null
+                            : _setTwoFactor,
+                        activeThumbColor: _gold,
+                        activeTrackColor: _primaryBlue,
+                        inactiveThumbColor: const Color(0xFF8E95A3),
+                        inactiveTrackColor: const Color(0xFFD8DCE5),
+                        secondary: _updatingTwoFactor
+                            ? const SizedBox.square(
+                                dimension: 21,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.verified_user_outlined,
+                                color: _primaryBlue,
+                              ),
+                        title: Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Two-Factor Authentication',
+                                style: TextStyle(
+                                  color: _primaryBlue,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: twoFactorEnabled
+                                    ? _primaryBlue
+                                    : const Color(0xFFE1E4EA),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                twoFactorEnabled ? 'ON' : 'OFF',
+                                style: TextStyle(
+                                  color: twoFactorEnabled
+                                      ? _gold
+                                      : const Color(0xFF626B7A),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: const Text(
+                          'Require an email OTP when signing in',
+                          style: TextStyle(
+                            color: Color(0xFF7380A4),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 16),
                     const Row(
                       children: [
                         DecoratedBox(
@@ -284,7 +391,9 @@ class _ProfilePictureScreenState
                         icon: _resettingPassword
                             ? const SizedBox.square(
                                 dimension: 17,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.password_rounded),
                         label: Text(
@@ -328,18 +437,18 @@ class _PicturePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget fallback() => ColoredBox(
-          color: _ProfilePictureScreenState._gold,
-          child: Center(
-            child: Text(
-              initials,
-              style: const TextStyle(
-                color: _ProfilePictureScreenState._primaryBlue,
-                fontSize: 38,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+      color: _ProfilePictureScreenState._gold,
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            color: _ProfilePictureScreenState._primaryBlue,
+            fontSize: 38,
+            fontWeight: FontWeight.w900,
           ),
-        );
+        ),
+      ),
+    );
 
     Widget picture;
     if (selectedBytes != null) {

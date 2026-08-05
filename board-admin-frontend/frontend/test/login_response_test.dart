@@ -31,6 +31,19 @@ void main() {
     });
   });
 
+  group('LoginResponse two-factor challenge', () {
+    test('recognizes common backend flag aliases', () {
+      expect(
+        LoginResponse.fromJson({'requires2FA': true}).requiresTwoFactor,
+        isTrue,
+      );
+      expect(
+        LoginResponse.fromJson({'twoFactorRequired': true}).requiresTwoFactor,
+        isTrue,
+      );
+    });
+  });
+
   group('LoginResponse device approval status', () {
     test('recognizes pending device aliases', () {
       expect(

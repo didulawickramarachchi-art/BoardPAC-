@@ -97,9 +97,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       if (result.requiresTwoFactor) {
+        await storage.clearAuth();
         state = state.copyWith(
           isLoading: false,
-          pendingUsername: result.username,
+          pendingUsername: result.username ?? username,
           requiresTwoFactor: true,
           userId: result.userId,
           username: result.username,

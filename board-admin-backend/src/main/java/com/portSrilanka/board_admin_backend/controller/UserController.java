@@ -36,6 +36,15 @@ public class UserController {
         return ResponseEntity.ok(userService.getCurrentUser(authentication.getName()));
     }
 
+    @PutMapping("/me/two-factor")
+    public ResponseEntity<UserResponse> updateOwnTwoFactor(
+            @Valid @RequestBody TwoFactorSettingsRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(userService.updateOwnTwoFactor(
+                authentication.getName(), request.isEnabled()));
+    }
+
     @PostMapping(value = "/me/profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserResponse> uploadProfilePicture(
             @RequestPart("file") MultipartFile file,

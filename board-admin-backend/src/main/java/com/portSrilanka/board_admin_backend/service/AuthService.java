@@ -91,6 +91,20 @@ public class AuthService {
 
         requireApprovedDevice(request, user);
 
+        if (user.isTwoStepEnabled()) {
+            twoFactorService.generateAndSendCode(user);
+            auditService.logInfo("AUTH", "2FA_CODE_SENT", user.getUsername(),
+                    "Two-factor verification code sent", "WEB");
+
+            return LoginResponse.builder()
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .role(getPrimaryRole(user))
+                    .message("Verification code sent to your email")
+                    .requiresTwoFactor(true)
+                    .build();
+        }
+
         UserDetails userDetails = org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
@@ -199,6 +213,7 @@ public LoginResponse verifyTwoFactor(TwoFactorVerifyRequest request) {
 
     auditService.logInfo("AUTH", "VERIFY_2FA_SUCCESS", user.getUsername(),
             "2FA verified successfully", "WEB");
+    recordLoginHistory(user, user.getUsername(), LoginStatus.SUCCESS);
 
     return LoginResponse.builder()
             .token(token)

@@ -15,6 +15,14 @@ class UserRepository {
     return UserModel.fromJson(response.data);
   }
 
+  Future<UserModel> updateOwnTwoFactor(bool enabled) async {
+    final response = await dio.put(
+      '/users/me/two-factor',
+      data: {'enabled': enabled},
+    );
+    return UserModel.fromJson(response.data);
+  }
+
   Future<UserModel> uploadProfilePicture({
     required String fileName,
     String? filePath,
@@ -22,7 +30,10 @@ class UserRepository {
   }) async {
     final file = filePath != null && filePath.isNotEmpty
         ? await MultipartFile.fromFile(filePath, filename: fileName)
-        : MultipartFile.fromBytes(fileBytes ?? Uint8List(0), filename: fileName);
+        : MultipartFile.fromBytes(
+            fileBytes ?? Uint8List(0),
+            filename: fileName,
+          );
     final response = await dio.post(
       '/users/me/profile-picture',
       data: FormData.fromMap({'file': file}),
@@ -53,9 +64,7 @@ class UserRepository {
 
   Future<List<UserModel>> getUsers() async {
     final response = await dio.get('/users');
-    return (response.data as List)
-        .map((e) => UserModel.fromJson(e))
-        .toList();
+    return (response.data as List).map((e) => UserModel.fromJson(e)).toList();
   }
 
   Future<void> createUser(CreateUserRequest request) async {
