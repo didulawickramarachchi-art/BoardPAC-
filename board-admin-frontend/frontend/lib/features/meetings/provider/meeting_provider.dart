@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/features/notifications/provider/notification_provider.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/network/dio_provider.dart';
+import '../../../core/notifications/device_notification_service.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../privileges/data/privilege_repository.dart';
 import '../../privileges/provider/privilege_provider.dart';
@@ -76,13 +77,38 @@ class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
         data = await repository.getMeetings();
       }
       state = AsyncData(data);
+      for (final meeting in data) {
+        if (meeting.type.trim().toUpperCase() != 'MEETING') continue;
+        final meetingDateTime = DateTime.tryParse(meeting.meetingDateTime);
+        if (meetingDateTime != null) {
+          await DeviceNotificationService.instance.scheduleMeetingReminder(
+            meetingId: meeting.id,
+            title: meeting.title,
+            meetingDateTime: meetingDateTime,
+          );
+        }
+      }
     } catch (e) {
       state = AsyncError(e, StackTrace.current);
     }
   }
 
   Future<void> createMeeting(MeetingRequest request) async {
-    await repository.createMeeting(request);
+    final meeting = await repository.createMeeting(request);
+    final meetingDateTime = DateTime.tryParse(meeting.meetingDateTime);
+    if (meeting.type.trim().toUpperCase() == 'MEETING' &&
+        meetingDateTime != null) {
+      await DeviceNotificationService.instance.showMeetingCreated(
+        meetingId: meeting.id,
+        title: meeting.title,
+        meetingDateTime: meetingDateTime,
+      );
+      await DeviceNotificationService.instance.scheduleMeetingReminder(
+        meetingId: meeting.id,
+        title: meeting.title,
+        meetingDateTime: meetingDateTime,
+      );
+    }
     await loadMeetings();
 
     try {

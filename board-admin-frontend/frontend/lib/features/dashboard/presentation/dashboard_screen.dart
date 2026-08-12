@@ -8,7 +8,9 @@ import '../../../core/auth/role_access.dart';
 import '../../../core/responsive/responsive_layout.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../categories/presentation/category_list_screen.dart';
+import '../../devices/model/device_model.dart';
 import '../../devices/presentation/device_list_screen.dart';
+import '../../devices/provider/device_provider.dart';
 import '../../meetings/presentation/meeting_list_screen.dart';
 import '../../notifications/model/notification_model.dart';
 import '../../notifications/model/notification_request.dart';
@@ -41,6 +43,7 @@ class DashboardScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(dashboardSummaryProvider(currentUserId));
     final isAdmin = RoleAccess(role).isAdmin;
     final usersAsync = isAdmin ? ref.watch(userListProvider) : null;
+    final devicesAsync = isAdmin ? ref.watch(deviceListProvider) : null;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -72,12 +75,23 @@ class DashboardScreen extends ConsumerWidget {
                           }
 
                           return usersAsync!.when(
-                            data: (users) => _SummaryGrid(
-                              cards: _summaryCardsForRole(
-                                summary,
-                                config,
-                                users: users,
+                            data: (users) => devicesAsync!.when(
+                              data: (devices) => _SummaryGrid(
+                                cards: _summaryCardsForRole(
+                                  summary,
+                                  config,
+                                  users: users,
+                                  devices: devices,
+                                ),
                               ),
+                              loading: () => const Padding(
+                                padding: EdgeInsets.all(40),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                              error: (error, _) =>
+                                  _ErrorBox(message: error.toString()),
                             ),
                             loading: () => const Padding(
                               padding: EdgeInsets.all(40),
@@ -1650,7 +1664,7 @@ class _RoleDashboardConfig {
         subtitle: 'Manage users, meetings, approvals, and system settings.',
         menuTitle: 'Management',
         icon: Icons.admin_panel_settings_rounded,
-        summaryKeys: ['members', 'secretaries', 'admins', 'pendingUsers'],
+        summaryKeys: ['members', 'secretaries', 'admins', 'pendingDevices'],
         tiles: _adminTiles,
       );
     }
@@ -1715,6 +1729,7 @@ List<_SummaryCard> _summaryCardsForRole(
   DashboardSummaryModel summary,
   _RoleDashboardConfig config, {
   List<UserModel>? users,
+  List<DeviceModel>? devices,
 }) {
   final roleCounts = _UserRoleCounts.fromUsers(users ?? const []);
   final cards = <String, _SummaryCard>{
@@ -1739,9 +1754,12 @@ List<_SummaryCard> _summaryCardsForRole(
       iconColor: const Color(0xFFE84393),
       iconBg: const Color(0xFFFFE7F2),
     ),
-    'pendingUsers': _SummaryCard(
-      title: 'Pending User Approvals',
-      value: roleCounts.pending.toString(),
+    'pendingDevices': _SummaryCard(
+      title: 'Pending User Device Approvals',
+      value: (devices ?? const <DeviceModel>[])
+          .where((device) => device.isPending)
+          .length
+          .toString(),
       icon: Icons.person_add_alt_1_rounded,
       iconColor: const Color(0xFF3168F4),
       iconBg: const Color(0xFFEAF0FF),
@@ -1816,32 +1834,20 @@ class _UserRoleCounts {
   final int members;
   final int secretaries;
   final int admins;
-  final int pending;
 
   const _UserRoleCounts({
     required this.members,
     required this.secretaries,
     required this.admins,
-    required this.pending,
   });
 
   factory _UserRoleCounts.fromUsers(List<UserModel> users) {
     var members = 0;
     var secretaries = 0;
     var admins = 0;
-    var pending = 0;
 
     for (final user in users) {
       final role = user.role?.trim().toUpperCase().replaceAll('-', '_') ?? '';
-      final status = user.status?.trim().toUpperCase() ?? '';
-
-      if (const {
-        'PENDING',
-        'REQUESTED',
-        'AWAITING_APPROVAL',
-      }.contains(status)) {
-        pending++;
-      }
 
       if (const {
         'ADMIN',
@@ -1865,7 +1871,6 @@ class _UserRoleCounts {
       members: members,
       secretaries: secretaries,
       admins: admins,
-      pending: pending,
     );
   }
 }
