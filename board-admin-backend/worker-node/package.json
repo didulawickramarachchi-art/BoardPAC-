@@ -1,0 +1,20 @@
+{
+  "name": "board-admin-worker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js",
+    "worker": "node worker.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "bull": "^4.0.2",
+    "firebase-admin": "^11.0.0",
+    "nodemailer": "^6.9.1",
+    "pg": "^8.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}

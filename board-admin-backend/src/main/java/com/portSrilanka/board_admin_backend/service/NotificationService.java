@@ -139,6 +139,50 @@ public class NotificationService {
                 null,
                 false
         );
+        // optionally send email notifications for meeting created
+        if (workflowSettingService.isEnabled("SEND_EMAIL_NOTIFICATION_WHEN_MEETING_CREATED", true)) {
+            for (MeetingParticipant p : participants) {
+                try {
+                    emailService.sendEmail(
+                            p.getUser().getBoardEmail(),
+                            "New meeting: " + meeting.getTitle(),
+                            "A new meeting '" + meeting.getTitle() + "' has been scheduled on " + meeting.getMeetingDateTime()
+                    );
+                } catch (Exception ex) {
+                    // log and continue
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public void notifyMeetingReminder(Meeting meeting, List<MeetingParticipant> participants) {
+        createForRecipients(
+                participants.stream().map(MeetingParticipant::getUser).toList(),
+                meeting.getCreatedBy(),
+                "Upcoming meeting reminder",
+                "Reminder: " + meeting.getTitle() + " will take place on " + meeting.getMeetingDateTime() + ".",
+                "MEETING_REMINDER",
+                meeting.getId(),
+                null,
+                null,
+                null,
+                false
+        );
+
+        if (workflowSettingService.isEnabled("SEND_EMAIL_NOTIFICATION_WHEN_MEETING_REMINDER", true)) {
+            for (MeetingParticipant p : participants) {
+                try {
+                    emailService.sendEmail(
+                            p.getUser().getBoardEmail(),
+                            "Meeting reminder: " + meeting.getTitle(),
+                            "Reminder: '" + meeting.getTitle() + "' will take place on " + meeting.getMeetingDateTime()
+                    );
+                } catch (Exception ex) {
+                    // ignore individual email failures
+                }
+            }
+        }
     }
 
     @Transactional

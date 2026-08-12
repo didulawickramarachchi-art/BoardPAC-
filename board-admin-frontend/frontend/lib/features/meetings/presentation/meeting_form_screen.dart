@@ -14,12 +14,10 @@ class MeetingFormScreen extends ConsumerStatefulWidget {
   const MeetingFormScreen({super.key});
 
   @override
-  ConsumerState<MeetingFormScreen> createState() =>
-      _MeetingFormScreenState();
+  ConsumerState<MeetingFormScreen> createState() => _MeetingFormScreenState();
 }
 
-class _MeetingFormScreenState
-    extends ConsumerState<MeetingFormScreen> {
+class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   final _titleController = TextEditingController();
   final _meetingDateController = TextEditingController();
   final _targetDateController = TextEditingController();
@@ -162,12 +160,10 @@ class _MeetingFormScreenState
     final request = MeetingRequest(
       title: _titleController.text.trim(),
       type: meetingType,
-      meetingDateTime:
-          _meetingDateController.text.trim(),
-      targetDateTime:
-          _targetDateController.text.trim().isEmpty
-              ? null
-              : _targetDateController.text.trim(),
+      meetingDateTime: _meetingDateController.text.trim(),
+      targetDateTime: _targetDateController.text.trim().isEmpty
+          ? null
+          : _targetDateController.text.trim(),
       location: _locationController.text.trim(),
       description: _descriptionController.text.trim(),
       categoryId: categoryId,
@@ -177,9 +173,7 @@ class _MeetingFormScreenState
     setState(() => isSaving = true);
 
     try {
-      await ref
-          .read(meetingListProvider.notifier)
-          .createMeeting(request);
+      await ref.read(meetingListProvider.notifier).createMeeting(request);
 
       if (mounted) {
         Navigator.pop(context);
@@ -189,10 +183,7 @@ class _MeetingFormScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              ApiErrorMessage.from(
-                e,
-                fallback: 'Failed to create meeting.',
-              ),
+              ApiErrorMessage.from(e, fallback: 'Failed to create meeting.'),
             ),
           ),
         );
@@ -215,9 +206,9 @@ class _MeetingFormScreenState
   }
 
   void _showValidationMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -234,18 +225,11 @@ class _MeetingFormScreenState
         centerTitle: true,
         title: const Text(
           'Create Meeting',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          18,
-          16,
-          24,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
         children: [
           _HeaderCard(meetingType: meetingType),
 
@@ -263,22 +247,15 @@ class _MeetingFormScreenState
 
               DropdownButtonFormField<String>(
                 initialValue: meetingType,
-                decoration:
-                    _dropdownDecoration('Meeting Type'),
+                decoration: _dropdownDecoration('Meeting Type'),
                 dropdownColor: Colors.white,
                 icon: const Icon(
                   Icons.keyboard_arrow_down_rounded,
                   color: primaryBlue,
                 ),
                 items: const [
-                  DropdownMenuItem(
-                    value: 'MEETING',
-                    child: Text('Meeting'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'CIRCULAR',
-                    child: Text('Circular'),
-                  ),
+                  DropdownMenuItem(value: 'MEETING', child: Text('Meeting')),
+                  DropdownMenuItem(value: 'CIRCULAR', child: Text('Circular')),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -295,10 +272,8 @@ class _MeetingFormScreenState
                 onTap: _pickMeetingDateTime,
                 child: AbsorbPointer(
                   child: AppTextField(
-                    controller:
-                        _meetingDateController,
-                    hintText:
-                        'Select Meeting Date & Time',
+                    controller: _meetingDateController,
+                    hintText: 'Select Meeting Date & Time',
                   ),
                 ),
               ),
@@ -309,10 +284,8 @@ class _MeetingFormScreenState
                 onTap: _pickTargetDateTime,
                 child: AbsorbPointer(
                   child: AppTextField(
-                    controller:
-                        _targetDateController,
-                    hintText:
-                        'Select Target Date & Time',
+                    controller: _targetDateController,
+                    hintText: 'Select Target Date & Time',
                   ),
                 ),
               ),
@@ -344,14 +317,10 @@ class _MeetingFormScreenState
             title: 'Reference Details',
             children: [
               categoriesAsync.when(
-                data: (categories) =>
-                    _buildCategoryDropdown(categories),
-                loading: () => const _DropdownLoading(
-                  label: 'Category',
-                ),
+                data: (categories) => _buildCategoryDropdown(categories),
+                loading: () => const _DropdownLoading(label: 'Category'),
                 error: (error, _) => _DropdownError(
-                  message:
-                      'Failed to load categories: $error',
+                  message: 'Failed to load categories: $error',
                   onRetry: () {
                     ref.invalidate(categoryListProvider);
                   },
@@ -362,21 +331,15 @@ class _MeetingFormScreenState
 
               subcategoriesAsync.when(
                 data: (subcategories) =>
-                    _buildSubcategoryDropdown(
-                  subcategories,
-                ),
-                loading: () => const _DropdownLoading(
-                  label: 'Subcategory',
-                ),
+                    _buildSubcategoryDropdown(subcategories),
+                loading: () => const _DropdownLoading(label: 'Subcategory'),
                 error: (error, _) => _DropdownError(
-                  message:
-                      'Failed to load subcategories: $error',
+                  message: 'Failed to load subcategories: $error',
                   onRetry: () {
                     ref.invalidate(subcategoryListProvider);
                   },
                 ),
               ),
-
             ],
           ),
 
@@ -392,26 +355,18 @@ class _MeetingFormScreenState
     );
   }
 
-  Widget _buildCategoryDropdown(
-    List<CategoryModel> categories,
-  ) {
+  Widget _buildCategoryDropdown(List<CategoryModel> categories) {
     return DropdownButtonFormField<int>(
       initialValue: selectedCategoryId,
       decoration: _dropdownDecoration('Category'),
       dropdownColor: Colors.white,
-      icon: const Icon(
-        Icons.keyboard_arrow_down_rounded,
-        color: primaryBlue,
-      ),
+      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: primaryBlue),
       items: categories
           .map(
             (category) => DropdownMenuItem<int>(
               value: category.id,
               child: Text(
-                _displayName(
-                  category.displayName,
-                  category.name,
-                ),
+                _displayName(category.displayName, category.name),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -428,36 +383,26 @@ class _MeetingFormScreenState
     );
   }
 
-  Widget _buildSubcategoryDropdown(
-    List<SubcategoryModel> subcategories,
-  ) {
+  Widget _buildSubcategoryDropdown(List<SubcategoryModel> subcategories) {
     final filteredSubcategories = selectedCategoryId == null
         ? <SubcategoryModel>[]
         : subcategories
-            .where(
-              (subcategory) =>
-                  subcategory.categoryId ==
-                  selectedCategoryId,
-            )
-            .toList();
+              .where(
+                (subcategory) => subcategory.categoryId == selectedCategoryId,
+              )
+              .toList();
 
     return DropdownButtonFormField<int>(
       initialValue: selectedSubcategoryId,
       decoration: _dropdownDecoration('Subcategory'),
       dropdownColor: Colors.white,
-      icon: const Icon(
-        Icons.keyboard_arrow_down_rounded,
-        color: primaryBlue,
-      ),
+      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: primaryBlue),
       items: filteredSubcategories
           .map(
             (subcategory) => DropdownMenuItem<int>(
               value: subcategory.id,
               child: Text(
-                _displayName(
-                  subcategory.displayName,
-                  subcategory.name,
-                ),
+                _displayName(subcategory.displayName, subcategory.name),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -485,9 +430,7 @@ class _MeetingFormScreenState
     return 'Unnamed';
   }
 
-  InputDecoration _dropdownDecoration(
-    String label,
-  ) {
+  InputDecoration _dropdownDecoration(String label) {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(
@@ -506,10 +449,7 @@ class _MeetingFormScreenState
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: gold,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: gold, width: 1.5),
       ),
     );
   }
@@ -518,35 +458,26 @@ class _MeetingFormScreenState
 class _HeaderCard extends StatelessWidget {
   final String meetingType;
 
-  const _HeaderCard({
-    required this.meetingType,
-  });
+  const _HeaderCard({required this.meetingType});
 
-  static const Color primaryBlue =
-      Color(0xFF12275B);
+  static const Color primaryBlue = Color(0xFF12275B);
 
-  static const Color darkBlue =
-      Color(0xFF00184A);
+  static const Color darkBlue = Color(0xFF00184A);
 
-  static const Color gold =
-      Color(0xFFFFB52E);
+  static const Color gold = Color(0xFFFFB52E);
 
   @override
   Widget build(BuildContext context) {
-    final isCircular =
-        meetingType == 'CIRCULAR';
+    final isCircular = meetingType == 'CIRCULAR';
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: primaryBlue,
-        borderRadius:
-            BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(
-              0.20,
-            ),
+            color: primaryBlue.withOpacity(0.20),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -562,9 +493,7 @@ class _HeaderCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isCircular
-                  ? Icons.campaign_outlined
-                  : Icons.event_note_outlined,
+              isCircular ? Icons.campaign_outlined : Icons.event_note_outlined,
               color: darkBlue,
               size: 30,
             ),
@@ -574,31 +503,25 @@ class _HeaderCard extends StatelessWidget {
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Create New',
                   style: TextStyle(
-                    color:
-                        Color(0xFFB9C4E2),
+                    color: Color(0xFFB9C4E2),
                     fontSize: 12,
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
 
                 const SizedBox(height: 3),
 
                 Text(
-                  isCircular
-                      ? 'Circular'
-                      : 'Meeting',
+                  isCircular ? 'Circular' : 'Meeting',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
-                    fontWeight:
-                        FontWeight.w900,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
 
@@ -607,11 +530,9 @@ class _HeaderCard extends StatelessWidget {
                 const Text(
                   'Fill the details below to continue',
                   style: TextStyle(
-                    color:
-                        Color(0xFFFFD27A),
+                    color: Color(0xFFFFD27A),
                     fontSize: 12,
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -663,10 +584,7 @@ class _DropdownError extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _DropdownError({
-    required this.message,
-    required this.onRetry,
-  });
+  const _DropdownError({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -678,11 +596,7 @@ class _DropdownError extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            color: Colors.red,
-            size: 20,
-          ),
+          const Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -696,10 +610,7 @@ class _DropdownError extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(
-            onPressed: onRetry,
-            child: const Text('Retry'),
-          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
     );
@@ -710,13 +621,9 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
-  static const Color darkBlue =
-      Color(0xFF00184A);
+  static const Color darkBlue = Color(0xFF00184A);
 
   @override
   Widget build(BuildContext context) {
@@ -724,21 +631,17 @@ class _SectionCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(
-              0.035,
-            ),
+            color: Colors.black.withOpacity(0.035),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,

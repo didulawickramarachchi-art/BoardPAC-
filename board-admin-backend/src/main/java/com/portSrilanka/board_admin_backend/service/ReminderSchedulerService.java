@@ -26,6 +26,7 @@ public class ReminderSchedulerService {
     private final PaperApprovalRepository paperApprovalRepository;
     private final MeetingParticipantRepository meetingParticipantRepository;
     private final EmailService emailService;
+    private final NotificationService notificationService;
     private final WorkflowSettingService workflowSettingService;
 
     @Scheduled(cron = "0 0/30 * * * *")
@@ -35,8 +36,31 @@ public class ReminderSchedulerService {
         for (Meeting meeting : meetings) {
             if (meeting.getType() == MeetingType.MEETING) {
                 processMeeting(meeting, "LEAD_TIME_PRIOR_TO_MEETING_DATE_EMAIL_ALERTS");
+                processMeetingForReminder(meeting);
             } else {
                 processMeeting(meeting, "LEAD_TIME_PRIOR_TO_CIRCULAR_TARGET_DATE_EMAIL_ALERTS");
+                processMeetingForReminder(meeting);
+            }
+        }
+    }
+
+    private void processMeetingForReminder(Meeting meeting) {
+        LocalDateTime referenceTime = meeting.getType() == MeetingType.MEETING
+                ? meeting.getMeetingDateTime()
+                : meeting.getTargetDateTime();
+
+        if (referenceTime == null) return;
+
+        LocalDateTime reminderTime = referenceTime.minusHours(24);
+        LocalDateTime now = LocalDateTime.now();
+
+        // if within 30 minutes window after the exact reminder time, send reminder
+        if (!now.isBefore(reminderTime) && now.isBefore(reminderTime.plusMinutes(30))) {
+            List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetingIdOrderByDisplaySequenceAsc(meeting.getId());
+            try {
+                notificationService.notifyMeetingReminder(meeting, participants);
+            } catch (Exception ex) {
+                // swallow to avoid scheduled task failure
             }
         }
     }

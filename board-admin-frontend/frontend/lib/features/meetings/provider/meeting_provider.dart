@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/features/notifications/provider/notification_provider.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../auth/provider/auth_provider.dart';
@@ -9,6 +10,8 @@ import '../model/meeting_model.dart';
 import '../model/meeting_participant_model.dart';
 import '../model/meeting_participant_request.dart';
 import '../model/meeting_request.dart';
+import '../../notifications/model/notification_request.dart';
+import '../../notifications/data/notification_repository.dart';
 import '../model/participant_status_request.dart';
 import '../model/participant_option_model.dart';
 
@@ -24,6 +27,7 @@ final meetingListProvider =
       return MeetingNotifier(
         ref.read(meetingRepositoryProvider),
         ref.read(privilegeRepositoryProvider),
+        ref.read(notificationRepositoryProvider),
         role: auth.role,
         userId: auth.userId,
       )..loadMeetings();
@@ -32,12 +36,14 @@ final meetingListProvider =
 class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
   final MeetingRepository repository;
   final PrivilegeRepository privilegeRepository;
+  final NotificationRepository notificationRepository;
   final String? role;
   final int? userId;
 
   MeetingNotifier(
     this.repository,
-    this.privilegeRepository, {
+    this.privilegeRepository,
+    this.notificationRepository, {
     required this.role,
     required this.userId,
   }) : super(const AsyncLoading());
@@ -78,6 +84,33 @@ class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
   Future<void> createMeeting(MeetingRequest request) async {
     await repository.createMeeting(request);
     await loadMeetings();
+
+    try {
+      final current = state.valueOrNull;
+      if (current == null) return;
+
+      final matched = current.where(
+        (m) =>
+            m.title == request.title &&
+            m.meetingDateTime == request.meetingDateTime,
+      );
+
+      if (matched.isNotEmpty) {
+        final created = matched.first;
+        final announcement = NotificationRequest(
+          title: 'New Meeting: ${request.title}',
+          message:
+              'A new meeting "${request.title}" is scheduled on ${request.meetingDateTime}.',
+          type: 'MEETING_CREATED',
+          relatedMeetingId: created.id,
+          announcement: true,
+        );
+
+        await notificationRepository.createAnnouncement(announcement);
+      }
+    } catch (_) {
+      // do not fail meeting creation if notifications fail
+    }
   }
 
   Future<void> openMeeting(int meetingId) async {

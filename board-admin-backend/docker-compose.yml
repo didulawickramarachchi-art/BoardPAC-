@@ -5,12 +5,14 @@ services:
       context: .
       dockerfile: Dockerfile
     image: board-admin-backend:latest
+    env_file:
+      - env
     ports:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/board_admin_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: 2002
+      SPRING_DATASOURCE_PASSWORD: 12345
       SPRING_JDBC_DRIVER_CLASS_NAME: org.postgresql.Driver
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SPRING_JPA_SHOW_SQL: false
@@ -23,10 +25,8 @@ services:
       APP_JWT_REFRESH_EXPIRATION: 604800000
       APP_TWOFACTOR_CODE_EXPIRATION_MINUTES: 10
       APP_FILE_UPLOAD_DIR: /data/uploads
-      SPRING_MAIL_HOST: smtp.example.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: your-email@example.com
-      SPRING_MAIL_PASSWORD: your-email-password
+      SPRING_MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: true
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: true
     depends_on:

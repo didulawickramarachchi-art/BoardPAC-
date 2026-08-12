@@ -126,13 +126,11 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
-        // Print the FULL stack trace in the console
         log.error("Unhandled exception while processing request: {}", request.getRequestURI(), ex);
 
-        // During debugging, return the actual exception message
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                ex.getClass().getSimpleName() + ": " + ex.getMessage(),
+                "Unexpected server error",
                 request.getRequestURI()
         );
     }
