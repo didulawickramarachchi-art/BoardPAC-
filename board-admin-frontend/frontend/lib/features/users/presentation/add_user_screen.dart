@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/network/api_error_message.dart';
 import '../model/create_user_request.dart';
 import '../provider/user_provider.dart';
 
@@ -37,8 +39,13 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   }
 
   Future<void> save() async {
-    if ([username, password, firstName, lastName, email]
-        .any((controller) => controller.text.trim().isEmpty)) {
+    if ([
+      username,
+      password,
+      firstName,
+      lastName,
+      email,
+    ].any((controller) => controller.text.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Complete all required fields.')),
       );
@@ -47,7 +54,9 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
 
     setState(() => saving = true);
     try {
-      await ref.read(userListProvider.notifier).createUser(
+      await ref
+          .read(userListProvider.notifier)
+          .createUser(
             CreateUserRequest(
               username: username.text.trim(),
               password: password.text,
@@ -60,9 +69,20 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create user: $error')),
-        );
+        // Use the proper error message extractor
+        String errorMessage = ApiErrorMessage.from(error);
+
+        // For DioException, also log the full details for debugging
+        if (error is DioException) {
+          print('DioException Details:');
+          print('  Status Code: ${error.response?.statusCode}');
+          print('  Response Data: ${error.response?.data}');
+          print('  Message: ${error.message}');
+        }
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
         setState(() => saving = false);
       }
     }
@@ -76,8 +96,10 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
         backgroundColor: navy,
         foregroundColor: Colors.white,
         centerTitle: true,
-        title: const Text('Add User',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Add User',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -114,7 +136,10 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
                 decoration: _decoration('Role'),
                 items: const [
                   DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
-                  DropdownMenuItem(value: 'SECRETARY', child: Text('Secretary')),
+                  DropdownMenuItem(
+                    value: 'SECRETARY',
+                    child: Text('Secretary'),
+                  ),
                   DropdownMenuItem(value: 'MEMBER', child: Text('Member')),
                 ],
                 onChanged: saving
@@ -131,18 +156,18 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   }
 
   InputDecoration _decoration(String label) => InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: background,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: gold, width: 1.5),
-        ),
-      );
+    labelText: label,
+    filled: true,
+    fillColor: background,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: gold, width: 1.5),
+    ),
+  );
 }
 
 class _Card extends StatelessWidget {
@@ -153,22 +178,25 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF00184A),
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: const TextStyle(
-                    color: Color(0xFF00184A),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900)),
-            const SizedBox(height: 14),
-            ...children,
-          ],
-        ),
-      );
+        const SizedBox(height: 14),
+        ...children,
+      ],
+    ),
+  );
 }

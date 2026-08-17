@@ -15,12 +15,14 @@ class CreateUserRequest {
     required this.role,
   });
 
-  Map<String, dynamic> toJson() => {
-        'username': username,
-        'password': password,
-        'firstName': firstName,
-        'lastName': lastName,
-        'boardEmail': boardEmail,
-        'role': role,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'username': username,
+      'password': password,
+      'firstName': firstName,
+      'lastName': lastName,
+      'boardEmail': boardEmail,
+      'role': role,
+    };
+  }
 }

@@ -9,10 +9,7 @@ import '../provider/user_provider.dart';
 class UserFormScreen extends ConsumerStatefulWidget {
   final UserModel user;
 
-  const UserFormScreen({
-    super.key,
-    required this.user,
-  });
+  const UserFormScreen({super.key, required this.user});
 
   @override
   ConsumerState<UserFormScreen> createState() => _UserFormScreenState();
@@ -22,7 +19,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _displayNameController;
-  late final TextEditingController _boardEmailController;
+  late final TextEditingController _emailController;
   late final TextEditingController _mobileController;
   late final TextEditingController _jobTitleController;
 
@@ -41,13 +38,16 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
 
     _firstNameController = TextEditingController(text: widget.user.firstName);
     _lastNameController = TextEditingController(text: widget.user.lastName);
-    _displayNameController =
-        TextEditingController(text: widget.user.displayName ?? '');
-    _boardEmailController = TextEditingController(text: widget.user.boardEmail);
-    _mobileController =
-        TextEditingController(text: widget.user.mobileNumber ?? '');
-    _jobTitleController =
-        TextEditingController(text: widget.user.jobTitle ?? '');
+    _displayNameController = TextEditingController(
+      text: widget.user.displayName ?? '',
+    );
+    _emailController = TextEditingController(text: widget.user.email);
+    _mobileController = TextEditingController(
+      text: widget.user.mobileNumber ?? '',
+    );
+    _jobTitleController = TextEditingController(
+      text: widget.user.jobTitle ?? '',
+    );
 
     role = widget.user.role?.toUpperCase() ?? 'MEMBER';
     twoStepEnabled = widget.user.twoStepEnabled ?? false;
@@ -58,7 +58,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _displayNameController.dispose();
-    _boardEmailController.dispose();
+    _emailController.dispose();
     _mobileController.dispose();
     _jobTitleController.dispose();
     super.dispose();
@@ -71,7 +71,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
       displayName: _displayNameController.text.trim(),
-      boardEmail: _boardEmailController.text.trim(),
+      email: _emailController.text.trim(),
       mobileNumber: _mobileController.text.trim(),
       jobTitle: _jobTitleController.text.trim(),
       role: role,
@@ -80,10 +80,9 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       twoStepEnabled: twoStepEnabled,
     );
 
-    await ref.read(userListProvider.notifier).updateUser(
-          widget.user.id,
-          request,
-        );
+    await ref
+        .read(userListProvider.notifier)
+        .updateUser(widget.user.id, request);
 
     if (mounted) {
       setState(() => isSaving = false);
@@ -112,7 +111,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
         children: [
           _UserHeaderCard(
             fullName: fullName.isEmpty ? 'Unknown User' : fullName,
-            email: widget.user.boardEmail,
+            email: widget.user.email,
           ),
 
           const SizedBox(height: 18),
@@ -143,7 +142,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
             title: 'Contact Details',
             children: [
               AppTextField(
-                controller: _boardEmailController,
+                controller: _emailController,
                 hintText: 'Board email',
               ),
               const SizedBox(height: 12),
@@ -184,10 +183,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: gold,
-                      width: 1.5,
-                    ),
+                    borderSide: const BorderSide(color: gold, width: 1.5),
                   ),
                 ),
                 dropdownColor: Colors.white,
@@ -196,18 +192,12 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                   color: primaryBlue,
                 ),
                 items: const [
-                  DropdownMenuItem(
-                    value: 'ADMIN',
-                    child: Text('Admin'),
-                  ),
+                  DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
                   DropdownMenuItem(
                     value: 'SECRETARY',
                     child: Text('Secretary'),
                   ),
-                  DropdownMenuItem(
-                    value: 'MEMBER',
-                    child: Text('Member'),
-                  ),
+                  DropdownMenuItem(value: 'MEMBER', child: Text('Member')),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -269,10 +259,7 @@ class _UserHeaderCard extends StatelessWidget {
   final String fullName;
   final String email;
 
-  const _UserHeaderCard({
-    required this.fullName,
-    required this.email,
-  });
+  const _UserHeaderCard({required this.fullName, required this.email});
 
   static const Color primaryBlue = Color(0xFF12275B);
   static const Color darkBlue = Color(0xFF00184A);
@@ -369,10 +356,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   static const Color darkBlue = Color(0xFF00184A);
 

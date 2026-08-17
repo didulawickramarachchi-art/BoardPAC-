@@ -26,9 +26,7 @@ class UserListScreen extends ConsumerWidget {
     if (!access.canViewUsers) {
       return const Scaffold(
         backgroundColor: bgColor,
-        body: Center(
-          child: Text('You do not have access to users.'),
-        ),
+        body: Center(child: Text('You do not have access to users.')),
       );
     }
 
@@ -102,7 +100,8 @@ class UserListScreen extends ConsumerWidget {
                       CircleAvatar(
                         radius: 26,
                         backgroundColor: gold.withOpacity(0.18),
-                        backgroundImage: user.profilePictureUrl != null &&
+                        backgroundImage:
+                            user.profilePictureUrl != null &&
                                 user.profilePictureUrl!.isNotEmpty
                             ? ResizeImage(
                                 NetworkImage(user.profilePictureUrl!),
@@ -110,7 +109,8 @@ class UserListScreen extends ConsumerWidget {
                                 height: 128,
                               )
                             : null,
-                        child: user.profilePictureUrl == null ||
+                        child:
+                            user.profilePictureUrl == null ||
                                 user.profilePictureUrl!.isEmpty
                             ? Text(
                                 initials,
@@ -192,7 +192,7 @@ class UserListScreen extends ConsumerWidget {
                                 const SizedBox(width: 5),
                                 Expanded(
                                   child: Text(
-                                    user.boardEmail,
+                                    user.email,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -230,8 +230,9 @@ class UserListScreen extends ConsumerWidget {
                             ),
                           ),
                           onSelected: (value) async {
-                            final notifier =
-                                ref.read(userListProvider.notifier);
+                            final notifier = ref.read(
+                              userListProvider.notifier,
+                            );
 
                             if (value == 'edit') {
                               await Navigator.push(
@@ -393,20 +394,13 @@ class _PopupItem extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _PopupItem({
-    required this.icon,
-    required this.text,
-  });
+  const _PopupItem({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 18,
-          color: Color(0xFF12275B),
-        ),
+        Icon(icon, size: 18, color: Color(0xFF12275B)),
         SizedBox(width: 10),
         Text(
           text,
@@ -443,13 +437,16 @@ List<Object> _categorizedEntries(List<UserModel> users) {
   ];
   final entries = <Object>[];
   for (final category in categories) {
-    final categoryUsers = users.where((user) {
-      final role = normalizeRole(user.role);
-      return category.$1 == 'MEMBER'
-          ? role != 'ADMIN' && role != 'SECRETARY'
-          : role == category.$1;
-    }).toList()
-      ..sort((a, b) => a.username.toLowerCase().compareTo(b.username.toLowerCase()));
+    final categoryUsers =
+        users.where((user) {
+          final role = normalizeRole(user.role);
+          return category.$1 == 'MEMBER'
+              ? role != 'ADMIN' && role != 'SECRETARY'
+              : role == category.$1;
+        }).toList()..sort(
+          (a, b) =>
+              a.username.toLowerCase().compareTo(b.username.toLowerCase()),
+        );
     entries.add(_UserSection(category.$2, categoryUsers.length, category.$3));
     entries.addAll(categoryUsers);
   }
@@ -472,12 +469,28 @@ class _UserSectionHeader extends StatelessWidget {
     children: [
       Icon(section.icon, color: UserListScreen.primaryBlue, size: 21),
       const SizedBox(width: 9),
-      Text(section.title, style: const TextStyle(color: UserListScreen.darkBlue, fontSize: 17, fontWeight: FontWeight.w900)),
+      Text(
+        section.title,
+        style: const TextStyle(
+          color: UserListScreen.darkBlue,
+          fontSize: 17,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
       const SizedBox(width: 8),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-        decoration: BoxDecoration(color: UserListScreen.primaryBlue.withOpacity(0.09), borderRadius: BorderRadius.circular(20)),
-        child: Text('${section.count}', style: const TextStyle(color: UserListScreen.primaryBlue, fontWeight: FontWeight.w800)),
+        decoration: BoxDecoration(
+          color: UserListScreen.primaryBlue.withOpacity(0.09),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          '${section.count}',
+          style: const TextStyle(
+            color: UserListScreen.primaryBlue,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     ],
   );

@@ -387,7 +387,7 @@ class _ProfilePictureScreenState extends ConsumerState<ProfilePictureScreen> {
                       child: OutlinedButton.icon(
                         onPressed: user == null || _resettingPassword
                             ? null
-                            : () => _changePassword(user.boardEmail),
+                            : () => _changePassword(user.email),
                         icon: _resettingPassword
                             ? const SizedBox.square(
                                 dimension: 17,

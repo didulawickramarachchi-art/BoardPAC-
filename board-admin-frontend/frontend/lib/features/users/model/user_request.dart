@@ -2,7 +2,7 @@ class UserRequest {
   final String firstName;
   final String lastName;
   final String? displayName;
-  final String boardEmail;
+  final String email;
   final String? officeEmail;
   final String? officeNumber;
   final String? mobileNumber;
@@ -14,7 +14,7 @@ class UserRequest {
     required this.firstName,
     required this.lastName,
     this.displayName,
-    required this.boardEmail,
+    required this.email,
     this.officeEmail,
     this.officeNumber,
     this.mobileNumber,
@@ -28,12 +28,11 @@ class UserRequest {
       'firstName': firstName,
       'lastName': lastName,
       'displayName': displayName,
-      'boardEmail': boardEmail,
+      'boardEmail': email,
       'officeEmail': officeEmail,
       'officeNumber': officeNumber,
       'mobileNumber': mobileNumber,
       'jobTitle': jobTitle,
-      'role': role,
       'twoStepEnabled': twoStepEnabled,
     };
   }

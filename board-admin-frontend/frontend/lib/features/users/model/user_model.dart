@@ -4,7 +4,7 @@ class UserModel {
   final String firstName;
   final String lastName;
   final String? displayName;
-  final String boardEmail;
+  final String email;
   final String? mobileNumber;
   final String? jobTitle;
   final String? profilePictureUrl;
@@ -18,7 +18,7 @@ class UserModel {
     required this.firstName,
     required this.lastName,
     this.displayName,
-    required this.boardEmail,
+    required this.email,
     this.mobileNumber,
     this.jobTitle,
     this.profilePictureUrl,
@@ -34,7 +34,7 @@ class UserModel {
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
       displayName: json['displayName'],
-      boardEmail: json['boardEmail'] ?? '',
+      email: json['email'] ?? json['boardEmail'] ?? '',
       mobileNumber: json['mobileNumber'],
       jobTitle: json['jobTitle'],
       profilePictureUrl:

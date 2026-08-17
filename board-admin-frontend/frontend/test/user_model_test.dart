@@ -6,7 +6,7 @@ UserModel userWithStatus(String? status) => UserModel(
   username: 'alex',
   firstName: 'Alex',
   lastName: 'Doe',
-  boardEmail: 'alex@example.com',
+  email: 'alex@example.com',
   status: status,
 );
 
@@ -17,7 +17,7 @@ void main() {
       'username': 'member',
       'firstName': 'Board',
       'lastName': 'Member',
-      'boardEmail': 'member@example.com',
+      'email': 'member@example.com',
       'twoStepEnabled': true,
     });
 
