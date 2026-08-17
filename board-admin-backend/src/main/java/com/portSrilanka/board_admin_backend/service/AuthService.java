@@ -52,9 +52,17 @@ public class AuthService {
             throw new BadRequestException("Board email already exists");
         }
 
-        SystemRole requestedRole = request.getRole() != null
-                ? request.getRole()
-                : SystemRole.MEMBER;
+        // Parse role from string
+        final SystemRole requestedRole;
+        if (request.getRole() != null && !request.getRole().trim().isEmpty()) {
+            try {
+                requestedRole = SystemRole.valueOf(request.getRole().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid role: " + request.getRole());
+            }
+        } else {
+            requestedRole = SystemRole.MEMBER;
+        }
 
         Role userRole = roleRepository.findByName(requestedRole)
                 .orElseThrow(() -> new BadRequestException("Role not found: " + requestedRole));
