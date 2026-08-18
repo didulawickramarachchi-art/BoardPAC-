@@ -7,6 +7,7 @@ import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/reaction_bar.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../annotations/presentation/pdf_annotation_screen.dart';
 import '../../comments/model/comment_request.dart';
 import '../../comments/provider/comment_provider.dart';
 import '../../comments/presentation/comment_card.dart';
@@ -21,10 +22,7 @@ class PaperDetailScreen extends ConsumerWidget {
 
   final PaperModel paper;
 
-  const PaperDetailScreen({
-    super.key,
-    required this.paper,
-  });
+  const PaperDetailScreen({super.key, required this.paper});
 
   Future<void> _openFile(BuildContext context, String? url) async {
     final value = url?.trim();
@@ -45,13 +43,37 @@ class PaperDetailScreen extends ConsumerWidget {
 
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the file.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open the file.')));
     }
   }
 
-  Future<void> _showAddCommentDialog(BuildContext context, WidgetRef ref) async {
+  void _annotatePdf(
+    BuildContext context, {
+    required int userId,
+    required String documentKey,
+    required String title,
+    required String filePath,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfAnnotationScreen(
+          paperId: paper.id,
+          userId: userId,
+          documentKey: documentKey,
+          documentTitle: title,
+          filePath: filePath,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAddCommentDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final textController = TextEditingController();
     bool annotated = false;
     String? errorMessage;
@@ -115,7 +137,9 @@ class PaperDetailScreen extends ConsumerWidget {
                   return;
                 }
 
-                await ref.read(paperCommentProvider(paper.id).notifier).addComment(
+                await ref
+                    .read(paperCommentProvider(paper.id).notifier)
+                    .addComment(
                       CommentRequest(
                         paperId: paper.id,
                         createdByUserId: userId,
@@ -183,6 +207,17 @@ class PaperDetailScreen extends ConsumerWidget {
           _PaperHeaderCard(
             paper: paper,
             onOpen: () => _openFile(context, paper.filePath),
+            onAnnotate:
+                auth.userId != null &&
+                    paper.filePath?.toLowerCase().contains('.pdf') == true
+                ? () => _annotatePdf(
+                    context,
+                    userId: auth.userId!,
+                    documentKey: 'paper:${paper.id}',
+                    title: paper.fileName ?? paper.title,
+                    filePath: paper.filePath!,
+                  )
+                : null,
           ),
           const SizedBox(height: 16),
           _SectionHeader(
@@ -218,6 +253,19 @@ class PaperDetailScreen extends ConsumerWidget {
                       (attachment) => _AttachmentCard(
                         attachment: attachment,
                         onOpen: () => _openFile(context, attachment.filePath),
+                        onAnnotate:
+                            auth.userId != null &&
+                                attachment.filePath.toLowerCase().contains(
+                                  '.pdf',
+                                )
+                            ? () => _annotatePdf(
+                                context,
+                                userId: auth.userId!,
+                                documentKey: 'attachment:${attachment.id}',
+                                title: attachment.fileName,
+                                filePath: attachment.filePath,
+                              )
+                            : null,
                         onReact: (reaction) => ref
                             .read(attachmentListProvider(paper.id).notifier)
                             .react(attachment.id, reaction),
@@ -273,10 +321,12 @@ class PaperDetailScreen extends ConsumerWidget {
 class _PaperHeaderCard extends StatelessWidget {
   final PaperModel paper;
   final VoidCallback onOpen;
+  final VoidCallback? onAnnotate;
 
   const _PaperHeaderCard({
     required this.paper,
     required this.onOpen,
+    this.onAnnotate,
   });
 
   @override
@@ -350,6 +400,7 @@ class _PaperHeaderCard extends StatelessWidget {
                 fileName: paper.fileName ?? paper.title,
                 filePath: paper.filePath!,
                 onOpen: onOpen,
+                onAnnotate: onAnnotate,
               ),
             ],
           ],
@@ -362,11 +413,13 @@ class _PaperHeaderCard extends StatelessWidget {
 class _AttachmentCard extends StatelessWidget {
   final AttachmentModel attachment;
   final VoidCallback onOpen;
+  final VoidCallback? onAnnotate;
   final ValueChanged<String> onReact;
 
   const _AttachmentCard({
     required this.attachment,
     required this.onOpen,
+    this.onAnnotate,
     required this.onReact,
   });
 
@@ -387,6 +440,7 @@ class _AttachmentCard extends StatelessWidget {
               fileName: attachment.fileName,
               filePath: attachment.filePath,
               onOpen: onOpen,
+              onAnnotate: onAnnotate,
             ),
             const Divider(height: 20),
             ReactionBar(
@@ -405,11 +459,13 @@ class _FilePreview extends StatelessWidget {
   final String fileName;
   final String filePath;
   final VoidCallback onOpen;
+  final VoidCallback? onAnnotate;
 
   const _FilePreview({
     required this.fileName,
     required this.filePath,
     required this.onOpen,
+    this.onAnnotate,
   });
 
   @override
@@ -474,6 +530,12 @@ class _FilePreview extends StatelessWidget {
                 icon: const Icon(Icons.open_in_new_rounded, size: 18),
                 label: const Text('Open'),
               ),
+              if (!isImage && onAnnotate != null)
+                FilledButton.icon(
+                  onPressed: onAnnotate,
+                  icon: const Icon(Icons.draw_outlined, size: 18),
+                  label: const Text('Annotate'),
+                ),
             ],
           ),
         ],
@@ -496,11 +558,7 @@ class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final Widget? action;
 
-  const _SectionHeader({
-    required this.title,
-    required this.icon,
-    this.action,
-  });
+  const _SectionHeader({required this.title, required this.icon, this.action});
 
   @override
   Widget build(BuildContext context) {
