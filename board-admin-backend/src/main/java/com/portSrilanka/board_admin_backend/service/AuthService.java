@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 
 import java.util.Set;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +43,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final AuditService auditService;
     private final DeviceRepository deviceRepository;
+    private final NotificationService notificationService;
 
     public String register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -135,8 +137,10 @@ public class AuthService {
     }
 
     private void requireApprovedDevice(LoginRequest request, User user) {
-        Device device = deviceRepository.findByDeviceIdAndUserId(
-                        request.getDeviceId(), user.getId())
+        Optional<Device> existingDevice = deviceRepository.findByDeviceIdAndUserId(
+                request.getDeviceId(), user.getId());
+        boolean newDevice = existingDevice.isEmpty();
+        Device device = existingDevice
                 .orElseGet(() -> deviceRepository.save(Device.builder()
                         .deviceId(request.getDeviceId())
                         .deviceInfo(request.getDeviceInfo())
@@ -160,6 +164,10 @@ public class AuthService {
                     "Claimed and approved the first administrator device",
                     device.getDeviceInfo());
             return;
+        }
+
+        if (newDevice) {
+            notificationService.notifyAdminsOfPendingDevice(device);
         }
 
         if (device.getStatus() != DeviceStatus.APPROVED) {

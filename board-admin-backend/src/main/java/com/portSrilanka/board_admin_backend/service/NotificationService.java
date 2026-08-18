@@ -5,13 +5,16 @@ import com.portSrilanka.board_admin_backend.dto.notification.NotificationReactio
 import com.portSrilanka.board_admin_backend.dto.notification.NotificationReplyRequest;
 import com.portSrilanka.board_admin_backend.dto.notification.NotificationResponse;
 import com.portSrilanka.board_admin_backend.entity.BoardNotification;
+import com.portSrilanka.board_admin_backend.entity.Device;
 import com.portSrilanka.board_admin_backend.entity.Meeting;
 import com.portSrilanka.board_admin_backend.entity.MeetingParticipant;
 import com.portSrilanka.board_admin_backend.entity.NotificationReaction;
 import com.portSrilanka.board_admin_backend.entity.NotificationReply;
 import com.portSrilanka.board_admin_backend.entity.Paper;
 import com.portSrilanka.board_admin_backend.entity.PaperAttachment;
+import com.portSrilanka.board_admin_backend.entity.Subcategory;
 import com.portSrilanka.board_admin_backend.entity.User;
+import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.NotificationReactionRepository;
@@ -19,6 +22,7 @@ import com.portSrilanka.board_admin_backend.repository.NotificationRepository;
 import com.portSrilanka.board_admin_backend.repository.NotificationReplyRepository;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +34,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationService {
 
     private final EmailService emailService;
@@ -123,6 +128,46 @@ public class NotificationService {
                 null,
                 true
         );
+    }
+
+    @Transactional
+    public void notifyAdminsOfPendingDevice(Device device) {
+        List<User> admins = userRepository.findDistinctByRolesNameAndStatus(
+                SystemRole.ADMIN, UserStatus.ACTIVE);
+        User user = device.getUser();
+        String userName = senderName(user);
+        String deviceName = clean(device.getDeviceInfo(), "Unknown device");
+        String title = "New device approval required";
+        String message = userName + " (" + user.getUsername() + ") requested access from "
+                + deviceName + ". Open Device Management to approve or reject this device.";
+
+        createForRecipients(
+                admins,
+                user,
+                title,
+                message,
+                "DEVICE_APPROVAL_REQUIRED",
+                null,
+                null,
+                null,
+                null,
+                true
+        );
+
+        String emailBody = message
+                + "\n\nDevice ID: " + device.getDeviceId()
+                + "\nBoardPAC version: " + clean(device.getBoardPacVersion(), "Unknown")
+                + "\nOS version: " + clean(device.getOsVersion(), "Unknown")
+                + "\nDescription: " + clean(device.getDescription(), "Not provided");
+
+        for (User admin : admins) {
+            try {
+                emailService.sendEmail(admin.getBoardEmail(), title, emailBody);
+            } catch (RuntimeException ex) {
+                log.warn("Unable to email pending-device announcement to admin {}",
+                        admin.getUsername(), ex);
+            }
+        }
     }
 
     @Transactional
@@ -298,6 +343,43 @@ public class NotificationService {
                 "An annotated paper was shared with you",
                 "Paper '" + paperTitle + "' has been shared with you by " + sharedByUsername
         );
+    }
+
+    public void notifySubcategoryPrivilegeAssigned(User recipient, Subcategory subcategory) {
+        String subcategoryName = clean(subcategory.getDisplayName(), subcategory.getName());
+        String categoryName = subcategory.getCategory() == null
+                ? null
+                : clean(subcategory.getCategory().getDisplayName(), subcategory.getCategory().getName());
+        String location = categoryName == null
+                ? subcategoryName
+                : subcategoryName + " under " + categoryName;
+        String message = "You have been granted access to the subcategory " + location + ".";
+
+        createForRecipient(
+                recipient,
+                null,
+                "Subcategory privilege granted",
+                message,
+                "SUBCATEGORY_PRIVILEGE_GRANTED",
+                null,
+                null,
+                null,
+                null,
+                false
+        );
+
+        try {
+            emailService.sendEmail(
+                    recipient.getBoardEmail(),
+                    "BoardPAC subcategory access granted",
+                    "Hello " + recipient.getFirstName() + ",\n\n" + message
+                            + " You can now access its meetings and papers in BoardPAC.\n\n"
+                            + "Regards,\nBoardPAC Team"
+            );
+        } catch (RuntimeException ex) {
+            log.warn("Unable to email subcategory privilege notification to user {}",
+                    recipient.getUsername(), ex);
+        }
     }
 
     private void createForRecipients(

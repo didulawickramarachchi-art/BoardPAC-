@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 import 'api_constants_platform_stub.dart'
     if (dart.library.io) 'api_constants_platform_io.dart';

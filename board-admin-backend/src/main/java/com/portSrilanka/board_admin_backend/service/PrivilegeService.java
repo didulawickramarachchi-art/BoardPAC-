@@ -25,6 +25,7 @@ public class PrivilegeService {
     private final UserRepository userRepository;
     private final SubcategoryRepository subcategoryRepository;
     private final AuditService auditService;
+    private final NotificationService notificationService;
 
     public PrivilegeResponse assign(PrivilegeAssignRequest request) {
         User user = userRepository.findById(request.getUserId())
@@ -55,6 +56,7 @@ public class PrivilegeService {
 
         auditService.logInfo("PRIVILEGE", "ASSIGN_PRIVILEGE", user.getUsername(),
                 "Assigned to subcategory " + subcategory.getName(), "WEB");
+        notificationService.notifySubcategoryPrivilegeAssigned(user, subcategory);
 
         return map(access);
     }

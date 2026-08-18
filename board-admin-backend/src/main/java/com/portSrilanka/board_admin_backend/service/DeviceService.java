@@ -19,6 +19,7 @@ public class DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public DeviceResponse create(DeviceRequest request) {
         User user = null;
@@ -53,6 +54,21 @@ public class DeviceService {
         Device device = findDevice(id);
         device.setStatus(DeviceStatus.APPROVED);
         deviceRepository.save(device);
+
+        User user = device.getUser();
+        if (user != null && user.getBoardEmail() != null && !user.getBoardEmail().isBlank()) {
+            String deviceName = device.getDeviceInfo() == null || device.getDeviceInfo().isBlank()
+                    ? device.getDeviceId()
+                    : device.getDeviceInfo();
+            emailService.sendEmail(
+                    user.getBoardEmail(),
+                    "Device request approved",
+                    "Hello " + user.getFirstName() + ",\n\n"
+                            + "Your request for device " + deviceName + " has been approved."
+                            + " You can now use this device to access BoardPAC.\n\n"
+                            + "Regards,\nBoardPAC Team"
+            );
+        }
         return "Device approved successfully";
     }
 
