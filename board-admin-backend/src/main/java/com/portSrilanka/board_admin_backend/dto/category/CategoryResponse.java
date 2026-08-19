@@ -10,4 +10,5 @@ public class CategoryResponse {
     private String name;
     private String displayName;
     private Integer displayOrder;
+    private String imageUrl;
 }

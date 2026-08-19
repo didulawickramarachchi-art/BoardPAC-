@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/features/access_control/presentation/access_validation_screen.dart';
 import 'package:frontend/features/reports/presentation/report_home_screen.dart';
+import 'package:frontend/features/reports/presentation/meeting_history_report_screen.dart';
 import 'package:frontend/features/settings/presentation/setting_home_screen.dart';
 
 import '../../../core/auth/role_access.dart';
@@ -112,26 +113,36 @@ class DashboardScreen extends ConsumerWidget {
                       ),
 
                       if (!isAdmin) ...[
-                        const SizedBox(height: 24),
-
-                        const _SectionTitle(title: 'Upcoming Meeting'),
-
-                        const SizedBox(height: 10),
-
                         summaryAsync.when(
-                          data: (summary) => _UpcomingMeetingCard(
-                            currentUserId: currentUserId,
-                            title:
-                                summary.upcomingMeetingTitle ??
-                                'No upcoming meeting',
-                            dateTimeText:
-                                summary.upcomingMeetingDateTime ??
-                                'No date available',
-                            location:
-                                summary.upcomingMeetingLocation ??
-                                'No location',
-                            daysText: summary.upcomingMeetingDaysText ?? '',
-                          ),
+                          data: (summary) {
+                            final meetingDate = DateTime.tryParse(
+                              summary.upcomingMeetingDateTime ?? '',
+                            )?.toLocal();
+                            if (summary.upcomingMeetingTitle == null ||
+                                meetingDate == null ||
+                                !meetingDate.isAfter(DateTime.now())) {
+                              return const SizedBox.shrink();
+                            }
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 24),
+                                const _SectionTitle(title: 'Upcoming Meeting'),
+                                const SizedBox(height: 10),
+                                _UpcomingMeetingCard(
+                                  currentUserId: currentUserId,
+                                  title: summary.upcomingMeetingTitle!,
+                                  dateTimeText:
+                                      summary.upcomingMeetingDateTime!,
+                                  location:
+                                      summary.upcomingMeetingLocation ??
+                                      'No location',
+                                  daysText:
+                                      summary.upcomingMeetingDaysText ?? '',
+                                ),
+                              ],
+                            );
+                          },
                           loading: () => const SizedBox.shrink(),
                           error: (_, _) => const SizedBox.shrink(),
                         ),
@@ -1718,6 +1729,11 @@ const _secretaryTiles = [
     SubcategoryListScreen(),
   ),
   _MenuTileData('Papers', Icons.picture_as_pdf_outlined, PaperListScreen()),
+  _MenuTileData(
+    'Meeting History Report',
+    Icons.summarize_outlined,
+    MeetingHistoryReportScreen(),
+  ),
 ];
 
 const _memberTiles = [

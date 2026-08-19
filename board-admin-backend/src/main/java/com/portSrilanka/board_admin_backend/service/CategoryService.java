@@ -26,6 +26,7 @@ public class CategoryService {
                 .name(request.getName())
                 .displayName(request.getDisplayName())
                 .displayOrder(request.getDisplayOrder())
+                .imageUrl(request.getImageUrl())
                 .build();
 
         return map(categoryRepository.save(category));
@@ -42,6 +43,7 @@ public class CategoryService {
         category.setName(request.getName());
         category.setDisplayName(request.getDisplayName());
         category.setDisplayOrder(request.getDisplayOrder());
+        category.setImageUrl(request.getImageUrl());
 
         return map(categoryRepository.save(category));
     }
@@ -60,6 +62,7 @@ public class CategoryService {
                 .name(category.getName())
                 .displayName(category.getDisplayName())
                 .displayOrder(category.getDisplayOrder())
+                .imageUrl(category.getImageUrl())
                 .build();
     }
 }

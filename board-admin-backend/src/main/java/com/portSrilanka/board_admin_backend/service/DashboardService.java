@@ -51,7 +51,9 @@ public class DashboardService {
         Meeting upcomingMeeting = getUpcomingMeetingCandidates(user).stream()
                 .filter(meeting -> meeting.getType() == MeetingType.MEETING)
                 .filter(meeting -> meeting.getStatus() != MeetingStatus.CANCELLED)
-                .filter(meeting -> !meeting.getMeetingDateTime().isBefore(now))
+                .filter(meeting -> meeting.getStatus() != MeetingStatus.CLOSED)
+                .filter(meeting -> meeting.getStatus() != MeetingStatus.LAST)
+                .filter(meeting -> meeting.getMeetingDateTime().isAfter(now))
                 .min(Comparator.comparing(Meeting::getMeetingDateTime))
                 .orElse(null);
 

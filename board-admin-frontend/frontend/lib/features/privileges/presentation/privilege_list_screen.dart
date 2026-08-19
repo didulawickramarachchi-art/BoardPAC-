@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../../core/widgets/category_image_card.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../categories/provider/category_provider.dart';
 import '../../subcategories/model/subcategory_model.dart';
 import '../../subcategories/provider/subcategory_provider.dart';
 import '../../users/provider/user_provider.dart';
@@ -23,12 +25,13 @@ class PrivilegeListScreen extends ConsumerWidget {
       );
     }
     final subcategories = ref.watch(subcategoryListProvider);
+    final categoryModels = ref.watch(categoryListProvider).valueOrNull ?? [];
     final privileges = ref.watch(privilegeListProvider);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF12275B),
         foregroundColor: Colors.white,
-        title: const Text('Subcategory Privileges'),
+        title: const Text('Privilege Categories'),
       ),
       body: subcategories.when(
         loading: () => const AppLoading(),
@@ -40,39 +43,102 @@ class PrivilegeListScreen extends ConsumerWidget {
             if (items.isEmpty) {
               return const AppEmptyState(message: 'No subcategories found');
             }
-            final sorted = [...items]
-              ..sort((a, b) {
-                final categoryOrder = a.categoryName.compareTo(b.categoryName);
-                return categoryOrder != 0
-                    ? categoryOrder
-                    : (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0);
-              });
+            final categories =
+                items.map((item) => item.categoryName).toSet().toList()..sort();
             return ListView.separated(
               padding: const EdgeInsets.all(16),
-              itemCount: sorted.length,
+              itemCount: categories.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (_, index) {
-                final subcategory = sorted[index];
+                final category = categories[index];
+                final categorySubcategories = items
+                    .where((item) => item.categoryName == category)
+                    .toList();
                 final count = assigned
-                    .where((item) => item.subcategoryId == subcategory.id)
+                    .where(
+                      (privilege) => categorySubcategories.any(
+                        (subcategory) =>
+                            subcategory.id == privilege.subcategoryId,
+                      ),
+                    )
                     .map((item) => item.userId)
                     .toSet()
                     .length;
-                return Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.account_tree_rounded),
-                    title: Text(_subcategoryName(subcategory)),
-                    subtitle: Text('${subcategory.categoryName} • $count users'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => _SubcategoryUsersScreen(subcategory),
+                final matching = categoryModels.where(
+                  (item) =>
+                      item.name == category || item.displayName == category,
+                );
+                return CategoryImageCard(
+                  title: category,
+                  subtitle:
+                      '${categorySubcategories.length} subcategories • $count members',
+                  imageUrl: matching.isEmpty ? null : matching.first.imageUrl,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => _CategorySubcategoriesScreen(
+                        categoryName: category,
+                        subcategories: categorySubcategories,
                       ),
                     ),
                   ),
                 );
               },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CategorySubcategoriesScreen extends ConsumerWidget {
+  final String categoryName;
+  final List<SubcategoryModel> subcategories;
+
+  const _CategorySubcategoriesScreen({
+    required this.categoryName,
+    required this.subcategories,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final privileges = ref.watch(privilegeListProvider);
+    final sorted = [...subcategories]
+      ..sort((a, b) => (a.displayOrder ?? 0).compareTo(b.displayOrder ?? 0));
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF12275B),
+        foregroundColor: Colors.white,
+        title: Text(categoryName),
+      ),
+      body: privileges.when(
+        loading: () => const AppLoading(),
+        error: (error, _) => Center(child: Text('Failed to load: $error')),
+        data: (assigned) => ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: sorted.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (_, index) {
+            final subcategory = sorted[index];
+            final count = assigned
+                .where((item) => item.subcategoryId == subcategory.id)
+                .map((item) => item.userId)
+                .toSet()
+                .length;
+            return Card(
+              child: ListTile(
+                leading: const Icon(Icons.account_tree_rounded),
+                title: Text(_subcategoryName(subcategory)),
+                subtitle: Text('$count members with privileges'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => _SubcategoryUsersScreen(subcategory),
+                  ),
+                ),
+              ),
             );
           },
         ),
@@ -99,10 +165,11 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
         loading: () => const AppLoading(),
         error: (error, _) => Center(child: Text('Failed to load: $error')),
         data: (items) {
-          final assigned = items
-              .where((item) => item.subcategoryId == subcategory.id)
-              .toList()
-            ..sort((a, b) => a.username.compareTo(b.username));
+          final assigned =
+              items
+                  .where((item) => item.subcategoryId == subcategory.id)
+                  .toList()
+                ..sort((a, b) => a.username.compareTo(b.username));
           if (assigned.isEmpty) {
             return const AppEmptyState(
               message: 'No users assigned to this subcategory',
@@ -120,8 +187,10 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
                   subtitle: Text('Role: ${privilege.assignedRole}'),
                   trailing: IconButton(
                     tooltip: 'Remove from subcategory',
-                    icon: const Icon(Icons.remove_circle_outline,
-                        color: Colors.red),
+                    icon: const Icon(
+                      Icons.remove_circle_outline,
+                      color: Colors.red,
+                    ),
                     onPressed: () => ref
                         .read(privilegeListProvider.notifier)
                         .remove(
@@ -141,9 +210,9 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
   Future<void> _addUser(BuildContext context, WidgetRef ref) async {
     final users = ref.read(userListProvider).valueOrNull;
     if (users == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Users are still loading.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Users are still loading.')));
       return;
     }
     final assignedIds = (ref.read(privilegeListProvider).valueOrNull ?? [])
@@ -151,9 +220,12 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
         .map((item) => item.userId)
         .toSet();
     final available = users
-        .where((user) => user.isActive &&
-            normalizeRole(user.role) == 'MEMBER' &&
-            !assignedIds.contains(user.id))
+        .where(
+          (user) =>
+              user.isActive &&
+              normalizeRole(user.role) == 'MEMBER' &&
+              !assignedIds.contains(user.id),
+        )
         .toList();
     int? selectedId;
     final result = await showDialog<int>(
@@ -167,10 +239,12 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Member'),
                   items: available
-                      .map((user) => DropdownMenuItem(
-                            value: user.id,
-                            child: Text(user.username),
-                          ))
+                      .map(
+                        (user) => DropdownMenuItem(
+                          value: user.id,
+                          child: Text(user.username),
+                        ),
+                      )
                       .toList(),
                   onChanged: (value) => setState(() => selectedId = value),
                 ),
@@ -191,7 +265,9 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
     );
     if (result == null) return;
     try {
-      await ref.read(privilegeListProvider.notifier).assign(
+      await ref
+          .read(privilegeListProvider.notifier)
+          .assign(
             PrivilegeRequest(
               userId: result,
               subcategoryId: subcategory.id,
@@ -200,9 +276,9 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
           );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add user: $error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to add user: $error')));
       }
     }
   }

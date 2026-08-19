@@ -19,4 +19,7 @@ public class Category extends BaseEntity {
     private String displayName;
 
     private Integer displayOrder;
+
+    @Column(length = 2048)
+    private String imageUrl;
 }

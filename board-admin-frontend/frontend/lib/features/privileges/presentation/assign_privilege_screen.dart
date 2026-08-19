@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../categories/provider/category_provider.dart';
 import '../../subcategories/provider/subcategory_provider.dart';
 import '../../users/provider/user_provider.dart';
 import '../model/privilege_request.dart';
@@ -19,6 +20,7 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
   final _displaySequenceController = TextEditingController();
 
   int? selectedUserId;
+  int? selectedCategoryId;
   int? selectedSubcategoryId;
   String selectedRole = 'MEMBER';
   bool isSaving = false;
@@ -70,6 +72,7 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
   @override
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(userListProvider);
+    final categoriesAsync = ref.watch(categoryListProvider);
     final subcategoriesAsync = ref.watch(subcategoryListProvider);
 
     return Scaffold(
@@ -104,28 +107,28 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
                     Icons.keyboard_arrow_down_rounded,
                     color: primaryBlue,
                   ),
-                  items: (users.toList()
-                        ..sort(
-                          (a, b) => a.username.toLowerCase().compareTo(
-                            b.username.toLowerCase(),
-                          ),
-                        ))
-                      .map((user) {
-                        final fullName =
-                            '${user.firstName} ${user.lastName}'.trim();
-                        final label = fullName.isEmpty
-                            ? user.username
-                            : '$fullName (${user.username})';
-                        return DropdownMenuItem<int>(
-                          value: user.id,
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      })
-                      .toList(),
+                  items:
+                      (users.toList()..sort(
+                            (a, b) => a.username.toLowerCase().compareTo(
+                              b.username.toLowerCase(),
+                            ),
+                          ))
+                          .map((user) {
+                            final fullName =
+                                '${user.firstName} ${user.lastName}'.trim();
+                            final label = fullName.isEmpty
+                                ? user.username
+                                : '$fullName (${user.username})';
+                            return DropdownMenuItem<int>(
+                              value: user.id,
+                              child: Text(
+                                label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          })
+                          .toList(),
                   onChanged: isSaving
                       ? null
                       : (value) => setState(() => selectedUserId = value),
@@ -140,34 +143,73 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
 
               const SizedBox(height: 12),
 
-              subcategoriesAsync.when(
-                data: (subcategories) => DropdownButtonFormField<int>(
-                  initialValue: selectedSubcategoryId,
+              categoriesAsync.when(
+                data: (categories) => DropdownButtonFormField<int>(
+                  initialValue: selectedCategoryId,
                   isExpanded: true,
-                  decoration: _dropdownDecoration('Select Subcategory'),
-                  dropdownColor: Colors.white,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: primaryBlue,
-                  ),
-                  items: subcategories.map((subcategory) {
-                    final name = subcategory.displayName.trim().isNotEmpty
-                        ? subcategory.displayName.trim()
-                        : subcategory.name;
-                    return DropdownMenuItem<int>(
-                      value: subcategory.id,
-                      child: Text(
-                        '${subcategory.categoryName} - $name',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  decoration: _dropdownDecoration('Select Category'),
+                  items: categories.map((category) {
+                    final label = category.displayName.trim().isNotEmpty
+                        ? category.displayName.trim()
+                        : category.name;
+                    return DropdownMenuItem(
+                      value: category.id,
+                      child: Text(label),
                     );
                   }).toList(),
                   onChanged: isSaving
                       ? null
-                      : (value) =>
-                            setState(() => selectedSubcategoryId = value),
+                      : (value) => setState(() {
+                          selectedCategoryId = value;
+                          selectedSubcategoryId = null;
+                        }),
                 ),
+                loading: () => const LinearProgressIndicator(color: gold),
+                error: (error, _) => _SelectorError(
+                  label: 'Unable to load categories',
+                  onRetry: () => ref.invalidate(categoryListProvider),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              subcategoriesAsync.when(
+                data: (subcategories) {
+                  final relevant = subcategories
+                      .where((item) => item.categoryId == selectedCategoryId)
+                      .toList();
+                  return DropdownButtonFormField<int>(
+                    initialValue: selectedSubcategoryId,
+                    isExpanded: true,
+                    decoration: _dropdownDecoration(
+                      selectedCategoryId == null
+                          ? 'Select a category first'
+                          : 'Select Subcategory',
+                    ),
+                    dropdownColor: Colors.white,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: primaryBlue,
+                    ),
+                    items: relevant.map((subcategory) {
+                      final name = subcategory.displayName.trim().isNotEmpty
+                          ? subcategory.displayName.trim()
+                          : subcategory.name;
+                      return DropdownMenuItem<int>(
+                        value: subcategory.id,
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: isSaving || selectedCategoryId == null
+                        ? null
+                        : (value) =>
+                              setState(() => selectedSubcategoryId = value),
+                  );
+                },
                 loading: () => const LinearProgressIndicator(color: gold),
                 error: (error, _) => _SelectorError(
                   label: 'Unable to load subcategories',
@@ -197,10 +239,7 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: gold,
-                      width: 1.5,
-                    ),
+                    borderSide: const BorderSide(color: gold, width: 1.5),
                   ),
                 ),
                 dropdownColor: Colors.white,
@@ -209,10 +248,7 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
                   color: primaryBlue,
                 ),
                 items: const [
-                  DropdownMenuItem(
-                    value: 'MEMBER',
-                    child: Text('Member'),
-                  ),
+                  DropdownMenuItem(value: 'MEMBER', child: Text('Member')),
                   DropdownMenuItem(
                     value: 'SECRETARY',
                     child: Text('Secretary'),
@@ -392,10 +428,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   static const Color darkBlue = Color(0xFF00184A);
 

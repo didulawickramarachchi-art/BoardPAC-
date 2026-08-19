@@ -7,7 +7,6 @@ final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
   return CategoryRepository(ref.read(dioProvider));
 });
 
-final categoryListProvider =
-    FutureProvider<List<CategoryModel>>((ref) async {
+final categoryListProvider = FutureProvider<List<CategoryModel>>((ref) async {
   return ref.read(categoryRepositoryProvider).getCategories();
 });

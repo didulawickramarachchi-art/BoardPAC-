@@ -35,6 +35,27 @@ class CategoryListScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _openEditScreen(
+    BuildContext context,
+    WidgetRef ref,
+    category,
+  ) async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => CategoryFormScreen(category: category)),
+    );
+
+    if (updated == true) {
+      ref.invalidate(categoryListProvider);
+      ref.invalidate(meetingListProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Category updated successfully.')),
+        );
+      }
+    }
+  }
+
   Future<bool?> _showDeleteConfirmation(
     BuildContext context,
     String title,
@@ -143,53 +164,64 @@ class CategoryListScreen extends ConsumerWidget {
               final category = categories[index];
 
               return Container(
+                height: 166,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
+                  color: const Color(0xFFE2E3E6).withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.72),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
+                      color: primaryBlue.withValues(alpha: 0.08),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
+                child: Material(
+                  color: Colors.transparent,
                   child: Row(
                     children: [
                       Container(
-                        width: 52,
-                        height: 52,
+                        width: 145,
+                        height: double.infinity,
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
-                          color: primaryBlue.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(16),
+                          color: primaryBlue.withValues(alpha: 0.09),
+                          borderRadius: BorderRadius.circular(30),
                         ),
-                        child: const Icon(
-                          Icons.category_outlined,
-                          color: primaryBlue,
-                          size: 27,
-                        ),
+                        child: (category.imageUrl ?? '').trim().isNotEmpty
+                            ? Image.network(
+                                category.imageUrl!.trim(),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) =>
+                                    const _CategoryPlaceholder(),
+                              )
+                            : const _CategoryPlaceholder(),
                       ),
 
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 20),
 
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              category.name,
-                              maxLines: 1,
+                              category.displayName.toUpperCase(),
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: darkBlue,
-                                fontSize: 15,
+                                color: Color(0xFF111111),
+                                fontSize: 23,
+                                height: 1,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
 
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 10),
 
                             Row(
                               children: [
@@ -201,8 +233,8 @@ class CategoryListScreen extends ConsumerWidget {
                                 const SizedBox(width: 5),
                                 Expanded(
                                   child: Text(
-                                    category.displayName,
-                                    maxLines: 2,
+                                    category.name,
+                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       color: Color(0xFF7D8CB2),
@@ -216,44 +248,58 @@ class CategoryListScreen extends ConsumerWidget {
                             ),
 
                             const SizedBox(height: 10),
-
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: gold.withOpacity(0.16),
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: const Text(
-                                'Category',
-                                style: TextStyle(
-                                  color: darkBlue,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
+                            const _CategoryGlassBadge(),
                           ],
                         ),
                       ),
 
                       if (access.canManageCategories)
-                        IconButton(
-                          tooltip: 'Delete category',
-                          style: IconButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFEAEA),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () =>
-                              _deleteCategory(context, ref, category),
-                          icon: const Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.redAccent,
-                            size: 20,
+                        Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                tooltip:
+                                    (category.imageUrl ?? '').trim().isEmpty
+                                    ? 'Add category image'
+                                    : 'Edit category',
+                                style: IconButton.styleFrom(
+                                  backgroundColor: primaryBlue.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () =>
+                                    _openEditScreen(context, ref, category),
+                                icon: Icon(
+                                  (category.imageUrl ?? '').trim().isEmpty
+                                      ? Icons.add_photo_alternate_outlined
+                                      : Icons.edit_outlined,
+                                  color: primaryBlue,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              IconButton(
+                                tooltip: 'Delete category',
+                                style: IconButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFFEAEA),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () =>
+                                    _deleteCategory(context, ref, category),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.redAccent,
+                                  size: 20,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                     ],
@@ -274,7 +320,7 @@ class CategoryListScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 18,
                     offset: const Offset(0, 8),
                   ),
@@ -287,7 +333,7 @@ class CategoryListScreen extends ConsumerWidget {
                     width: 58,
                     height: 58,
                     decoration: BoxDecoration(
-                      color: gold.withOpacity(0.18),
+                      color: gold.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -315,6 +361,65 @@ class CategoryListScreen extends ConsumerWidget {
           ),
         ),
         loading: () => const AppLoading(),
+      ),
+    );
+  }
+}
+
+class _CategoryPlaceholder extends StatelessWidget {
+  const _CategoryPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: Color(0xFFE9EDF7),
+      child: Center(
+        child: Icon(
+          Icons.category_outlined,
+          color: CategoryListScreen.primaryBlue,
+          size: 38,
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryGlassBadge extends StatelessWidget {
+  const _CategoryGlassBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFB000), Color(0xFFFFC538)],
+        ),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.58),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFB000).withValues(alpha: 0.32),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.45),
+            blurRadius: 2,
+            offset: const Offset(0, -1),
+          ),
+        ],
+      ),
+      child: const Text(
+        'CATEGORY',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }

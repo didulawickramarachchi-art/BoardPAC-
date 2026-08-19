@@ -31,6 +31,7 @@ public class UserService {
     private final SupabaseStorageService supabaseStorageService;
 
     private static final long MAX_PROFILE_PICTURE_SIZE = 5 * 1024 * 1024;
+    private static final String PROFILE_PICTURE_BUCKET = "ProfilePic";
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp"
     );
@@ -65,7 +66,11 @@ public class UserService {
         User user = findByUsername(username);
         String extension = extensionFor(file.getContentType());
         String objectPath = "profile-pictures/users/" + user.getId() + "/profile." + extension;
-        String profilePictureUrl = supabaseStorageService.uploadFile(file, objectPath);
+        String profilePictureUrl = supabaseStorageService.uploadFile(
+                file,
+                objectPath,
+                PROFILE_PICTURE_BUCKET
+        );
 
         user.setProfilePictureUrl(profilePictureUrl);
         userRepository.save(user);

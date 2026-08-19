@@ -111,9 +111,11 @@ public class NotificationService {
         User createdBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
 
+        String notificationType = clean(request.getType(), "ANNOUNCEMENT").toUpperCase();
         List<User> recipients = userRepository.findAll()
                 .stream()
                 .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                .filter(user -> !"MEETING_CREATED".equals(notificationType) || canReceiveMeetingNotifications(user))
                 .toList();
 
         createForRecipients(
@@ -121,11 +123,11 @@ public class NotificationService {
                 createdBy,
                 clean(request.getTitle(), "Announcement"),
                 clean(request.getMessage(), ""),
-                "ANNOUNCEMENT",
-                null,
-                null,
-                null,
-                null,
+                notificationType,
+                request.getRelatedMeetingId(),
+                request.getRelatedPaperId(),
+                request.getRelatedCommentId(),
+                request.getRelatedAttachmentId(),
                 true
         );
     }
@@ -172,8 +174,12 @@ public class NotificationService {
 
     @Transactional
     public void notifyMeetingCreated(Meeting meeting, List<MeetingParticipant> participants) {
+        List<User> recipients = participants.stream()
+                .map(MeetingParticipant::getUser)
+                .filter(this::canReceiveMeetingNotifications)
+                .toList();
         createForRecipients(
-                participants.stream().map(MeetingParticipant::getUser).toList(),
+                recipients,
                 meeting.getCreatedBy(),
                 "New meeting created",
                 meeting.getTitle() + " has been added to the board schedule.",
@@ -186,10 +192,10 @@ public class NotificationService {
         );
         // optionally send email notifications for meeting created
         if (workflowSettingService.isEnabled("SEND_EMAIL_NOTIFICATION_WHEN_MEETING_CREATED", true)) {
-            for (MeetingParticipant p : participants) {
+            for (User recipient : recipients) {
                 try {
                     emailService.sendEmail(
-                            p.getUser().getBoardEmail(),
+                            recipient.getBoardEmail(),
                             "New meeting: " + meeting.getTitle(),
                             "A new meeting '" + meeting.getTitle() + "' has been scheduled on " + meeting.getMeetingDateTime()
                     );
@@ -380,6 +386,11 @@ public class NotificationService {
             log.warn("Unable to email subcategory privilege notification to user {}",
                     recipient.getUsername(), ex);
         }
+    }
+
+    private boolean canReceiveMeetingNotifications(User user) {
+        return user != null && user.getRoles().stream()
+                .noneMatch(role -> role.getName() == SystemRole.ADMIN);
     }
 
     private void createForRecipients(

@@ -1,16 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
+import '../../../core/network/api_error_message.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../../core/widgets/category_image_card.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../categories/provider/category_provider.dart';
 import '../../agendas/presentation/agenda_section_screen.dart';
 import '../../papers/presentation/paper_list_screen.dart';
+import '../../subcategories/provider/subcategory_provider.dart';
 import '../provider/meeting_provider.dart';
+import 'meeting_detail_screen.dart';
 import 'meeting_form_screen.dart';
 
-class MeetingListScreen extends ConsumerWidget {
+class MeetingListScreen extends ConsumerStatefulWidget {
   const MeetingListScreen({super.key});
+
+  @override
+  ConsumerState<MeetingListScreen> createState() => _MeetingListScreenState();
+}
+
+class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
+  String? selectedCategory;
+  String? selectedSubcategory;
+  bool showHistory = false;
 
   static const Color primaryBlue = Color(0xFF12275B);
   static const Color darkBlue = Color(0xFF00184A);
@@ -18,16 +32,17 @@ class MeetingListScreen extends ConsumerWidget {
   static const Color bgColor = Color(0xFFF6F7FB);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final meetingsAsync = ref.watch(meetingListProvider);
+    final categoryModels = ref.watch(categoryListProvider).valueOrNull ?? [];
+    final subcategoryModels =
+        ref.watch(subcategoryListProvider).valueOrNull ?? [];
     final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
 
     if (!access.canViewMeetings) {
       return const Scaffold(
         backgroundColor: bgColor,
-        body: Center(
-          child: Text('You do not have access to meetings.'),
-        ),
+        body: Center(child: Text('You do not have access to meetings.')),
       );
     }
 
@@ -38,9 +53,60 @@ class MeetingListScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Meetings & Circulars',
-          style: TextStyle(fontWeight: FontWeight.w800),
+        leading: selectedCategory == null
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => setState(() {
+                  if (selectedSubcategory != null) {
+                    selectedSubcategory = null;
+                  } else {
+                    selectedCategory = null;
+                  }
+                }),
+              ),
+        title: Text(
+          selectedSubcategory ??
+              selectedCategory ??
+              (showHistory ? 'Meeting History' : 'Meetings'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(58),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  _MeetingTab(
+                    icon: Icons.event_available_outlined,
+                    label: 'Current',
+                    selected: !showHistory,
+                    onTap: () => setState(() {
+                      showHistory = false;
+                      selectedCategory = null;
+                      selectedSubcategory = null;
+                    }),
+                  ),
+                  _MeetingTab(
+                    icon: Icons.history_rounded,
+                    label: 'History',
+                    selected: showHistory,
+                    onTap: () => setState(() {
+                      showHistory = true;
+                      selectedCategory = null;
+                      selectedSubcategory = null;
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       floatingActionButton: access.canManageMeetings
@@ -62,16 +128,107 @@ class MeetingListScreen extends ConsumerWidget {
           : null,
       body: meetingsAsync.when(
         data: (items) {
-          if (items.isEmpty) {
-            return const AppEmptyState(message: 'No meetings found');
+          final visibleByPeriod =
+              items
+                  .where((meeting) => _isHistorical(meeting) == showHistory)
+                  .toList()
+                ..sort(
+                  (a, b) => showHistory
+                      ? b.meetingDateTime.compareTo(a.meetingDateTime)
+                      : a.meetingDateTime.compareTo(b.meetingDateTime),
+                );
+
+          if (visibleByPeriod.isEmpty) {
+            return AppEmptyState(
+              message: showHistory
+                  ? 'No expired meetings found'
+                  : 'No current meetings found',
+            );
           }
 
+          if (selectedCategory == null) {
+            final categories = <String, int>{};
+            for (final meeting in visibleByPeriod) {
+              final rawName = (meeting.categoryName ?? '').trim();
+              final name = rawName.isEmpty ? 'Uncategorized' : rawName;
+              categories[name] = (categories[name] ?? 0) + 1;
+            }
+            final names = categories.keys.toList()..sort();
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: names.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (_, index) {
+                final name = names[index];
+                final matching = categoryModels.where(
+                  (category) =>
+                      category.name == name || category.displayName == name,
+                );
+                return CategoryImageCard(
+                  title: name,
+                  subtitle: '${categories[name]} meetings',
+                  imageUrl: matching.isEmpty ? null : matching.first.imageUrl,
+                  onTap: () => setState(() {
+                    selectedCategory = name;
+                    selectedSubcategory = null;
+                  }),
+                );
+              },
+            );
+          }
+
+          final categoryMeetings = visibleByPeriod.where((meeting) {
+            final rawName = (meeting.categoryName ?? '').trim();
+            return (rawName.isEmpty ? 'Uncategorized' : rawName) ==
+                selectedCategory;
+          }).toList();
+
+          if (selectedSubcategory == null) {
+            final subcategories = <String, int>{};
+            for (final meeting in categoryMeetings) {
+              final rawName = (meeting.subcategoryName ?? '').trim();
+              final name = rawName.isEmpty ? 'Unassigned' : rawName;
+              subcategories[name] = (subcategories[name] ?? 0) + 1;
+            }
+            final names = subcategories.keys.toList()..sort();
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: names.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (_, index) {
+                final name = names[index];
+                final matches = subcategoryModels.where(
+                  (subcategory) =>
+                      subcategory.name == name &&
+                      (subcategory.categoryName == selectedCategory ||
+                          categoryMeetings.any(
+                            (meeting) =>
+                                meeting.subcategoryId == subcategory.id,
+                          )),
+                );
+                final displayName = matches.isEmpty
+                    ? name
+                    : matches.first.displayName;
+                return _SubcategoryMeetingCard(
+                  title: displayName,
+                  subtitle: '${subcategories[name]} meetings',
+                  onTap: () => setState(() => selectedSubcategory = name),
+                );
+              },
+            );
+          }
+
+          final visibleItems = categoryMeetings.where((meeting) {
+            final rawName = (meeting.subcategoryName ?? '').trim();
+            return (rawName.isEmpty ? 'Unassigned' : rawName) ==
+                selectedSubcategory;
+          }).toList();
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: items.length,
+            itemCount: visibleItems.length,
             separatorBuilder: (_, _) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
-              final meeting = items[index];
+              final meeting = visibleItems[index];
 
               return Material(
                 color: Colors.white,
@@ -79,7 +236,19 @@ class MeetingListScreen extends ConsumerWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(22),
                   onTap: () {
-                    _showMeetingOptions(context, meeting, access);
+                    if (showHistory) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MeetingDetailScreen(
+                            meeting: meeting,
+                            isHistorical: true,
+                          ),
+                        ),
+                      );
+                    } else {
+                      _showMeetingOptions(context, meeting, access);
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.all(14),
@@ -167,7 +336,8 @@ class MeetingListScreen extends ConsumerWidget {
                                 ],
                               ),
 
-                              if ((meeting.subcategoryName ?? '').isNotEmpty) ...[
+                              if ((meeting.subcategoryName ?? '')
+                                  .isNotEmpty) ...[
                                 const SizedBox(height: 5),
                                 Row(
                                   children: [
@@ -217,45 +387,50 @@ class MeetingListScreen extends ConsumerWidget {
                                 size: 22,
                               ),
                             ),
-                            onSelected: (value) {
-                              final notifier =
-                                  ref.read(meetingListProvider.notifier);
-
-                              if (value == 'open') {
-                                notifier.openMeeting(meeting.id);
-                              }
-
-                              if (value == 'close') {
-                                notifier.closeMeeting(meeting.id);
-                              }
-
+                            onSelected: (value) async {
                               if (value == 'delete') {
                                 _showDeleteDialog(context, ref, meeting);
+                                return;
                               }
+
+                              await _changeMeetingStatus(
+                                context,
+                                ref,
+                                meeting,
+                                open: value == 'open',
+                              );
                             },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(
-                                value: 'open',
-                                child: _PopupItem(
-                                  icon: Icons.lock_open_outlined,
-                                  text: 'Open',
+                            itemBuilder: (_) {
+                              final status = meeting.status
+                                  .toString()
+                                  .trim()
+                                  .toUpperCase();
+                              return [
+                                if (status == 'DRAFT')
+                                  const PopupMenuItem(
+                                    value: 'open',
+                                    child: _PopupItem(
+                                      icon: Icons.lock_open_outlined,
+                                      text: 'Open',
+                                    ),
+                                  ),
+                                if (status == 'OPEN')
+                                  const PopupMenuItem(
+                                    value: 'close',
+                                    child: _PopupItem(
+                                      icon: Icons.lock_outline,
+                                      text: 'Close',
+                                    ),
+                                  ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: _PopupItem(
+                                    icon: Icons.delete_outline,
+                                    text: 'Delete',
+                                  ),
                                 ),
-                              ),
-                              PopupMenuItem(
-                                value: 'close',
-                                child: _PopupItem(
-                                  icon: Icons.lock_outline,
-                                  text: 'Close',
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: _PopupItem(
-                                  icon: Icons.delete_outline,
-                                  text: 'Delete',
-                                ),
-                              ),
-                            ],
+                              ];
+                            },
                           ),
                       ],
                     ),
@@ -281,6 +456,60 @@ class MeetingListScreen extends ConsumerWidget {
         loading: () => const AppLoading(),
       ),
     );
+  }
+
+  static bool _isHistorical(dynamic meeting) {
+    final status = meeting.status.toString().trim().toLowerCase();
+    if (status.contains('expired') ||
+        status.contains('closed') ||
+        status.contains('completed') ||
+        status.contains('cancelled') ||
+        status.contains('canceled')) {
+      return true;
+    }
+    final date = DateTime.tryParse(meeting.meetingDateTime)?.toLocal();
+    return date != null && date.isBefore(DateTime.now());
+  }
+
+  static Future<void> _changeMeetingStatus(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic meeting, {
+    required bool open,
+  }) async {
+    try {
+      final notifier = ref.read(meetingListProvider.notifier);
+      if (open) {
+        await notifier.openMeeting(meeting.id);
+      } else {
+        await notifier.closeMeeting(meeting.id);
+      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            open
+                ? 'Meeting opened successfully'
+                : 'Meeting closed and moved to history',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ApiErrorMessage.from(
+              error,
+              fallback: open
+                  ? 'Failed to open meeting'
+                  : 'Failed to close meeting',
+            ),
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   static void _showDeleteDialog(
@@ -390,6 +619,21 @@ class MeetingListScreen extends ConsumerWidget {
                 ),
 
               _BottomSheetTile(
+                icon: Icons.info_outline_rounded,
+                title: 'Meeting Details',
+                subtitle: 'View all information about this meeting',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MeetingDetailScreen(meeting: meeting),
+                    ),
+                  );
+                },
+              ),
+
+              _BottomSheetTile(
                 icon: Icons.picture_as_pdf_outlined,
                 title: 'Papers',
                 subtitle: 'View papers attached to this meeting',
@@ -406,6 +650,118 @@ class MeetingListScreen extends ConsumerWidget {
                   );
                 },
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MeetingTab extends StatelessWidget {
+  static const _darkBlue = Color(0xFF00184A);
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MeetingTab({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: selected ? _darkBlue : Colors.white),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? _darkBlue : Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SubcategoryMeetingCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SubcategoryMeetingCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF12275B).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.account_tree_outlined,
+                  color: Color(0xFF12275B),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Color(0xFF00184A),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(color: Color(0xFF7D8CB2)),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFF9AA6C5)),
             ],
           ),
         ),
@@ -443,11 +799,7 @@ class _StatusChip extends StatelessWidget {
       textColor = const Color(0xFF233E8B);
     }
 
-    return _SmallChip(
-      text: status,
-      bgColor: bgColor,
-      textColor: textColor,
-    );
+    return _SmallChip(text: status, bgColor: bgColor, textColor: textColor);
   }
 }
 
@@ -490,10 +842,7 @@ class _PopupItem extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _PopupItem({
-    required this.icon,
-    required this.text,
-  });
+  const _PopupItem({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {

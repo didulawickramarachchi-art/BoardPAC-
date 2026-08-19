@@ -3,12 +3,14 @@ class CategoryModel {
   final String name;
   final String displayName;
   final int? displayOrder;
+  final String? imageUrl;
 
   CategoryModel({
     required this.id,
     required this.name,
     required this.displayName,
     this.displayOrder,
+    this.imageUrl,
   });
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class CategoryModel {
       name: json['name'] ?? '',
       displayName: json['displayName'] ?? '',
       displayOrder: json['displayOrder'],
+      imageUrl: json['imageUrl'],
     );
   }
 }
