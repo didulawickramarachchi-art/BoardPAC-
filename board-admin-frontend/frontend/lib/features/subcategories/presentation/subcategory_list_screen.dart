@@ -98,7 +98,8 @@ class SubcategoryListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subcategoriesAsync = ref.watch(subcategoryListProvider);
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
 
     if (!access.canViewSubcategories) {
       return const Scaffold(

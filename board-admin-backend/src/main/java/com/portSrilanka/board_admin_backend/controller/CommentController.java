@@ -18,7 +18,7 @@ public class CommentController {
     private final CommentService commentService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("(hasRole('SECRETARY') or hasRole('MEMBER')) and @accessProfileService.canComment(authentication.name)")
     public ResponseEntity<CommentResponse> create(@RequestBody CommentRequest request) {
         return ResponseEntity.ok(commentService.create(request));
     }
@@ -42,7 +42,7 @@ public class CommentController {
     }
 
     @PostMapping("/{commentId}/reaction")
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("(hasRole('SECRETARY') or hasRole('MEMBER')) and @accessProfileService.canComment(authentication.name)")
     public ResponseEntity<CommentResponse> toggleReaction(
             @PathVariable Long commentId,
             @RequestBody ReactionRequest request,
@@ -52,7 +52,7 @@ public class CommentController {
     }
 
     @PostMapping("/{commentId}/replies")
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("(hasRole('SECRETARY') or hasRole('MEMBER')) and @accessProfileService.canComment(authentication.name)")
     public ResponseEntity<CommentResponse> reply(
             @PathVariable Long commentId,
             @RequestBody CommentReplyRequest request,

@@ -5,6 +5,7 @@ import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.BoardType;
 import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
+import com.portSrilanka.board_admin_backend.enums.AccessProfile;
 import com.portSrilanka.board_admin_backend.repository.RoleRepository;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +54,8 @@ public class DataInitializer implements CommandLineRunner {
                 .lastName("Administrator")
                 .displayName("System Administrator")
                 .boardEmail("admin@boardsrilanka.local")
-                .boardType(BoardType.ORGANIZER)
+                .boardType(BoardType.SUPPORT_TEAM)
+                .accessProfile(AccessProfile.SYSTEM_ADMINISTRATOR)
                 .status(UserStatus.ACTIVE)
                 .roles(Set.of(adminRole))
                 .build();

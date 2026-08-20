@@ -4,6 +4,7 @@ class LoginResponse {
   final int? userId;
   final String? username;
   final String? role;
+  final String? accessProfile;
   final String? status;
   final String? message;
   final String? deviceStatus;
@@ -15,6 +16,7 @@ class LoginResponse {
     this.userId,
     this.username,
     this.role,
+    this.accessProfile,
     this.status,
     this.message,
     this.deviceStatus,
@@ -28,6 +30,7 @@ class LoginResponse {
       userId: json['userId'],
       username: json['username'],
       role: json['role'] ?? json['userRole'] ?? json['assignedRole'],
+      accessProfile: json['accessProfile'],
       status:
           json['status'] ??
           json['userStatus'] ??

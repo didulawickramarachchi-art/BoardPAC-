@@ -9,6 +9,8 @@ import com.portSrilanka.board_admin_backend.enums.LoginStatus;
 import com.portSrilanka.board_admin_backend.enums.DeviceStatus;
 import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
+import com.portSrilanka.board_admin_backend.enums.BoardType;
+import com.portSrilanka.board_admin_backend.enums.AccessProfile;
 import com.portSrilanka.board_admin_backend.exception.BadRequestException;
 import com.portSrilanka.board_admin_backend.repository.LoginHistoryRepository;
 import com.portSrilanka.board_admin_backend.repository.DeviceRepository;
@@ -69,12 +71,24 @@ public class AuthService {
         Role userRole = roleRepository.findByName(requestedRole)
                 .orElseThrow(() -> new BadRequestException("Role not found: " + requestedRole));
 
+        AccessProfile accessProfile = request.getAccessProfile() != null
+                ? request.getAccessProfile()
+                : AccessProfile.defaultFor(requestedRole);
+        if (!accessProfile.supports(requestedRole)) {
+            throw new BadRequestException(
+                    "Access profile " + accessProfile + " is not valid for role " + requestedRole);
+        }
+
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .boardEmail(request.getBoardEmail())
+                .boardType(request.getBoardType() != null
+                        ? request.getBoardType()
+                        : defaultBoardType(requestedRole))
+                .accessProfile(accessProfile)
                 .status(UserStatus.ACTIVE)
                 .roles(Set.of(userRole))
                 .build();
@@ -84,6 +98,14 @@ public class AuthService {
             notificationService.notifyAdminsOfNewMember(savedUser);
         }
         return "User registered successfully";
+    }
+
+    private BoardType defaultBoardType(SystemRole role) {
+        return switch (role) {
+            case MEMBER -> BoardType.MEMBER;
+            case SECRETARY -> BoardType.ORGANIZER;
+            case ADMIN -> BoardType.SUPPORT_TEAM;
+        };
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -113,6 +135,7 @@ public class AuthService {
                     .userId(user.getId())
                     .username(user.getUsername())
                     .role(getPrimaryRole(user))
+                    .accessProfile(user.getAccessProfile().name())
                     .message("Verification code sent to your email")
                     .requiresTwoFactor(true)
                     .build();
@@ -135,6 +158,7 @@ public class AuthService {
                 .userId(user.getId())
                 .username(user.getUsername())
                 .role(getPrimaryRole(user))
+                .accessProfile(user.getAccessProfile().name())
                 .message("Login successful")
                 .build();
     }
@@ -240,6 +264,7 @@ public LoginResponse verifyTwoFactor(TwoFactorVerifyRequest request) {
             .userId(user.getId())
             .username(user.getUsername())
             .role(getPrimaryRole(user))
+            .accessProfile(user.getAccessProfile().name())
             .message("2FA verification successful")
             .requiresTwoFactor(false)
             .build();

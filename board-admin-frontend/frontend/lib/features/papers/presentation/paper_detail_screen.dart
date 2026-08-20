@@ -161,7 +161,7 @@ class PaperDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
-    final access = RoleAccess(auth.role ?? 'MEMBER');
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
     final attachmentsAsync = ref.watch(attachmentListProvider(paper.id));
     final commentsAsync = ref.watch(paperCommentProvider(paper.id));
 

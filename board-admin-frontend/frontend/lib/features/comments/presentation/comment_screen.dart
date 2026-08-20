@@ -225,7 +225,8 @@ class CommentScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
     final asyncComments = paperId != null
         ? ref.watch(paperCommentProvider(paperId!))
         : ref.watch(meetingCommentProvider(meetingId!));

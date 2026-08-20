@@ -14,6 +14,7 @@ import '../../devices/model/device_model.dart';
 import '../../devices/presentation/device_list_screen.dart';
 import '../../devices/provider/device_provider.dart';
 import '../../meetings/presentation/meeting_list_screen.dart';
+import '../../meetings/presentation/member_calendar_screen.dart';
 import '../../meetings/provider/meeting_provider.dart';
 import '../../notifications/model/notification_model.dart';
 import '../../notifications/model/notification_request.dart';
@@ -179,6 +180,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               },
                               loading: () => const SizedBox.shrink(),
                               error: (_, _) => const SizedBox.shrink(),
+                            ),
+                          ],
+
+                          if (access.isMember) ...[
+                            const SizedBox(height: 24),
+                            MemberDashboardCalendar(
+                              meetings: memberMeetings ?? const [],
+                              loading: ref.watch(meetingListProvider).isLoading,
+                              onOpenCalendar: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const MemberCalendarScreen(),
+                                ),
+                              ),
                             ),
                           ],
 
@@ -2102,7 +2117,31 @@ const _secretaryTiles = [
 
 const _memberTiles = [
   _MenuTileData('Meetings', Icons.event_note_outlined, MeetingListScreen()),
-  _MenuTileData('Papers', Icons.picture_as_pdf_outlined, PaperListScreen()),
+  _MenuTileData(
+    'Circulars',
+    Icons.campaign_outlined,
+    MeetingListScreen(meetingType: 'CIRCULAR'),
+  ),
+  _MenuTileData(
+    'Calendar',
+    Icons.calendar_month_outlined,
+    MemberCalendarScreen(),
+  ),
+  _MenuTileData(
+    'Past Meetings',
+    Icons.history_rounded,
+    MeetingListScreen(initiallyShowHistory: true),
+  ),
+  _MenuTileData(
+    'Shared Documents',
+    Icons.folder_shared_outlined,
+    PaperListScreen(),
+  ),
+  _MenuTileData(
+    'Board Papers',
+    Icons.picture_as_pdf_outlined,
+    PaperListScreen(),
+  ),
 ];
 
 List<_SummaryCard> _summaryCardsForRole(

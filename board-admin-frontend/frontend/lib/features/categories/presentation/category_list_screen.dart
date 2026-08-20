@@ -121,7 +121,8 @@ class CategoryListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(categoryListProvider);
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
 
     if (!access.canViewCategories) {
       return const Scaffold(

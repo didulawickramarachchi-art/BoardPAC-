@@ -24,6 +24,7 @@ class AuthState {
   final int? userId;
   final String? username;
   final String? role;
+  final String? accessProfile;
 
   const AuthState({
     this.isLoading = false,
@@ -33,6 +34,7 @@ class AuthState {
     this.userId,
     this.username,
     this.role,
+    this.accessProfile,
   });
 
   AuthState copyWith({
@@ -43,6 +45,7 @@ class AuthState {
     int? userId,
     String? username,
     String? role,
+    String? accessProfile,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
@@ -52,6 +55,7 @@ class AuthState {
       userId: userId ?? this.userId,
       username: username ?? this.username,
       role: role ?? this.role,
+      accessProfile: accessProfile ?? this.accessProfile,
     );
   }
 }
@@ -105,6 +109,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userId: result.userId,
           username: result.username,
           role: result.role?.toUpperCase() ?? 'MEMBER',
+          accessProfile: result.accessProfile,
         );
         return false;
       }
@@ -136,6 +141,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         userId: result.userId,
         username: result.username ?? username,
         role: result.role?.toUpperCase() ?? 'MEMBER',
+        accessProfile: result.accessProfile,
       );
 
       return true;
@@ -203,6 +209,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         userId: result.userId,
         username: result.username ?? username,
         role: result.role?.toUpperCase() ?? 'MEMBER',
+        accessProfile: result.accessProfile,
         requiresTwoFactor: false,
       );
 

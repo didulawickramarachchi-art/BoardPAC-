@@ -12,6 +12,7 @@ public class LoginResponse {
     private Long userId;
     private String username;
     private String role;
+    private String accessProfile;
     private String message;
     private boolean requiresTwoFactor;
 }

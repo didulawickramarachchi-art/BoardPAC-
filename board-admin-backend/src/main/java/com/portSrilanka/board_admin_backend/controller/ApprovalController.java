@@ -17,7 +17,7 @@ public class ApprovalController {
     private final ApprovalService approvalService;
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and @accessProfileService.canApprove(authentication.name)")
     public ResponseEntity<ApprovalResponse> approve(@RequestBody ApprovalRequest request) {
         return ResponseEntity.ok(approvalService.approve(request));
     }

@@ -18,7 +18,7 @@ public class PaperController {
     private final PaperService paperService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') and @accessProfileService.canUploadPapers(authentication.name)")
     public ResponseEntity<PaperResponse> create(@RequestBody PaperRequest request, Authentication authentication) {
         return ResponseEntity.ok(paperService.create(request, authentication.getName()));
     }

@@ -17,7 +17,7 @@ public class AnnotationController {
     private final AnnotationService annotationService;
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and @accessProfileService.canAnnotate(authentication.name)")
     public ResponseEntity<AnnotationResponse> create(@RequestBody AnnotationRequest request) {
         return ResponseEntity.ok(annotationService.create(request));
     }
@@ -32,13 +32,13 @@ public class AnnotationController {
     }
 
     @PostMapping("/backup/{userId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and @accessProfileService.canAnnotate(authentication.name)")
     public ResponseEntity<AnnotationBackupResponse> backup(@PathVariable Long userId) {
         return ResponseEntity.ok(annotationService.backup(userId));
     }
 
     @PostMapping("/restore")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and @accessProfileService.canAnnotate(authentication.name)")
     public ResponseEntity<String> restore(@RequestBody AnnotationRestoreRequest request) {
         return ResponseEntity.ok(annotationService.restore(request));
     }

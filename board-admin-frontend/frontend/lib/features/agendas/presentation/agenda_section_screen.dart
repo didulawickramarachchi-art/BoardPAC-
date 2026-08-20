@@ -131,7 +131,8 @@ class AgendaSectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sectionsAsync = ref.watch(agendaSectionProvider(meetingId));
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
 
     return Scaffold(
       appBar: AppBar(title: Text('Agenda Sections - $meetingTitle')),

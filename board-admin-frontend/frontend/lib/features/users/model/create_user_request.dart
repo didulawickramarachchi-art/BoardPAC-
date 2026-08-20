@@ -5,6 +5,8 @@ class CreateUserRequest {
   final String lastName;
   final String boardEmail;
   final String role;
+  final String boardType;
+  final String accessProfile;
 
   const CreateUserRequest({
     required this.username,
@@ -13,6 +15,8 @@ class CreateUserRequest {
     required this.lastName,
     required this.boardEmail,
     required this.role,
+    required this.boardType,
+    required this.accessProfile,
   });
 
   Map<String, dynamic> toJson() {
@@ -23,6 +27,8 @@ class CreateUserRequest {
       'lastName': lastName,
       'boardEmail': boardEmail,
       'role': role,
+      'boardType': boardType,
+      'accessProfile': accessProfile,
     };
   }
 }

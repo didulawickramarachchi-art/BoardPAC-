@@ -19,7 +19,7 @@ public class AttachmentController {
     private final AttachmentService attachmentService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') and @accessProfileService.canUploadPapers(authentication.name)")
     public ResponseEntity<PaperAttachmentResponse> add(
             @RequestBody PaperAttachmentRequest request,
             Authentication authentication

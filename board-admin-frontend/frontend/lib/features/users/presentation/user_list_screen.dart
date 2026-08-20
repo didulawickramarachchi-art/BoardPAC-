@@ -21,7 +21,8 @@ class UserListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(userListProvider);
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
 
     if (!access.canViewUsers) {
       return const Scaffold(
@@ -174,6 +175,14 @@ class UserListScreen extends ConsumerWidget {
                                 children: [
                                   if (user.role?.trim().isNotEmpty ?? false)
                                     _RoleChip(role: user.role!),
+                                  if (user.accessProfile?.trim().isNotEmpty ??
+                                      false)
+                                    _AccessProfileChip(
+                                      accessProfile: user.accessProfile!,
+                                    ),
+                                  if (user.boardType?.trim().isNotEmpty ??
+                                      false)
+                                    _BoardTypeChip(boardType: user.boardType!),
                                   if (user.status?.trim().isNotEmpty ?? false)
                                     AppStatusChip(label: user.status!),
                                 ],
@@ -503,15 +512,7 @@ class _RoleChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final normalized = normalizeRole(role);
-    final label = normalized
-        .split('_')
-        .map(
-          (word) => word.isEmpty
-              ? word
-              : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
-        )
-        .join(' ');
+    final label = roleLabel(role);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -540,6 +541,80 @@ class _RoleChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BoardTypeChip extends StatelessWidget {
+  final String boardType;
+
+  const _BoardTypeChip({required this.boardType});
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: boardTypeAccessLabel(boardType),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: UserListScreen.gold.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.devices_rounded,
+            size: 13,
+            color: UserListScreen.darkBlue,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            boardTypeLabel(boardType),
+            style: const TextStyle(
+              color: UserListScreen.darkBlue,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _AccessProfileChip extends StatelessWidget {
+  final String accessProfile;
+
+  const _AccessProfileChip({required this.accessProfile});
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: accessProfileDescription(accessProfile),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2F80ED).withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.verified_user_outlined,
+            size: 13,
+            color: Color(0xFF2F80ED),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            accessProfileLabel(accessProfile),
+            style: const TextStyle(
+              color: Color(0xFF2F80ED),
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 String? _actionLabel(String value) {

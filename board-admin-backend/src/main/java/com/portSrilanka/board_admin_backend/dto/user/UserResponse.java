@@ -1,5 +1,7 @@
 package com.portSrilanka.board_admin_backend.dto.user;
 
+import com.portSrilanka.board_admin_backend.enums.BoardType;
+import com.portSrilanka.board_admin_backend.enums.AccessProfile;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import lombok.Builder;
 import lombok.Data;
@@ -18,5 +20,7 @@ public class UserResponse {
     private String profilePictureUrl;
     private boolean twoStepEnabled;
     private String role;
+    private BoardType boardType;
+    private AccessProfile accessProfile;
     private UserStatus status;
 }

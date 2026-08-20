@@ -9,6 +9,8 @@ class UserModel {
   final String? jobTitle;
   final String? profilePictureUrl;
   final String? role;
+  final String? boardType;
+  final String? accessProfile;
   final bool? twoStepEnabled;
   final String? status;
 
@@ -23,6 +25,8 @@ class UserModel {
     this.jobTitle,
     this.profilePictureUrl,
     this.role,
+    this.boardType,
+    this.accessProfile,
     this.twoStepEnabled,
     this.status,
   });
@@ -43,6 +47,8 @@ class UserModel {
           json['profile_picture_url'] ??
           json['profilePicture'],
       role: json['role'] ?? json['userRole'],
+      boardType: json['boardType'],
+      accessProfile: json['accessProfile'],
       twoStepEnabled: json['twoStepEnabled'],
       status: json['status'],
     );

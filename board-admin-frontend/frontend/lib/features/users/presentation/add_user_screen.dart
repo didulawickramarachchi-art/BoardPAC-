@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/network/api_error_message.dart';
+import '../../../core/auth/role_access.dart';
 import '../model/create_user_request.dart';
 import '../provider/user_provider.dart';
 
@@ -21,6 +22,8 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   final lastName = TextEditingController();
   final email = TextEditingController();
   String role = 'MEMBER';
+  String boardType = 'MEMBER';
+  String accessProfile = 'MEMBER';
   bool saving = false;
 
   static const navy = Color(0xFF12275B);
@@ -63,6 +66,8 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
               lastName: lastName.text.trim(),
               boardEmail: email.text.trim(),
               role: role,
+              boardType: boardType,
+              accessProfile: accessProfile,
             ),
           );
       if (mounted) Navigator.pop(context, true);
@@ -119,22 +124,71 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
           ),
           const SizedBox(height: 16),
           _Card(
-            title: 'Role Type',
+            title: 'Role and Access',
             children: [
               DropdownButtonFormField<String>(
                 initialValue: role,
                 decoration: _decoration('Role'),
-                items: const [
-                  DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
-                  DropdownMenuItem(
-                    value: 'SECRETARY',
-                    child: Text('Secretary'),
-                  ),
-                  DropdownMenuItem(value: 'MEMBER', child: Text('Member')),
-                ],
+                items: supportedRoles
+                    .map(
+                      (value) => DropdownMenuItem(
+                        value: value,
+                        child: Text(roleLabel(value)),
+                      ),
+                    )
+                    .toList(),
                 onChanged: saving
                     ? null
-                    : (value) => setState(() => role = value ?? 'MEMBER'),
+                    : (value) => setState(() {
+                        role = value ?? 'MEMBER';
+                        accessProfile = defaultAccessProfile(role);
+                      }),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                key: ValueKey(role),
+                initialValue: accessProfile,
+                decoration: _decoration('Access profile'),
+                items: accessProfilesForRole(role)
+                    .map(
+                      (value) => DropdownMenuItem(
+                        value: value,
+                        child: Text(accessProfileLabel(value)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: saving
+                    ? null
+                    : (value) => setState(
+                        () =>
+                            accessProfile = value ?? defaultAccessProfile(role),
+                      ),
+              ),
+              const SizedBox(height: 8),
+              _AccessHint(
+                icon: Icons.verified_user_outlined,
+                text: accessProfileDescription(accessProfile),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: boardType,
+                decoration: _decoration('Board type'),
+                items: supportedBoardTypes
+                    .map(
+                      (value) => DropdownMenuItem(
+                        value: value,
+                        child: Text(boardTypeLabel(value)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: saving
+                    ? null
+                    : (value) => setState(() => boardType = value ?? 'MEMBER'),
+              ),
+              const SizedBox(height: 8),
+              _AccessHint(
+                icon: Icons.devices_rounded,
+                text: boardTypeAccessLabel(boardType),
               ),
             ],
           ),
@@ -157,6 +211,31 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       borderRadius: BorderRadius.circular(16),
       borderSide: const BorderSide(color: gold, width: 1.5),
     ),
+  );
+}
+
+class _AccessHint extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _AccessHint({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 16, color: _AddUserScreenState.gold),
+      const SizedBox(width: 7),
+      Expanded(
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Color(0xFF7D8CB2),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ],
   );
 }
 

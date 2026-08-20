@@ -3,8 +3,12 @@ package com.portSrilanka.board_admin_backend.service;
 import com.portSrilanka.board_admin_backend.dto.user.*;
 import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
+import com.portSrilanka.board_admin_backend.enums.SystemRole;
+import com.portSrilanka.board_admin_backend.enums.AccessProfile;
+import com.portSrilanka.board_admin_backend.entity.Role;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
+import com.portSrilanka.board_admin_backend.repository.RoleRepository;
 import com.portSrilanka.board_admin_backend.dto.common.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +30,7 @@ import java.util.Set;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
     private final SupabaseStorageService supabaseStorageService;
@@ -93,6 +98,38 @@ public class UserService {
         user.setJobTitle(request.getJobTitle());
         user.setProfilePictureUrl(request.getProfilePictureUrl());
         user.setTwoStepEnabled(request.isTwoStepEnabled());
+        if (request.getBoardType() != null) {
+            user.setBoardType(request.getBoardType());
+        }
+        SystemRole effectiveRole = user.getRoles().stream()
+                .map(Role::getName)
+                .findFirst()
+                .orElse(SystemRole.MEMBER);
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            final SystemRole requestedRole;
+            try {
+                requestedRole = SystemRole.valueOf(request.getRole().trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException exception) {
+                throw new com.portSrilanka.board_admin_backend.exception.BadRequestException(
+                        "Invalid role: " + request.getRole());
+            }
+            Role role = roleRepository.findByName(requestedRole)
+                    .orElseThrow(() -> new com.portSrilanka.board_admin_backend.exception.BadRequestException(
+                            "Role not found: " + requestedRole));
+            user.setRoles(Set.of(role));
+            effectiveRole = requestedRole;
+        }
+        if (request.getAccessProfile() != null) {
+            if (!request.getAccessProfile().supports(effectiveRole)) {
+                throw new com.portSrilanka.board_admin_backend.exception.BadRequestException(
+                        "Access profile " + request.getAccessProfile()
+                                + " is not valid for role " + effectiveRole);
+            }
+            user.setAccessProfile(request.getAccessProfile());
+        } else if (user.getAccessProfile() == null
+                || !user.getAccessProfile().supports(effectiveRole)) {
+            user.setAccessProfile(AccessProfile.defaultFor(effectiveRole));
+        }
 
         userRepository.save(user);
 
@@ -218,6 +255,8 @@ public class UserService {
                         .sorted()
                         .findFirst()
                         .orElse("MEMBER"))
+                .boardType(user.getBoardType())
+                .accessProfile(user.getAccessProfile())
                 .status(user.getStatus())
                 .build();
     }

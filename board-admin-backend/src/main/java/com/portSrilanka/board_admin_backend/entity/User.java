@@ -1,6 +1,7 @@
 package com.portSrilanka.board_admin_backend.entity;
 
 import com.portSrilanka.board_admin_backend.enums.BoardType;
+import com.portSrilanka.board_admin_backend.enums.AccessProfile;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -43,6 +44,9 @@ public class User extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private BoardType boardType;
+
+    @Enumerated(EnumType.STRING)
+    private AccessProfile accessProfile;
 
     @Enumerated(EnumType.STRING)
     private UserStatus status;

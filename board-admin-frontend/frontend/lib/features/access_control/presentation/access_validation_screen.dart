@@ -57,7 +57,8 @@ class _AccessValidationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
 
     if (!access.isAdmin) {
       return const Scaffold(

@@ -19,7 +19,8 @@ class PrivilegeListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
     if (!access.canManagePrivileges) {
       return const Scaffold(
         body: Center(child: Text('Only secretaries can manage privileges.')),

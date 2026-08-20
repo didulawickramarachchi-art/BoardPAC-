@@ -15,7 +15,14 @@ import 'meeting_detail_screen.dart';
 import 'meeting_form_screen.dart';
 
 class MeetingListScreen extends ConsumerStatefulWidget {
-  const MeetingListScreen({super.key});
+  final bool initiallyShowHistory;
+  final String? meetingType;
+
+  const MeetingListScreen({
+    super.key,
+    this.initiallyShowHistory = false,
+    this.meetingType,
+  });
 
   @override
   ConsumerState<MeetingListScreen> createState() => _MeetingListScreenState();
@@ -24,7 +31,13 @@ class MeetingListScreen extends ConsumerStatefulWidget {
 class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
   String? selectedCategory;
   String? selectedSubcategory;
-  bool showHistory = false;
+  late bool showHistory;
+
+  @override
+  void initState() {
+    super.initState();
+    showHistory = widget.initiallyShowHistory;
+  }
 
   static const Color primaryBlue = Color(0xFF12275B);
   static const Color darkBlue = Color(0xFF00184A);
@@ -37,7 +50,8 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
     final categoryModels = ref.watch(categoryListProvider).valueOrNull ?? [];
     final subcategoryModels =
         ref.watch(subcategoryListProvider).valueOrNull ?? [];
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
 
     if (!access.canViewMeetings) {
       return const Scaffold(
@@ -68,7 +82,11 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
         title: Text(
           selectedSubcategory ??
               selectedCategory ??
-              (showHistory ? 'Meeting History' : 'Meetings'),
+              (showHistory
+                  ? 'Meeting Archive'
+                  : widget.meetingType == 'CIRCULAR'
+                  ? 'Circulars'
+                  : 'Meetings'),
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         bottom: PreferredSize(
@@ -130,6 +148,12 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
         data: (items) {
           final visibleByPeriod =
               items
+                  .where(
+                    (meeting) =>
+                        widget.meetingType == null ||
+                        meeting.type.toString().toUpperCase() ==
+                            widget.meetingType,
+                  )
                   .where((meeting) => _isHistorical(meeting) == showHistory)
                   .toList()
                 ..sort(

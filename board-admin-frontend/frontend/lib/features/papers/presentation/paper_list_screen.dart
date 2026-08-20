@@ -27,7 +27,8 @@ class PaperListScreen extends ConsumerWidget {
     final papersAsync = meetingId == null
         ? ref.watch(allPaperListProvider)
         : ref.watch(paperListProvider(meetingId!));
-    final access = RoleAccess(ref.watch(authProvider).role ?? 'MEMBER');
+    final auth = ref.watch(authProvider);
+    final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
     final isSecretary = access.isSecretary;
 
     if (!access.canViewPapers) {

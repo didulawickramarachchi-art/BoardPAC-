@@ -1,5 +1,7 @@
 package com.portSrilanka.board_admin_backend.dto.auth;
 
+import com.portSrilanka.board_admin_backend.enums.BoardType;
+import com.portSrilanka.board_admin_backend.enums.AccessProfile;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -24,4 +26,7 @@ public class RegisterRequest {
     private String boardEmail;
 
     private String role; // Accept as string, convert in service
+
+    private BoardType boardType;
+    private AccessProfile accessProfile;
 }

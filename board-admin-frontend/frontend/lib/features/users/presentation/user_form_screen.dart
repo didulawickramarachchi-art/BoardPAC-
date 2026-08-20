@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/auth/role_access.dart';
 import '../model/user_model.dart';
 import '../model/user_request.dart';
 import '../provider/user_provider.dart';
@@ -25,6 +26,8 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
 
   bool twoStepEnabled = false;
   String role = 'MEMBER';
+  String boardType = 'MEMBER';
+  String accessProfile = 'MEMBER';
   bool isSaving = false;
 
   static const Color primaryBlue = Color(0xFF12275B);
@@ -50,6 +53,8 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     );
 
     role = widget.user.role?.toUpperCase() ?? 'MEMBER';
+    boardType = normalizeBoardType(widget.user.boardType);
+    accessProfile = normalizeAccessProfile(widget.user.accessProfile, role);
     twoStepEnabled = widget.user.twoStepEnabled ?? false;
   }
 
@@ -75,6 +80,8 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       mobileNumber: _mobileController.text.trim(),
       jobTitle: _jobTitleController.text.trim(),
       role: role,
+      boardType: boardType,
+      accessProfile: accessProfile,
       officeEmail: null,
       officeNumber: null,
       twoStepEnabled: twoStepEnabled,
@@ -161,7 +168,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            title: 'Role Assignment',
+            title: 'Role and Access',
             children: [
               DropdownButtonFormField<String>(
                 initialValue: role,
@@ -201,9 +208,79 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                 ],
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() => role = value);
+                    setState(() {
+                      role = value;
+                      accessProfile = defaultAccessProfile(role);
+                    });
                   }
                 },
+              ),
+
+              const SizedBox(height: 14),
+
+              DropdownButtonFormField<String>(
+                key: ValueKey(role),
+                initialValue: accessProfile,
+                decoration: _dropdownDecoration('Access profile'),
+                dropdownColor: Colors.white,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: primaryBlue,
+                ),
+                items: accessProfilesForRole(role)
+                    .map(
+                      (profile) => DropdownMenuItem(
+                        value: profile,
+                        child: Text(accessProfileLabel(profile)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => accessProfile = value);
+                },
+              ),
+              const SizedBox(height: 8),
+              _AccessDescription(
+                icon: Icons.verified_user_outlined,
+                text: accessProfileDescription(accessProfile),
+              ),
+
+              const SizedBox(height: 14),
+
+              DropdownButtonFormField<String>(
+                initialValue: boardType,
+                decoration: _dropdownDecoration('Board type'),
+                dropdownColor: Colors.white,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: primaryBlue,
+                ),
+                items: supportedBoardTypes
+                    .map(
+                      (type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(boardTypeLabel(type)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => boardType = value);
+                },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.devices_rounded, size: 16, color: gold),
+                  const SizedBox(width: 7),
+                  Text(
+                    boardTypeAccessLabel(boardType),
+                    style: const TextStyle(
+                      color: Color(0xFF7D8CB2),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 14),
@@ -253,6 +330,53 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       ),
     );
   }
+
+  InputDecoration _dropdownDecoration(String label) => InputDecoration(
+    labelText: label,
+    labelStyle: const TextStyle(
+      color: Color(0xFF7D8CB2),
+      fontWeight: FontWeight.w600,
+    ),
+    filled: true,
+    fillColor: bgColor,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: gold, width: 1.5),
+    ),
+  );
+}
+
+class _AccessDescription extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _AccessDescription({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 16, color: _UserFormScreenState.gold),
+      const SizedBox(width: 7),
+      Expanded(
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Color(0xFF7D8CB2),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 class _UserHeaderCard extends StatelessWidget {
