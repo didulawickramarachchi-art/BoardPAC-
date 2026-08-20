@@ -38,15 +38,14 @@ class _AccessValidationScreenState
   static const Color bgColor = Color(0xFFF6F7FC);
   static const Color cardColor = Colors.white;
   static const Color iconBg = Color(0xFFE9ECF3);
-  static const Color arrowBg = Color(0xFFFFF1D8);
   static const Color subTextColor = Color(0xFF6E7FA8);
 
   void _validate() {
     final userId = selectedUserId;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a user.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a user.')));
       return;
     }
 
@@ -103,7 +102,7 @@ class _AccessValidationScreenState
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 14,
                     offset: const Offset(0, 6),
                   ),
@@ -113,9 +112,8 @@ class _AccessValidationScreenState
                 children: [
                   usersAsync.when(
                     data: (users) => DropdownButtonFormField<int>(
-                      initialValue: users.any(
-                        (user) => user.id == selectedUserId,
-                      )
+                      initialValue:
+                          users.any((user) => user.id == selectedUserId)
                           ? selectedUserId
                           : null,
                       isExpanded: true,
@@ -126,17 +124,14 @@ class _AccessValidationScreenState
                           color: navy,
                         ),
                         filled: true,
-                        fillColor: iconBg.withOpacity(0.55),
+                        fillColor: iconBg.withValues(alpha: 0.55),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide.none,
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: navy,
-                            width: 1.4,
-                          ),
+                          borderSide: const BorderSide(color: navy, width: 1.4),
                         ),
                       ),
                       hint: const Text('Choose a user'),
@@ -177,7 +172,7 @@ class _AccessValidationScreenState
                         color: navy,
                       ),
                       filled: true,
-                      fillColor: iconBg.withOpacity(0.55),
+                      fillColor: iconBg.withValues(alpha: 0.55),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide.none,
@@ -228,112 +223,114 @@ class _AccessValidationScreenState
               const _ValidationPrompt()
             else
               asyncData.when(
-              data: (item) {
-                final allowed = item.allowed;
+                data: (item) {
+                  final allowed = item.allowed;
 
-                return Container(
-                  padding: const EdgeInsets.all(16),
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: allowed
+                                    ? const Color(0xFFE8F7EE)
+                                    : const Color(0xFFFFECEC),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Icon(
+                                allowed
+                                    ? Icons.check_circle_rounded
+                                    : Icons.cancel_rounded,
+                                color: allowed
+                                    ? const Color(0xFF168A45)
+                                    : const Color(0xFFD64545),
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.username,
+                                    style: const TextStyle(
+                                      color: navy,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    allowed
+                                        ? 'User access is allowed'
+                                        : 'User access is denied',
+                                    style: const TextStyle(
+                                      color: subTextColor,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            AppStatusChip(
+                              label: allowed ? 'ALLOWED' : 'DENIED',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _InfoTile(
+                          icon: Icons.wifi_tethering_rounded,
+                          title: 'Requested Channel',
+                          value: item.requestedChannel,
+                        ),
+                        const SizedBox(height: 12),
+                        _InfoTile(
+                          icon: Icons.info_outline_rounded,
+                          title: 'Reason',
+                          value: item.reason,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                error: (e, _) => Container(
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: cardColor,
                     borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: allowed
-                                  ? const Color(0xFFE8F7EE)
-                                  : const Color(0xFFFFECEC),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Icon(
-                              allowed
-                                  ? Icons.check_circle_rounded
-                                  : Icons.cancel_rounded,
-                              color: allowed
-                                  ? const Color(0xFF168A45)
-                                  : const Color(0xFFD64545),
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.username,
-                                  style: const TextStyle(
-                                    color: navy,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  allowed
-                                      ? 'User access is allowed'
-                                      : 'User access is denied',
-                                  style: const TextStyle(
-                                    color: subTextColor,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          AppStatusChip(label: allowed ? 'ALLOWED' : 'DENIED'),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _InfoTile(
-                        icon: Icons.wifi_tethering_rounded,
-                        title: 'Requested Channel',
-                        value: item.requestedChannel,
-                      ),
-                      const SizedBox(height: 12),
-                      _InfoTile(
-                        icon: Icons.info_outline_rounded,
-                        title: 'Reason',
-                        value: item.reason,
-                      ),
-                    ],
-                  ),
-                );
-              },
-              error: (e, _) => Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Text(
-                  'Failed to validate access:\n$e',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: navy,
-                    fontWeight: FontWeight.w600,
+                  child: Text(
+                    'Failed to validate access:\n$e',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: navy,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              loading: () => const Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: AppLoading(),
-              ),
+                loading: () => const Padding(
+                  padding: EdgeInsets.only(top: 40),
+                  child: AppLoading(),
+                ),
               ),
           ],
         ),
@@ -423,7 +420,7 @@ class _InfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: iconBg.withOpacity(0.55),
+        color: iconBg.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

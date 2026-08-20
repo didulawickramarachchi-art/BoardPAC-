@@ -103,9 +103,7 @@ class SubcategoryListScreen extends ConsumerWidget {
     if (!access.canViewSubcategories) {
       return const Scaffold(
         backgroundColor: bgColor,
-        body: Center(
-          child: Text('You do not have access to subcategories.'),
-        ),
+        body: Center(child: Text('You do not have access to subcategories.')),
       );
     }
 
@@ -133,9 +131,7 @@ class SubcategoryListScreen extends ConsumerWidget {
       body: subcategoriesAsync.when(
         data: (items) {
           if (items.isEmpty) {
-            return const AppEmptyState(
-              message: 'No subcategories found',
-            );
+            return const AppEmptyState(message: 'No subcategories found');
           }
 
           return ListView.separated(
@@ -151,7 +147,7 @@ class SubcategoryListScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -165,7 +161,7 @@ class SubcategoryListScreen extends ConsumerWidget {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: primaryBlue.withOpacity(0.08),
+                          color: primaryBlue.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
@@ -225,7 +221,7 @@ class SubcategoryListScreen extends ConsumerWidget {
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: gold.withOpacity(0.16),
+                                color: gold.withValues(alpha: 0.16),
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               child: Text(
@@ -284,10 +280,7 @@ class _SubcategoryErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _SubcategoryErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _SubcategoryErrorState({required this.message, required this.onRetry});
 
   static const Color primaryBlue = Color(0xFF12275B);
   static const Color darkBlue = Color(0xFF00184A);
@@ -306,7 +299,7 @@ class _SubcategoryErrorState extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -319,7 +312,7 @@ class _SubcategoryErrorState extends StatelessWidget {
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
-                  color: gold.withOpacity(0.18),
+                  color: gold.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

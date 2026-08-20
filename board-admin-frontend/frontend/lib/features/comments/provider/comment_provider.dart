@@ -58,6 +58,11 @@ class CommentNotifier extends StateNotifier<AsyncValue<List<CommentModel>>> {
     await load();
   }
 
+  Future<void> reply(int commentId, String message) async {
+    await repository.reply(commentId, message);
+    await load();
+  }
+
   Future<void> shareComment(ShareCommentRequest request) async {
     await repository.shareComment(request);
     await load();
@@ -88,6 +93,11 @@ class MeetingCommentNotifier
 
   Future<void> addComment(CommentRequest request) async {
     await repository.createComment(request);
+    await load();
+  }
+
+  Future<void> reply(int commentId, String message) async {
+    await repository.reply(commentId, message);
     await load();
   }
 }

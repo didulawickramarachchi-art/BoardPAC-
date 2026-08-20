@@ -140,7 +140,8 @@ public class NotificationService {
         String userName = senderName(user);
         String deviceName = clean(device.getDeviceInfo(), "Unknown device");
         String title = "New device approval required";
-        String message = userName + " (" + user.getUsername() + ") requested access from "
+        String username = user == null ? "unassigned user" : user.getUsername();
+        String message = userName + " (" + username + ") requested access from "
                 + deviceName + ". Open Device Management to approve or reject this device.";
 
         createForRecipients(
@@ -170,6 +171,41 @@ public class NotificationService {
                         admin.getUsername(), ex);
             }
         }
+    }
+
+    @Transactional
+    public void notifyAdminsOfDeviceApproval(Device device) {
+        User user = device.getUser();
+        String deviceName = clean(device.getDeviceInfo(), device.getDeviceId());
+        String message = "Device " + deviceName + " for " + senderName(user)
+                + " has been approved.";
+
+        createForRecipients(
+                activeAdmins(),
+                user,
+                "Device request approved",
+                message,
+                "DEVICE_REQUEST_APPROVED",
+                null, null, null, null,
+                true
+        );
+    }
+
+    @Transactional
+    public void notifyAdminsOfNewMember(User member) {
+        createForRecipients(
+                activeAdmins(),
+                member,
+                "New member added",
+                senderName(member) + " (" + member.getUsername() + ") has been added as a board member.",
+                "MEMBER_ADDED",
+                null, null, null, null,
+                true
+        );
+    }
+
+    private List<User> activeAdmins() {
+        return userRepository.findDistinctByRolesNameAndStatus(SystemRole.ADMIN, UserStatus.ACTIVE);
     }
 
     @Transactional

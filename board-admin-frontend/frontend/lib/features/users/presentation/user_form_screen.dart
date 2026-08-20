@@ -216,7 +216,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                 child: SwitchListTile(
                   value: twoStepEnabled,
                   activeThumbColor: gold,
-                  activeTrackColor: gold.withOpacity(0.35),
+                  activeTrackColor: gold.withValues(alpha: 0.35),
                   inactiveThumbColor: Colors.white,
                   title: const Text(
                     '2-Step Authentication',
@@ -276,7 +276,7 @@ class _UserHeaderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.20),
+            color: primaryBlue.withValues(alpha: 0.20),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -369,7 +369,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.035),
+            color: Colors.black.withValues(alpha: 0.035),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),

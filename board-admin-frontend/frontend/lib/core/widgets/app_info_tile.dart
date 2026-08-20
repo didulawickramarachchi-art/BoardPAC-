@@ -4,11 +4,7 @@ class AppInfoTile extends StatelessWidget {
   final String title;
   final String value;
 
-  const AppInfoTile({
-    super.key,
-    required this.title,
-    required this.value,
-  });
+  const AppInfoTile({super.key, required this.title, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +23,7 @@ class AppInfoTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title),
-                const SizedBox(height: 4),
-                valueText,
-              ],
+              children: [Text(title), const SizedBox(height: 4), valueText],
             ),
           );
         }

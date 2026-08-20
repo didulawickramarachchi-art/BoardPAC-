@@ -29,17 +29,17 @@ class AuthInterceptor extends Interceptor {
 
   @override
   Future<void> onError(
-    DioException error,
+    DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    final request = error.requestOptions;
+    final request = err.requestOptions;
     final shouldRefresh =
-        error.response?.statusCode == 401 &&
+        err.response?.statusCode == 401 &&
         !_isPublicRequest(request.path) &&
         request.extra['retriedAfterTokenRefresh'] != true;
 
     if (!shouldRefresh) {
-      handler.next(error);
+      handler.next(err);
       return;
     }
 
@@ -49,7 +49,7 @@ class AuthInterceptor extends Interceptor {
 
       if (token == null || token.isEmpty) {
         await storageService.clearAll();
-        handler.next(error);
+        handler.next(err);
         return;
       }
 
@@ -69,7 +69,7 @@ class AuthInterceptor extends Interceptor {
     } catch (_) {
       _activeRefresh = null;
       await storageService.clearAll();
-      handler.next(error);
+      handler.next(err);
     }
   }
 

@@ -6,7 +6,10 @@ class AppLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: CircularProgressIndicator(),
+      child: SizedBox.square(
+        dimension: 34,
+        child: CircularProgressIndicator(strokeWidth: 3),
+      ),
     );
   }
 }

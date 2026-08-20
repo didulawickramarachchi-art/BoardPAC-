@@ -8,9 +8,7 @@ class DeviceRepository {
 
   Future<List<DeviceModel>> getDevices() async {
     final response = await dio.get('/devices');
-    return (response.data as List)
-        .map((e) => DeviceModel.fromJson(e))
-        .toList();
+    return (response.data as List).map((e) => DeviceModel.fromJson(e)).toList();
   }
 
   Future<void> approveDevice(int id) async {

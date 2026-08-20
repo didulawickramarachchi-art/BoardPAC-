@@ -27,7 +27,9 @@ class PackDeliveryScreen extends ConsumerWidget {
       body: asyncData.when(
         data: (items) {
           if (items.isEmpty) {
-            return const AppEmptyState(message: 'No pack delivery records found');
+            return const AppEmptyState(
+              message: 'No pack delivery records found',
+            );
           }
 
           return ListView.builder(
@@ -47,7 +49,8 @@ class PackDeliveryScreen extends ConsumerWidget {
             },
           );
         },
-        error: (error, _) => Center(child: Text('Failed to load pack delivery: $error')),
+        error: (error, _) =>
+            Center(child: Text('Failed to load pack delivery: $error')),
         loading: () => const AppLoading(),
       ),
     );

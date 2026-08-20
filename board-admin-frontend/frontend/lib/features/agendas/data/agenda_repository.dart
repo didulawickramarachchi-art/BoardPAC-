@@ -20,6 +20,10 @@ class AgendaRepository {
     await dio.post('/agendas/sections', data: request.toJson());
   }
 
+  Future<void> deleteSection(int sectionId) async {
+    await dio.delete('/agendas/sections/$sectionId');
+  }
+
   Future<List<AgendaItemModel>> getItems(int meetingId) async {
     final response = await dio.get('/agendas/items/$meetingId');
     return (response.data as List)
@@ -29,5 +33,9 @@ class AgendaRepository {
 
   Future<void> createItem(AgendaItemRequest request) async {
     await dio.post('/agendas/items', data: request.toJson());
+  }
+
+  Future<void> deleteItem(int itemId) async {
+    await dio.delete('/agendas/items/$itemId');
   }
 }

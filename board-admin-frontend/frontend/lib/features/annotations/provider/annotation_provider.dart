@@ -10,22 +10,27 @@ final annotationRepositoryProvider = Provider<AnnotationRepository>((ref) {
   return AnnotationRepository(ref.read(dioProvider));
 });
 
-final annotationListProvider = StateNotifierProvider.family<
-    AnnotationNotifier, AsyncValue<List<AnnotationModel>>, ({int paperId, int userId})>((ref, args) {
-  return AnnotationNotifier(
-    ref.read(annotationRepositoryProvider),
-    args.paperId,
-    args.userId,
-  )..load();
-});
+final annotationListProvider =
+    StateNotifierProvider.family<
+      AnnotationNotifier,
+      AsyncValue<List<AnnotationModel>>,
+      ({int paperId, int userId})
+    >((ref, args) {
+      return AnnotationNotifier(
+        ref.read(annotationRepositoryProvider),
+        args.paperId,
+        args.userId,
+      )..load();
+    });
 
-class AnnotationNotifier extends StateNotifier<AsyncValue<List<AnnotationModel>>> {
+class AnnotationNotifier
+    extends StateNotifier<AsyncValue<List<AnnotationModel>>> {
   final AnnotationRepository repository;
   final int paperId;
   final int userId;
 
   AnnotationNotifier(this.repository, this.paperId, this.userId)
-      : super(const AsyncLoading());
+    : super(const AsyncLoading());
 
   Future<void> load() async {
     try {

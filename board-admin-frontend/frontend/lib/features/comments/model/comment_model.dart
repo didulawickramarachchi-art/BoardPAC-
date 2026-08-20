@@ -1,6 +1,8 @@
 class CommentModel {
   final int id;
+  final int createdByUserId;
   final String createdByUsername;
+  final String? createdByProfilePictureUrl;
   final String commentText;
   final bool annotated;
   final DateTime? createdAt;
@@ -8,10 +10,13 @@ class CommentModel {
   final bool reactedByCurrentUser;
   final String? currentReaction;
   final Map<String, int> reactionCounts;
+  final List<CommentReplyModel> replies;
 
   CommentModel({
     required this.id,
+    required this.createdByUserId,
     required this.createdByUsername,
+    this.createdByProfilePictureUrl,
     required this.commentText,
     required this.annotated,
     this.createdAt,
@@ -19,12 +24,15 @@ class CommentModel {
     required this.reactedByCurrentUser,
     this.currentReaction,
     required this.reactionCounts,
+    required this.replies,
   });
 
   factory CommentModel.fromJson(Map<String, dynamic> json) {
     return CommentModel(
       id: json['id'],
+      createdByUserId: (json['createdByUserId'] as num?)?.toInt() ?? 0,
       createdByUsername: json['createdByUsername'] ?? '',
+      createdByProfilePictureUrl: json['createdByProfilePictureUrl'],
       commentText: json['commentText'] ?? '',
       annotated: json['annotated'] ?? false,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
@@ -34,6 +42,38 @@ class CommentModel {
       reactionCounts: (json['reactionCounts'] as Map? ?? {}).map(
         (key, value) => MapEntry(key.toString(), (value as num).toInt()),
       ),
+      replies: (json['replies'] as List? ?? const [])
+          .map((item) => CommentReplyModel.fromJson(item))
+          .toList(),
+    );
+  }
+}
+
+class CommentReplyModel {
+  final int id;
+  final int createdByUserId;
+  final String createdByUsername;
+  final String? createdByProfilePictureUrl;
+  final String message;
+  final DateTime? createdAt;
+
+  const CommentReplyModel({
+    required this.id,
+    required this.createdByUserId,
+    required this.createdByUsername,
+    this.createdByProfilePictureUrl,
+    required this.message,
+    this.createdAt,
+  });
+
+  factory CommentReplyModel.fromJson(Map<String, dynamic> json) {
+    return CommentReplyModel(
+      id: (json['id'] as num).toInt(),
+      createdByUserId: (json['createdByUserId'] as num?)?.toInt() ?? 0,
+      createdByUsername: json['createdByUsername'] ?? '',
+      createdByProfilePictureUrl: json['createdByProfilePictureUrl'],
+      message: json['message'] ?? '',
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
     );
   }
 }

@@ -300,6 +300,9 @@ class PaperDetailScreen extends ConsumerWidget {
                     .map(
                       (comment) => CommentCard(
                         comment: comment,
+                        onReply: (message) => ref
+                            .read(paperCommentProvider(paper.id).notifier)
+                            .reply(comment.id, message),
                         onReact: (reaction) => ref
                             .read(paperCommentProvider(paper.id).notifier)
                             .react(comment.id, reaction),
@@ -358,7 +361,7 @@ class _PaperHeaderCard extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
+                color: Colors.white.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(15),
               ),
               child: const Icon(
@@ -570,7 +573,7 @@ class _SectionHeader extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFF233E8B).withOpacity(0.09),
+              color: const Color(0xFF233E8B).withValues(alpha: 0.09),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: const Color(0xFF233E8B), size: 19),
@@ -606,11 +609,11 @@ class _InfoChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: highlighted
             ? const Color(0xFFFFB52E)
-            : Colors.white.withOpacity(0.12),
+            : Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
         border: highlighted
             ? null
-            : Border.all(color: Colors.white.withOpacity(0.16)),
+            : Border.all(color: Colors.white.withValues(alpha: 0.16)),
       ),
       child: Text(
         label,

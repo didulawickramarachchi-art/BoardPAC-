@@ -78,8 +78,7 @@ class ResponsivePage extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Padding(
           padding:
-              padding ??
-              EdgeInsets.symmetric(horizontal: context.pageGutter),
+              padding ?? EdgeInsets.symmetric(horizontal: context.pageGutter),
           child: child,
         ),
       ),

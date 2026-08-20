@@ -38,7 +38,10 @@ class PaperRepository {
   }
 
   Future<void> reactToAttachment(int attachmentId, String reactionType) async {
-    await dio.post('/attachments/$attachmentId/reaction', data: {'reactionType': reactionType});
+    await dio.post(
+      '/attachments/$attachmentId/reaction',
+      data: {'reactionType': reactionType},
+    );
   }
 
   Future<String> uploadAttachment({
@@ -50,7 +53,10 @@ class PaperRepository {
     final formData = FormData.fromMap({
       'file': filePath != null && filePath.isNotEmpty
           ? await MultipartFile.fromFile(filePath, filename: fileName)
-          : MultipartFile.fromBytes(fileBytes ?? Uint8List(0), filename: fileName),
+          : MultipartFile.fromBytes(
+              fileBytes ?? Uint8List(0),
+              filename: fileName,
+            ),
     });
 
     final response = await dio.post(

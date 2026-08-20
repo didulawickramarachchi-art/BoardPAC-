@@ -28,7 +28,14 @@ class CommentRepository {
   }
 
   Future<void> react(int commentId, String reactionType) async {
-    await dio.post('/comments/$commentId/reaction', data: {'reactionType': reactionType});
+    await dio.post(
+      '/comments/$commentId/reaction',
+      data: {'reactionType': reactionType},
+    );
+  }
+
+  Future<void> reply(int commentId, String message) async {
+    await dio.post('/comments/$commentId/replies', data: {'message': message});
   }
 
   Future<void> shareComment(ShareCommentRequest request) async {

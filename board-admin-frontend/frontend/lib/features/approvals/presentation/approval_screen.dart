@@ -37,13 +37,18 @@ class ApprovalScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: selectedStatus,
-                  decoration: const InputDecoration(labelText: 'Approval Status'),
+                  decoration: const InputDecoration(
+                    labelText: 'Approval Status',
+                  ),
                   items: const [
                     DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
                     DropdownMenuItem(value: 'APPROVE', child: Text('Approve')),
                     DropdownMenuItem(value: 'REJECT', child: Text('Reject')),
                     DropdownMenuItem(value: 'ABSTAIN', child: Text('Abstain')),
-                    DropdownMenuItem(value: 'INTEREST', child: Text('Interest')),
+                    DropdownMenuItem(
+                      value: 'INTEREST',
+                      child: Text('Interest'),
+                    ),
                     DropdownMenuItem(value: 'RPT', child: Text('RPT')),
                   ],
                   onChanged: (value) {
@@ -55,7 +60,9 @@ class ApprovalScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 TextField(
                   controller: commentController,
-                  decoration: const InputDecoration(labelText: 'Approval Comment'),
+                  decoration: const InputDecoration(
+                    labelText: 'Approval Comment',
+                  ),
                   maxLines: 3,
                 ),
               ],
@@ -68,7 +75,9 @@ class ApprovalScreen extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
-                await ref.read(approvalListProvider(paperId).notifier).submit(
+                await ref
+                    .read(approvalListProvider(paperId).notifier)
+                    .submit(
                       ApprovalRequest(
                         paperId: paperId,
                         userId: int.parse(userIdController.text.trim()),
@@ -120,7 +129,8 @@ class ApprovalScreen extends ConsumerWidget {
             },
           );
         },
-        error: (error, _) => Center(child: Text('Failed to load approvals: $error')),
+        error: (error, _) =>
+            Center(child: Text('Failed to load approvals: $error')),
         loading: () => const AppLoading(),
       ),
     );

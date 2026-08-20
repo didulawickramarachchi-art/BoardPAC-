@@ -9,11 +9,14 @@ final privilegeRepositoryProvider = Provider<PrivilegeRepository>((ref) {
 });
 
 final privilegeListProvider =
-    StateNotifierProvider<PrivilegeNotifier, AsyncValue<List<PrivilegeModel>>>((ref) {
-  return PrivilegeNotifier(ref.read(privilegeRepositoryProvider))..load();
-});
+    StateNotifierProvider<PrivilegeNotifier, AsyncValue<List<PrivilegeModel>>>((
+      ref,
+    ) {
+      return PrivilegeNotifier(ref.read(privilegeRepositoryProvider))..load();
+    });
 
-class PrivilegeNotifier extends StateNotifier<AsyncValue<List<PrivilegeModel>>> {
+class PrivilegeNotifier
+    extends StateNotifier<AsyncValue<List<PrivilegeModel>>> {
   final PrivilegeRepository repository;
 
   PrivilegeNotifier(this.repository) : super(const AsyncLoading());
@@ -72,11 +75,11 @@ class PrivilegeNotifier extends StateNotifier<AsyncValue<List<PrivilegeModel>>> 
     await load();
   }
 
-  Future<void> remove({
-    required int userId,
-    required int subcategoryId,
-  }) async {
-    await repository.removePrivilege(userId: userId, subcategoryId: subcategoryId);
+  Future<void> remove({required int userId, required int subcategoryId}) async {
+    await repository.removePrivilege(
+      userId: userId,
+      subcategoryId: subcategoryId,
+    );
     await load();
   }
 }

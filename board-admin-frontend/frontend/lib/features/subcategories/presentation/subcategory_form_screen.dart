@@ -15,8 +15,7 @@ class SubcategoryFormScreen extends ConsumerStatefulWidget {
       _SubcategoryFormScreenState();
 }
 
-class _SubcategoryFormScreenState
-    extends ConsumerState<SubcategoryFormScreen> {
+class _SubcategoryFormScreenState extends ConsumerState<SubcategoryFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _displayNameController = TextEditingController();
@@ -26,7 +25,6 @@ class _SubcategoryFormScreenState
   bool _isSaving = false;
 
   static const Color primaryBlue = Color(0xFF12275B);
-  static const Color darkBlue = Color(0xFF00184A);
   static const Color gold = Color(0xFFFFB52E);
   static const Color bgColor = Color(0xFFF6F7FB);
 
@@ -58,12 +56,15 @@ class _SubcategoryFormScreenState
     setState(() => _isSaving = true);
 
     try {
-      await ref.read(subcategoryRepositoryProvider).createSubcategory(
+      await ref
+          .read(subcategoryRepositoryProvider)
+          .createSubcategory(
             SubcategoryRequest(
               name: _nameController.text.trim(),
               displayName: _displayNameController.text.trim(),
-              displayOrder:
-                  displayOrderText.isEmpty ? null : int.parse(displayOrderText),
+              displayOrder: displayOrderText.isEmpty
+                  ? null
+                  : int.parse(displayOrderText),
               categoryId: categoryId,
             ),
           );
@@ -319,7 +320,7 @@ class _HeaderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.20),
+            color: primaryBlue.withValues(alpha: 0.20),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -330,7 +331,10 @@ class _HeaderCard extends StatelessWidget {
           Container(
             width: 56,
             height: 56,
-            decoration: const BoxDecoration(color: gold, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: gold,
+              shape: BoxShape.circle,
+            ),
             child: const Icon(
               Icons.account_tree_outlined,
               color: darkBlue,
@@ -381,10 +385,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   static const Color darkBlue = Color(0xFF00184A);
 
@@ -397,7 +398,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.035),
+            color: Colors.black.withValues(alpha: 0.035),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -468,10 +469,7 @@ class _FormTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Color(0xFFFFB52E),
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFFFB52E), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -526,10 +524,7 @@ class _DropdownError extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _DropdownError({
-    required this.message,
-    required this.onRetry,
-  });
+  const _DropdownError({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {

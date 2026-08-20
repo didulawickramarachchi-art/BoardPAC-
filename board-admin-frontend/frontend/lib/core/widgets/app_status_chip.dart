@@ -4,10 +4,7 @@ import '../theme/app_theme.dart';
 class AppStatusChip extends StatelessWidget {
   final String label;
 
-  const AppStatusChip({
-    super.key,
-    required this.label,
-  });
+  const AppStatusChip({super.key, required this.label});
 
   Color _background(String value) {
     switch (value.toUpperCase()) {

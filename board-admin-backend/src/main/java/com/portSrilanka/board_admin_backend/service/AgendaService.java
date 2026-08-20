@@ -17,6 +17,7 @@ public class AgendaService {
     private final MeetingRepository meetingRepository;
     private final AgendaSectionRepository agendaSectionRepository;
     private final AgendaItemRepository agendaItemRepository;
+    private final PaperRepository paperRepository;
     private final AuditService auditService;
 
     public AgendaSectionResponse createSection(AgendaSectionRequest request) {
@@ -104,6 +105,21 @@ public class AgendaService {
     public List<AgendaItemResponse> getItems(Long meetingId) {
         return agendaItemRepository.findByMeetingIdOrderByDisplayOrderAsc(meetingId)
                 .stream().map(this::mapItem).toList();
+    }
+
+    @Transactional
+    public String deleteItem(Long itemId) {
+        AgendaItem item = agendaItemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agenda item not found"));
+
+        List<Paper> linkedPapers = paperRepository.findByAgendaItemId(itemId);
+        linkedPapers.forEach(paper -> paper.setAgendaItem(null));
+        paperRepository.saveAll(linkedPapers);
+
+        agendaItemRepository.delete(item);
+        auditService.logInfo("AGENDA", "DELETE_ITEM", "SYSTEM",
+                "Agenda item deleted: " + item.getTitle(), "WEB");
+        return "Agenda item deleted successfully";
     }
 
     private AgendaItemResponse mapItem(AgendaItem item) {

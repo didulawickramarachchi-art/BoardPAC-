@@ -78,7 +78,7 @@ class DeviceListScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 18,
                         offset: const Offset(0, 8),
                       ),
@@ -92,7 +92,7 @@ class DeviceListScreen extends ConsumerWidget {
                           width: 52,
                           height: 52,
                           decoration: BoxDecoration(
-                            color: primaryBlue.withOpacity(0.08),
+                            color: primaryBlue.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Icon(
@@ -175,7 +175,7 @@ class DeviceListScreen extends ConsumerWidget {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: primaryBlue.withOpacity(0.08),
+                              color: primaryBlue.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -206,6 +206,7 @@ class DeviceListScreen extends ConsumerWidget {
                             }
 
                             if (value == 'delete') {
+                              if (!context.mounted) return;
                               final confirmed = await showDialog<bool>(
                                 context: context,
                                 builder: (dialogContext) => AlertDialog(
@@ -215,11 +216,13 @@ class DeviceListScreen extends ConsumerWidget {
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.pop(dialogContext, false),
+                                      onPressed: () =>
+                                          Navigator.pop(dialogContext, false),
                                       child: const Text('Cancel'),
                                     ),
                                     TextButton(
-                                      onPressed: () => Navigator.pop(dialogContext, true),
+                                      onPressed: () =>
+                                          Navigator.pop(dialogContext, true),
                                       child: const Text('Delete'),
                                     ),
                                   ],

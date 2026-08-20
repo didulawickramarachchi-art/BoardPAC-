@@ -141,30 +141,30 @@ class AttachmentScreen extends ConsumerWidget {
                     onPressed: isUploading
                         ? null
                         : () async {
-                          final result = await FilePicker.platform.pickFiles(
-                            type: FileType.custom,
-                            allowedExtensions: [
-                              'pdf',
-                              'png',
-                              'jpg',
-                              'jpeg',
-                              'gif',
-                              'webp',
-                            ],
-                            allowMultiple: false,
-                          );
-                          if (result != null && result.files.isNotEmpty) {
-                            final file = result.files.first;
-                            selectedFile = file;
-                            selectedBytes = file.bytes;
-                            selectedFilePath = file.path;
-                            errorMessage = null;
-                            uploadProgress = 0;
-                            if (fileNameController.text.trim().isEmpty) {
-                              fileNameController.text = file.name;
+                            final result = await FilePicker.platform.pickFiles(
+                              type: FileType.custom,
+                              allowedExtensions: [
+                                'pdf',
+                                'png',
+                                'jpg',
+                                'jpeg',
+                                'gif',
+                                'webp',
+                              ],
+                              allowMultiple: false,
+                            );
+                            if (result != null && result.files.isNotEmpty) {
+                              final file = result.files.first;
+                              selectedFile = file;
+                              selectedBytes = file.bytes;
+                              selectedFilePath = file.path;
+                              errorMessage = null;
+                              uploadProgress = 0;
+                              if (fileNameController.text.trim().isEmpty) {
+                                fileNameController.text = file.name;
+                              }
+                              setState(() {});
                             }
-                            setState(() {});
-                          }
                           },
                     icon: const Icon(Icons.upload_file_rounded),
                     label: const Text(
@@ -188,10 +188,7 @@ class AttachmentScreen extends ConsumerWidget {
                       child: SizedBox(
                         height: 120,
                         child: selectedBytes != null
-                            ? Image.memory(
-                                selectedBytes!,
-                                fit: BoxFit.cover,
-                              )
+                            ? Image.memory(selectedBytes!, fit: BoxFit.cover)
                             : Image.file(
                                 File(selectedFilePath!),
                                 fit: BoxFit.cover,
@@ -210,7 +207,9 @@ class AttachmentScreen extends ConsumerWidget {
                 ),
                 if (isUploading) ...[
                   const SizedBox(height: 12),
-                  LinearProgressIndicator(value: uploadProgress == 0 ? null : uploadProgress),
+                  LinearProgressIndicator(
+                    value: uploadProgress == 0 ? null : uploadProgress,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     uploadProgress > 0
@@ -233,7 +232,9 @@ class AttachmentScreen extends ConsumerWidget {
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF667394),
               ),
-              onPressed: isUploading ? null : () => Navigator.pop(dialogContext),
+              onPressed: isUploading
+                  ? null
+                  : () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             FilledButton(
@@ -265,7 +266,10 @@ class AttachmentScreen extends ConsumerWidget {
                         return;
                       }
 
-                      final extension = selectedFile!.name.split('.').last.toLowerCase();
+                      final extension = selectedFile!.name
+                          .split('.')
+                          .last
+                          .toLowerCase();
                       final allowedTypes = <String>{
                         'pdf',
                         'png',
@@ -281,7 +285,7 @@ class AttachmentScreen extends ConsumerWidget {
                         return;
                       }
 
-                      if ((selectedFile!.size ?? 0) > 10 * 1024 * 1024) {
+                      if (selectedFile!.size > 10 * 1024 * 1024) {
                         setState(() {
                           errorMessage = 'File size must be 10 MB or less.';
                         });
@@ -296,18 +300,19 @@ class AttachmentScreen extends ConsumerWidget {
 
                       try {
                         final repository = ref.read(paperRepositoryProvider);
-                        final uploadedFilePath = await repository.uploadAttachment(
-                          fileName: fileName,
-                          filePath: selectedFilePath,
-                          fileBytes: selectedBytes,
-                          onProgress: (sent, total) {
-                            if (total > 0) {
-                              setState(() {
-                                uploadProgress = sent / total;
-                              });
-                            }
-                          },
-                        );
+                        final uploadedFilePath = await repository
+                            .uploadAttachment(
+                              fileName: fileName,
+                              filePath: selectedFilePath,
+                              fileBytes: selectedBytes,
+                              onProgress: (sent, total) {
+                                if (total > 0) {
+                                  setState(() {
+                                    uploadProgress = sent / total;
+                                  });
+                                }
+                              },
+                            );
 
                         await ref
                             .read(attachmentListProvider(paperId).notifier)
@@ -316,7 +321,8 @@ class AttachmentScreen extends ConsumerWidget {
                                 paperId: paperId,
                                 fileName: fileName,
                                 filePath: uploadedFilePath,
-                                displayOrder: orderController.text.trim().isEmpty
+                                displayOrder:
+                                    orderController.text.trim().isEmpty
                                     ? null
                                     : int.parse(orderController.text.trim()),
                               ),
@@ -325,7 +331,11 @@ class AttachmentScreen extends ConsumerWidget {
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Attachment uploaded successfully.')),
+                            const SnackBar(
+                              content: Text(
+                                'Attachment uploaded successfully.',
+                              ),
+                            ),
                           );
                         }
                       } catch (e) {
@@ -350,9 +360,7 @@ class AttachmentScreen extends ConsumerWidget {
 
     if (!access.canViewPapers) {
       return const Scaffold(
-        body: Center(
-          child: Text('You do not have access to board papers.'),
-        ),
+        body: Center(child: Text('You do not have access to board papers.')),
       );
     }
 
@@ -452,7 +460,7 @@ class _AttachmentSummary extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
@@ -563,9 +571,7 @@ class _AttachmentListCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(
-                  isImage
-                      ? Icons.image_outlined
-                      : Icons.picture_as_pdf_rounded,
+                  isImage ? Icons.image_outlined : Icons.picture_as_pdf_rounded,
                   color: isImage
                       ? const Color(0xFF16835B)
                       : const Color(0xFFE74C3C),

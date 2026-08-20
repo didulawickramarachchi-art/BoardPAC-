@@ -47,7 +47,7 @@ class LicenseUtilizationScreen extends ConsumerWidget {
                   title: 'Total Users',
                   value: item.totalUsers.toString(),
                   icon: Icons.people_alt_outlined,
-                  bgColor: primaryBlue.withOpacity(0.08),
+                  bgColor: primaryBlue.withValues(alpha: 0.08),
                   iconColor: primaryBlue,
                 ),
 
@@ -121,7 +121,7 @@ class _HeaderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.20),
+            color: primaryBlue.withValues(alpha: 0.20),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -214,7 +214,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -230,11 +230,7 @@ class _StatCard extends StatelessWidget {
               color: bgColor,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 24,
-            ),
+            child: Icon(icon, color: iconColor, size: 24),
           ),
 
           const Spacer(),

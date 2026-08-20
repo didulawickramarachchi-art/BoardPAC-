@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_glass_surface.dart';
 
 class CategoryImageCard extends StatelessWidget {
   final String title;
@@ -19,42 +20,37 @@ class CategoryImageCard extends StatelessWidget {
     final url = imageUrl?.trim() ?? '';
     return Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: const Color(0xFFE2E3E6).withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.72)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF12275B).withValues(alpha: 0.08),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
-          ),
-        ],
+      decoration: AppGlassDecoration.surface(
+        borderRadius: BorderRadius.circular(26),
+        tint: const Color(0xFFBFC9E2),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           child: SizedBox(
-            height: 160,
+            height: 126,
             child: Row(
               children: [
                 Container(
-                  width: 145,
+                  width: 112,
                   height: double.infinity,
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(26),
                   ),
                   child: url.isEmpty
                       ? const _Placeholder()
                       : Image.network(
                           url,
                           fit: BoxFit.cover,
+                          cacheWidth: 440,
+                          filterQuality: FilterQuality.medium,
+                          gaplessPlayback: true,
                           errorBuilder: (_, _, _) => const _Placeholder(),
                         ),
                 ),
-                const SizedBox(width: 22),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -66,12 +62,12 @@ class CategoryImageCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF111111),
-                          fontSize: 25,
+                          fontSize: 20,
                           height: 1,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 7),
                       const _GlassBadge(label: 'CATEGORY'),
                       const SizedBox(height: 8),
                       Text(

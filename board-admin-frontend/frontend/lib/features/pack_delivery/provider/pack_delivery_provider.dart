@@ -7,10 +7,12 @@ final packDeliveryRepositoryProvider = Provider<PackDeliveryRepository>((ref) {
   return PackDeliveryRepository(ref.read(dioProvider));
 });
 
-final packDeliveryByPaperProvider = FutureProvider.family<List<PackDeliveryModel>, int>((ref, paperId) async {
-  return ref.read(packDeliveryRepositoryProvider).getByPaper(paperId);
-});
+final packDeliveryByPaperProvider =
+    FutureProvider.family<List<PackDeliveryModel>, int>((ref, paperId) async {
+      return ref.read(packDeliveryRepositoryProvider).getByPaper(paperId);
+    });
 
-final packDeliveryByUserProvider = FutureProvider.family<List<PackDeliveryModel>, int>((ref, userId) async {
-  return ref.read(packDeliveryRepositoryProvider).getByUser(userId);
-});
+final packDeliveryByUserProvider =
+    FutureProvider.family<List<PackDeliveryModel>, int>((ref, userId) async {
+      return ref.read(packDeliveryRepositoryProvider).getByUser(userId);
+    });

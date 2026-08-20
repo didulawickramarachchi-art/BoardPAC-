@@ -7,9 +7,12 @@ final accessRepositoryProvider = Provider<AccessRepository>((ref) {
   return AccessRepository(ref.read(dioProvider));
 });
 
-final accessValidationProvider = FutureProvider.family<AccessValidationModel, ({int userId, String channel})>((ref, args) async {
-  return ref.read(accessRepositoryProvider).validate(
-        userId: args.userId,
-        channel: args.channel,
-      );
-});
+final accessValidationProvider =
+    FutureProvider.family<
+      AccessValidationModel,
+      ({int userId, String channel})
+    >((ref, args) async {
+      return ref
+          .read(accessRepositoryProvider)
+          .validate(userId: args.userId, channel: args.channel);
+    });

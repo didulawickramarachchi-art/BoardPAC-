@@ -30,7 +30,6 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   bool isSaving = false;
 
   static const Color primaryBlue = Color(0xFF12275B);
-  static const Color darkBlue = Color(0xFF00184A);
   static const Color gold = Color(0xFFFFB52E);
   static const Color bgColor = Color(0xFFF6F7FB);
 
@@ -54,6 +53,7 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
     );
 
     if (date != null) {
+      if (!mounted) return;
       final time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
@@ -104,6 +104,7 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
     );
 
     if (date != null) {
+      if (!mounted) return;
       final time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
@@ -477,7 +478,7 @@ class _HeaderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.20),
+            color: primaryBlue.withValues(alpha: 0.20),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -634,7 +635,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.035),
+            color: Colors.black.withValues(alpha: 0.035),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),

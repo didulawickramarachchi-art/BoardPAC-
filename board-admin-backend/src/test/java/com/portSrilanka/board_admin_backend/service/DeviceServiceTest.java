@@ -22,16 +22,19 @@ class DeviceServiceTest {
 
     private DeviceRepository deviceRepository;
     private EmailService emailService;
+    private NotificationService notificationService;
     private DeviceService deviceService;
 
     @BeforeEach
     void setUp() {
         deviceRepository = mock(DeviceRepository.class);
         emailService = mock(EmailService.class);
+        notificationService = mock(NotificationService.class);
         deviceService = new DeviceService(
                 deviceRepository,
                 mock(UserRepository.class),
-                emailService
+                emailService,
+                notificationService
         );
     }
 
@@ -54,6 +57,7 @@ class DeviceServiceTest {
         assertEquals("Device approved successfully", result);
         assertEquals(DeviceStatus.APPROVED, device.getStatus());
         verify(deviceRepository).save(device);
+        verify(notificationService).notifyAdminsOfDeviceApproval(device);
         verify(emailService).sendEmail(
                 eq("nimal@example.com"),
                 eq("Device request approved"),

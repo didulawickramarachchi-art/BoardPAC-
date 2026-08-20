@@ -39,17 +39,17 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
       barrierDismissible: true,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
           title: const Text(
             'Add Participant',
-            style: TextStyle(
-              color: darkBlue,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(color: darkBlue, fontWeight: FontWeight.w900),
           ),
           content: Consumer(
             builder: (context, dialogRef, _) {
@@ -96,8 +96,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
                                   : '$fullName (${user.username})';
                               return DropdownMenuItem<int>(
                                 value: user.id,
-                                enabled:
-                                    !user.isParticipant && user.isEligible,
+                                enabled: !user.isParticipant && user.isEligible,
                                 child: Row(
                                   children: [
                                     Expanded(
@@ -132,17 +131,15 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
                                 ),
                               );
                             }).toList(),
-                            validator: (value) => value == null
-                                ? 'Please select a user'
-                                : null,
+                            validator: (value) =>
+                                value == null ? 'Please select a user' : null,
                             onChanged: isSubmitting
                                 ? null
                                 : (value) => selectedUserId = value,
                           );
                         },
-                        loading: () => const LinearProgressIndicator(
-                          color: gold,
-                        ),
+                        loading: () =>
+                            const LinearProgressIndicator(color: gold),
                         error: (error, _) => Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -193,7 +190,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
               style: FilledButton.styleFrom(
                 backgroundColor: primaryBlue,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: primaryBlue.withOpacity(0.65),
+                disabledBackgroundColor: primaryBlue.withValues(alpha: 0.65),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -214,7 +211,9 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
                       try {
                         await ref
                             .read(
-                              participantListProvider(widget.meetingId).notifier,
+                              participantListProvider(
+                                widget.meetingId,
+                              ).notifier,
                             )
                             .addParticipant(
                               MeetingParticipantRequest(
@@ -236,7 +235,9 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Failed to add participant: $error'),
+                              content: Text(
+                                'Failed to add participant: $error',
+                              ),
                             ),
                           );
                         }
@@ -280,10 +281,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
           ),
           title: const Text(
             'Update Status',
-            style: TextStyle(
-              color: darkBlue,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(color: darkBlue, fontWeight: FontWeight.w900),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -348,7 +346,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
                       ),
                     );
 
-                if (mounted) Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               },
               child: const Text('Update'),
             ),
@@ -383,9 +381,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
         backgroundColor: gold,
         foregroundColor: darkBlue,
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         onPressed: _showAddDialog,
         child: const Icon(Icons.person_add_alt_1_rounded),
       ),
@@ -412,7 +408,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -426,7 +422,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: primaryBlue.withOpacity(0.08),
+                          color: primaryBlue.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
@@ -455,11 +451,10 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
 
                             const SizedBox(height: 8),
 
-                            _StatusChip(
-                              status: participant.participantStatus,
-                            ),
+                            _StatusChip(status: participant.participantStatus),
 
-                            if ((participant.statusReason ?? '').isNotEmpty) ...[
+                            if ((participant.statusReason ?? '')
+                                .isNotEmpty) ...[
                               const SizedBox(height: 7),
                               Row(
                                 children: [
@@ -493,7 +488,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
 
                       IconButton(
                         style: IconButton.styleFrom(
-                          backgroundColor: primaryBlue.withOpacity(0.08),
+                          backgroundColor: primaryBlue.withValues(alpha: 0.08),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -503,8 +498,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
                           color: primaryBlue,
                           size: 21,
                         ),
-                        onPressed: () =>
-                            _showStatusDialog(participant.userId),
+                        onPressed: () => _showStatusDialog(participant.userId),
                       ),
                     ],
                   ),
@@ -550,10 +544,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: gold,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: gold, width: 1.5),
       ),
     );
   }
@@ -577,7 +568,7 @@ class _MeetingHeaderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.20),
+            color: primaryBlue.withValues(alpha: 0.20),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -741,10 +732,7 @@ class _DialogTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: gold,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: gold, width: 1.5),
         ),
       ),
     );

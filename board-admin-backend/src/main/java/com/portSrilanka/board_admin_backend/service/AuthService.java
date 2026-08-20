@@ -79,7 +79,10 @@ public class AuthService {
                 .roles(Set.of(userRole))
                 .build();
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        if (requestedRole == SystemRole.MEMBER) {
+            notificationService.notifyAdminsOfNewMember(savedUser);
+        }
         return "User registered successfully";
     }
 

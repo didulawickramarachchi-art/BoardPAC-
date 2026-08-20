@@ -34,7 +34,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     if (!_formKey.currentState!.validate() || _submitting) return;
     setState(() => _submitting = true);
     try {
-      await ref.read(authRepositoryProvider).resetPassword(
+      await ref
+          .read(authRepositoryProvider)
+          .resetPassword(
             token: widget.token,
             newPassword: _passwordController.text,
           );
@@ -65,13 +67,15 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 child: widget.token.isEmpty
                     ? const _InvalidLink()
                     : _completed
-                        ? _Success(onSignIn: () {
+                    ? _Success(
+                        onSignIn: () {
                           Navigator.pushNamedAndRemoveUntil(
                             context,
                             '/',
                             (_) => false,
                           );
-                          })
+                        },
+                      )
                     : Form(
                         key: _formKey,
                         child: Column(
@@ -128,8 +132,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 prefixIcon: const Icon(Icons.lock_outline),
                                 suffixIcon: IconButton(
                                   onPressed: () => setState(
-                                        () => _hideConfirmation =
-                                            !_hideConfirmation,
+                                    () =>
+                                        _hideConfirmation = !_hideConfirmation,
                                   ),
                                   icon: Icon(
                                     _hideConfirmation
@@ -138,8 +142,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                   ),
                                 ),
                               ),
-                                  validator: (value) => value !=
-                                          _passwordController.text
+                              validator: (value) =>
+                                  value != _passwordController.text
                                   ? 'Passwords do not match'
                                   : null,
                             ),

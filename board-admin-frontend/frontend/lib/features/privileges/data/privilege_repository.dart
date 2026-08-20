@@ -31,10 +31,7 @@ class PrivilegeRepository {
   }) async {
     await dio.delete(
       '/privileges',
-      queryParameters: {
-        'userId': userId,
-        'subcategoryId': subcategoryId,
-      },
+      queryParameters: {'userId': userId, 'subcategoryId': subcategoryId},
     );
   }
 }

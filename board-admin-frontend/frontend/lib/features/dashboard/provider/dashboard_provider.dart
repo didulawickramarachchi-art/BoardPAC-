@@ -7,6 +7,7 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
   return DashboardRepository(ref.read(dioProvider));
 });
 
-final dashboardSummaryProvider = FutureProvider.family<DashboardSummaryModel, int>((ref, userId) async {
-  return ref.read(dashboardRepositoryProvider).getSummary(userId);
-});
+final dashboardSummaryProvider =
+    FutureProvider.family<DashboardSummaryModel, int>((ref, userId) async {
+      return ref.read(dashboardRepositoryProvider).getSummary(userId);
+    });

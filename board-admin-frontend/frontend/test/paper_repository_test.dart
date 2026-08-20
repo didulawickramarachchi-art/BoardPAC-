@@ -8,11 +8,15 @@ void main() {
       final repository = PaperRepository(Dio());
 
       expect(
-        repository.resolveUploadedFilePath({'filePath': 'https://cdn.example.com/file.pdf'}),
+        repository.resolveUploadedFilePath({
+          'filePath': 'https://cdn.example.com/file.pdf',
+        }),
         'https://cdn.example.com/file.pdf',
       );
       expect(
-        repository.resolveUploadedFilePath({'url': 'https://cdn.example.com/file.png'}),
+        repository.resolveUploadedFilePath({
+          'url': 'https://cdn.example.com/file.png',
+        }),
         'https://cdn.example.com/file.png',
       );
       expect(

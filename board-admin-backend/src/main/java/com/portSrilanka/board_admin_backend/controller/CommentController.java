@@ -51,6 +51,16 @@ public class CommentController {
         return ResponseEntity.ok(commentService.react(commentId, request.getReactionType(), authentication.getName()));
     }
 
+    @PostMapping("/{commentId}/replies")
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    public ResponseEntity<CommentResponse> reply(
+            @PathVariable Long commentId,
+            @RequestBody CommentReplyRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(commentService.reply(commentId, request.getMessage(), authentication.getName()));
+    }
+
     @PostMapping("/share")
     @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<String> shareComment(@RequestBody ShareCommentRequest request) {

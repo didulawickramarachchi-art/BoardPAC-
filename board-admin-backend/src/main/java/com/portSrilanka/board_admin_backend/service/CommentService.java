@@ -22,6 +22,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final CommentShareRepository commentShareRepository;
     private final CommentReactionRepository commentReactionRepository;
+    private final CommentReplyRepository commentReplyRepository;
     private final AuditService auditService;
 
     // ✅ NEW INJECTION
@@ -60,7 +61,9 @@ public class CommentService {
 
         return CommentResponse.builder()
                 .id(comment.getId())
+                .createdByUserId(createdBy.getId())
                 .createdByUsername(createdBy.getUsername())
+                .createdByProfilePictureUrl(createdBy.getProfilePictureUrl())
                 .commentText(comment.getCommentText())
                 .annotated(comment.isAnnotated())
                 .build();
@@ -96,6 +99,21 @@ public class CommentService {
             commentReactionRepository.save(CommentReaction.builder()
                     .comment(comment).user(user).reactionType(reactionType).build());
         }
+        return mapComment(comment, user.getId());
+    }
+
+    public CommentResponse reply(Long commentId, String message, String username) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        User user = findUser(username);
+        if (message == null || message.trim().isEmpty()) {
+            throw new com.portSrilanka.board_admin_backend.exception.BadRequestException("Reply message is required");
+        }
+        commentReplyRepository.save(CommentReply.builder()
+                .comment(comment)
+                .createdBy(user)
+                .replyText(message.trim())
+                .build());
         return mapComment(comment, user.getId());
     }
 
@@ -150,7 +168,9 @@ public class CommentService {
                 .findFirst().orElse(null);
         return CommentResponse.builder()
                 .id(comment.getId())
+                .createdByUserId(comment.getCreatedBy().getId())
                 .createdByUsername(comment.getCreatedBy().getUsername())
+                .createdByProfilePictureUrl(comment.getCreatedBy().getProfilePictureUrl())
                 .commentText(comment.getCommentText())
                 .annotated(comment.isAnnotated())
                 .createdAt(comment.getCreatedAt())
@@ -160,6 +180,16 @@ public class CommentService {
                         .isPresent())
                 .currentReaction(currentReaction != null ? currentReaction.getReactionType().name() : null)
                 .reactionCounts(counts)
+                .replies(commentReplyRepository.findByCommentIdOrderByCreatedAtAsc(comment.getId()).stream()
+                        .map(reply -> CommentResponse.Reply.builder()
+                                .id(reply.getId())
+                                .createdByUserId(reply.getCreatedBy().getId())
+                                .createdByUsername(reply.getCreatedBy().getUsername())
+                                .createdByProfilePictureUrl(reply.getCreatedBy().getProfilePictureUrl())
+                                .message(reply.getReplyText())
+                                .createdAt(reply.getCreatedAt())
+                                .build())
+                        .toList())
                 .build();
     }
 }

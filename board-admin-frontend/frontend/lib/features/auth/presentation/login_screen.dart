@@ -59,7 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     255,
                     255,
                     255,
-                  ).withOpacity(0.08),
+                  ).withValues(alpha: 0.08),
                 ),
               ),
             ),
@@ -107,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Color(0xFFFFB52E)),
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
                       child: const Text(
                         'Board Management System',
@@ -221,7 +221,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       '© 2025 Sri Lanka Ports Authority',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.35),
+                        color: Colors.white.withValues(alpha: 0.35),
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),

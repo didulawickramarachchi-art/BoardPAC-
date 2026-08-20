@@ -54,7 +54,7 @@ class PendingApprovalScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -68,7 +68,7 @@ class PendingApprovalScreen extends ConsumerWidget {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: gold.withOpacity(0.16),
+                          color: gold.withValues(alpha: 0.16),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
@@ -118,7 +118,7 @@ class PendingApprovalScreen extends ConsumerWidget {
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: gold.withOpacity(0.16),
+                                color: gold.withValues(alpha: 0.16),
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               child: const Text(
@@ -163,20 +163,13 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _InfoRow({
-    required this.icon,
-    required this.text,
-  });
+  const _InfoRow({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 15,
-          color: const Color(0xFF7D8CB2),
-        ),
+        Icon(icon, size: 15, color: const Color(0xFF7D8CB2)),
         const SizedBox(width: 5),
         Expanded(
           child: Text(

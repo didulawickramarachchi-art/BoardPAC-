@@ -4,6 +4,7 @@ class NotificationModel {
   final String message;
   final String type;
   final bool read;
+  final int? relatedMeetingId;
   final int? createdByUserId;
   final String createdByName;
   final String? createdByProfilePictureUrl;
@@ -18,6 +19,7 @@ class NotificationModel {
     required this.message,
     required this.type,
     required this.read,
+    this.relatedMeetingId,
     this.createdByUserId,
     required this.createdByName,
     this.createdByProfilePictureUrl,
@@ -34,6 +36,7 @@ class NotificationModel {
       message: (json['message'] ?? json['body'] ?? '').toString(),
       type: (json['type'] ?? json['notificationType'] ?? 'GENERAL').toString(),
       read: json['read'] == true || json['isRead'] == true,
+      relatedMeetingId: _nullableInt(json['relatedMeetingId']),
       createdByUserId: _nullableInt(json['createdByUserId']),
       createdByName: (json['createdByName'] ?? 'System').toString(),
       createdByProfilePictureUrl: _nullableString(

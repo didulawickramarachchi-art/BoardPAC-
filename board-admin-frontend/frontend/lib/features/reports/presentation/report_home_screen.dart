@@ -23,9 +23,7 @@ class ReportHomeScreen extends ConsumerWidget {
     if (!access.canViewReports) {
       return const Scaffold(
         backgroundColor: bgColor,
-        body: Center(
-          child: Text('You do not have access to reports.'),
-        ),
+        body: Center(child: Text('You do not have access to reports.')),
       );
     }
 
@@ -98,7 +96,7 @@ class ReportHomeScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -110,14 +108,10 @@ class ReportHomeScreen extends ConsumerWidget {
                       width: 52,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: primaryBlue.withOpacity(0.08),
+                        color: primaryBlue.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Icon(
-                        item.icon,
-                        color: primaryBlue,
-                        size: 27,
-                      ),
+                      child: Icon(item.icon, color: primaryBlue, size: 27),
                     ),
 
                     const SizedBox(width: 14),
@@ -160,7 +154,7 @@ class ReportHomeScreen extends ConsumerWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: gold.withOpacity(0.18),
+                        color: gold.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(

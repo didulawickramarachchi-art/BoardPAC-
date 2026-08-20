@@ -8,10 +8,15 @@ final approvalRepositoryProvider = Provider<ApprovalRepository>((ref) {
   return ApprovalRepository(ref.read(dioProvider));
 });
 
-final approvalListProvider = StateNotifierProvider.family<
-    ApprovalNotifier, AsyncValue<List<ApprovalModel>>, int>((ref, paperId) {
-  return ApprovalNotifier(ref.read(approvalRepositoryProvider), paperId)..load();
-});
+final approvalListProvider =
+    StateNotifierProvider.family<
+      ApprovalNotifier,
+      AsyncValue<List<ApprovalModel>>,
+      int
+    >((ref, paperId) {
+      return ApprovalNotifier(ref.read(approvalRepositoryProvider), paperId)
+        ..load();
+    });
 
 class ApprovalNotifier extends StateNotifier<AsyncValue<List<ApprovalModel>>> {
   final ApprovalRepository repository;

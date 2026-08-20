@@ -48,6 +48,12 @@ public class AgendaController {
         return ResponseEntity.ok(agendaService.getItems(meetingId));
     }
 
+    @DeleteMapping("/items/{itemId}")
+    @PreAuthorize("hasRole('SECRETARY')")
+    public ResponseEntity<String> deleteItem(@PathVariable Long itemId) {
+        return ResponseEntity.ok(agendaService.deleteItem(itemId));
+    }
+
     @PostMapping("/share")
     @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<SharedAgendaItemResponse> shareAgendaItem(@RequestBody ShareAgendaItemRequest request) {

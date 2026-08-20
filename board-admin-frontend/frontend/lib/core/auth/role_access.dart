@@ -1,7 +1,10 @@
 const String _defaultRole = 'MEMBER';
 
 String normalizeRole(String? role) {
-  final normalized = role?.toString().trim().toUpperCase().replaceAll(RegExp(r'[\s-]+'), '_');
+  final normalized = role?.toString().trim().toUpperCase().replaceAll(
+    RegExp(r'[\s-]+'),
+    '_',
+  );
 
   switch (normalized) {
     case 'SUPER_ADMIN':

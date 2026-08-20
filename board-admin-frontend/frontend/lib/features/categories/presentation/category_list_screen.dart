@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../meetings/provider/meeting_provider.dart';
@@ -159,50 +160,43 @@ class CategoryListScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: categories.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 14),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final category = categories[index];
 
               return Container(
-                height: 166,
+                height: 132,
                 clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E3E6).withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.72),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primaryBlue.withValues(alpha: 0.08),
-                      blurRadius: 22,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                decoration: AppGlassDecoration.surface(
+                  borderRadius: BorderRadius.circular(26),
+                  tint: const Color(0xFFBFC9E2),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: Row(
                     children: [
                       Container(
-                        width: 145,
+                        width: 112,
                         height: double.infinity,
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: primaryBlue.withValues(alpha: 0.09),
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(26),
                         ),
                         child: (category.imageUrl ?? '').trim().isNotEmpty
                             ? Image.network(
                                 category.imageUrl!.trim(),
                                 fit: BoxFit.cover,
+                                cacheWidth: 440,
+                                filterQuality: FilterQuality.medium,
+                                gaplessPlayback: true,
                                 errorBuilder: (_, _, _) =>
                                     const _CategoryPlaceholder(),
                               )
                             : const _CategoryPlaceholder(),
                       ),
 
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 14),
 
                       Expanded(
                         child: Column(
@@ -215,13 +209,13 @@ class CategoryListScreen extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Color(0xFF111111),
-                                fontSize: 23,
+                                fontSize: 19,
                                 height: 1,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
 
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 7),
 
                             Row(
                               children: [
@@ -247,7 +241,7 @@ class CategoryListScreen extends ConsumerWidget {
                               ],
                             ),
 
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 7),
                             const _CategoryGlassBadge(),
                           ],
                         ),

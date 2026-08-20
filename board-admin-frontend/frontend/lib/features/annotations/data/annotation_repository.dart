@@ -9,7 +9,10 @@ class AnnotationRepository {
 
   AnnotationRepository(this.dio);
 
-  Future<List<AnnotationModel>> getByPaperAndUser(int paperId, int userId) async {
+  Future<List<AnnotationModel>> getByPaperAndUser(
+    int paperId,
+    int userId,
+  ) async {
     final response = await dio.get('/annotations/paper/$paperId/user/$userId');
     return (response.data as List)
         .map((e) => AnnotationModel.fromJson(e))

@@ -169,7 +169,7 @@ class SettingGroupScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
@@ -285,7 +285,7 @@ class _DialogTextField extends StatelessWidget {
         labelText: label,
         prefixIcon: Icon(icon, color: navy),
         filled: true,
-        fillColor: iconBg.withOpacity(0.55),
+        fillColor: iconBg.withValues(alpha: 0.55),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,

@@ -20,6 +20,7 @@ public class DeviceService {
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     public DeviceResponse create(DeviceRequest request) {
         User user = null;
@@ -43,7 +44,9 @@ public class DeviceService {
                 .user(user)
                 .build();
 
-        return mapToResponse(deviceRepository.save(device));
+        Device savedDevice = deviceRepository.save(device);
+        notificationService.notifyAdminsOfPendingDevice(savedDevice);
+        return mapToResponse(savedDevice);
     }
 
     public List<DeviceResponse> getAll() {
@@ -54,6 +57,7 @@ public class DeviceService {
         Device device = findDevice(id);
         device.setStatus(DeviceStatus.APPROVED);
         deviceRepository.save(device);
+        notificationService.notifyAdminsOfDeviceApproval(device);
 
         User user = device.getUser();
         if (user != null && user.getBoardEmail() != null && !user.getBoardEmail().isBlank()) {

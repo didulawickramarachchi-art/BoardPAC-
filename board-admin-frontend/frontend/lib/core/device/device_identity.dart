@@ -48,7 +48,8 @@ class DeviceIdentityService {
 
     // An approval is for a user on an installation. Keep a stable identity for
     // each account so two users of the same device receive separate requests.
-    final storageKey = '$_deviceIdKey:${Uri.encodeComponent(normalizedUsername)}';
+    final storageKey =
+        '$_deviceIdKey:${Uri.encodeComponent(normalizedUsername)}';
     var deviceId = await storage.read(storageKey);
     if (deviceId == null || deviceId.isEmpty) {
       deviceId = _newInstallationId();

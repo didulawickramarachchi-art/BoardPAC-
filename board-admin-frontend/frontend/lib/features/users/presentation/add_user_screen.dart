@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -69,16 +68,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (mounted) {
-        // Use the proper error message extractor
-        String errorMessage = ApiErrorMessage.from(error);
-
-        // For DioException, also log the full details for debugging
-        if (error is DioException) {
-          print('DioException Details:');
-          print('  Status Code: ${error.response?.statusCode}');
-          print('  Response Data: ${error.response?.data}');
-          print('  Message: ${error.message}');
-        }
+        final errorMessage = ApiErrorMessage.from(error);
 
         ScaffoldMessenger.of(
           context,

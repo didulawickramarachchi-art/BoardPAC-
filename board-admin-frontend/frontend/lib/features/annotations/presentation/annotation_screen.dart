@@ -35,11 +35,20 @@ class AnnotationScreen extends ConsumerWidget {
                 DropdownButtonFormField<String>(
                   initialValue: annotationType,
                   items: const [
-                    DropdownMenuItem(value: 'TEXT_NOTE', child: Text('Text Note')),
-                    DropdownMenuItem(value: 'HIGHLIGHT', child: Text('Highlight')),
+                    DropdownMenuItem(
+                      value: 'TEXT_NOTE',
+                      child: Text('Text Note'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'HIGHLIGHT',
+                      child: Text('Highlight'),
+                    ),
                     DropdownMenuItem(value: 'DRAWING', child: Text('Drawing')),
                     DropdownMenuItem(value: 'SHAPE', child: Text('Shape')),
-                    DropdownMenuItem(value: 'FREEHAND', child: Text('Freehand')),
+                    DropdownMenuItem(
+                      value: 'FREEHAND',
+                      child: Text('Freehand'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value != null) {
@@ -50,7 +59,9 @@ class AnnotationScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 TextField(
                   controller: dataController,
-                  decoration: const InputDecoration(labelText: 'Annotation JSON/Data'),
+                  decoration: const InputDecoration(
+                    labelText: 'Annotation JSON/Data',
+                  ),
                   maxLines: 4,
                 ),
                 const SizedBox(height: 12),
@@ -63,10 +74,20 @@ class AnnotationScreen extends ConsumerWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () async {
-                await ref.read(annotationListProvider((paperId: paperId, userId: userId)).notifier).create(
+                await ref
+                    .read(
+                      annotationListProvider((
+                        paperId: paperId,
+                        userId: userId,
+                      )).notifier,
+                    )
+                    .create(
                       AnnotationRequest(
                         paperId: paperId,
                         userId: userId,
@@ -86,7 +107,11 @@ class AnnotationScreen extends ConsumerWidget {
   }
 
   Future<void> _backup(BuildContext context, WidgetRef ref) async {
-    final backup = await ref.read(annotationListProvider((paperId: paperId, userId: userId)).notifier).backup();
+    final backup = await ref
+        .read(
+          annotationListProvider((paperId: paperId, userId: userId)).notifier,
+        )
+        .backup();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Backup created: ${backup.backupId}')),
@@ -107,10 +132,20 @@ class AnnotationScreen extends ConsumerWidget {
           keyboardType: TextInputType.number,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () async {
-              await ref.read(annotationListProvider((paperId: paperId, userId: userId)).notifier).restore(
+              await ref
+                  .read(
+                    annotationListProvider((
+                      paperId: paperId,
+                      userId: userId,
+                    )).notifier,
+                  )
+                  .restore(
                     AnnotationRestoreRequest(
                       backupId: int.parse(backupIdController.text.trim()),
                       userId: userId,
@@ -127,7 +162,9 @@ class AnnotationScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncData = ref.watch(annotationListProvider((paperId: paperId, userId: userId)));
+    final asyncData = ref.watch(
+      annotationListProvider((paperId: paperId, userId: userId)),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -161,7 +198,9 @@ class AnnotationScreen extends ConsumerWidget {
               return Card(
                 child: ListTile(
                   title: Text(item.annotationType),
-                  subtitle: Text('Page: ${item.pageNumber ?? '-'}\n${item.annotationDataJson}'),
+                  subtitle: Text(
+                    'Page: ${item.pageNumber ?? '-'}\n${item.annotationDataJson}',
+                  ),
                   isThreeLine: true,
                 ),
               );

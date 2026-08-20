@@ -7,12 +7,14 @@ import 'package:frontend/features/settings/presentation/setting_home_screen.dart
 
 import '../../../core/auth/role_access.dart';
 import '../../../core/responsive/responsive_layout.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../categories/presentation/category_list_screen.dart';
 import '../../devices/model/device_model.dart';
 import '../../devices/presentation/device_list_screen.dart';
 import '../../devices/provider/device_provider.dart';
 import '../../meetings/presentation/meeting_list_screen.dart';
+import '../../meetings/provider/meeting_provider.dart';
 import '../../notifications/model/notification_model.dart';
 import '../../notifications/model/notification_request.dart';
 import '../../notifications/provider/notification_provider.dart';
@@ -26,7 +28,7 @@ import '../../users/model/user_model.dart';
 import '../model/dashboard_summary_model.dart';
 import '../provider/dashboard_provider.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   static const Color primaryBlue = Color(0xFF12275B);
@@ -36,131 +38,333 @@ class DashboardScreen extends ConsumerWidget {
   static const Color bgColor = Color(0xFFF6F7FB);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final ValueNotifier<double> _glassLightAngle = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _glassLightAngle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final currentUserId = authState.userId ?? 1;
     final role = authState.role ?? 'User';
+    final access = RoleAccess(role);
     final config = _RoleDashboardConfig.forRole(role);
     final summaryAsync = ref.watch(dashboardSummaryProvider(currentUserId));
-    final isAdmin = RoleAccess(role).isAdmin;
+    final notificationsAsync = ref.watch(
+      notificationListProvider(currentUserId),
+    );
+    final isAdmin = access.isAdmin;
+    final memberMeetings = access.isMember
+        ? ref.watch(meetingListProvider).valueOrNull
+        : null;
     final usersAsync = isAdmin ? ref.watch(userListProvider) : null;
     final devicesAsync = isAdmin ? ref.watch(deviceListProvider) : null;
 
     return Scaffold(
-      backgroundColor: bgColor,
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            const _Header(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  top: 18,
-                  bottom: 24 + MediaQuery.paddingOf(context).bottom,
-                ),
-                child: ResponsivePage(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _RoleOverview(config: config),
+      backgroundColor: DashboardScreen.bgColor,
+      body: DecoratedBox(
+        decoration: AppGlassDecoration.background,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              const _Header(),
+              Expanded(
+                child: NotificationListener<ScrollUpdateNotification>(
+                  onNotification: (notification) {
+                    _glassLightAngle.value =
+                        notification.metrics.pixels * 0.006;
+                    return false;
+                  },
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      top: 18,
+                      bottom: 24 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    child: ResponsivePage(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _RoleOverview(config: config),
 
-                      const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                      summaryAsync.when(
-                        data: (summary) {
-                          if (!isAdmin) {
-                            return _SummaryGrid(
-                              cards: _summaryCardsForRole(summary, config),
-                            );
-                          }
+                          summaryAsync.when(
+                            data: (summary) {
+                              if (!isAdmin) {
+                                return _SummaryGrid(
+                                  cards: _summaryCardsForRole(summary, config),
+                                );
+                              }
 
-                          return usersAsync!.when(
-                            data: (users) => devicesAsync!.when(
-                              data: (devices) => _SummaryGrid(
-                                cards: _summaryCardsForRole(
-                                  summary,
-                                  config,
-                                  users: users,
-                                  devices: devices,
+                              return usersAsync!.when(
+                                data: (users) => devicesAsync!.when(
+                                  data: (devices) => _SummaryGrid(
+                                    cards: _summaryCardsForRole(
+                                      summary,
+                                      config,
+                                      users: users,
+                                      devices: devices,
+                                    ),
+                                  ),
+                                  loading: () => const Padding(
+                                    padding: EdgeInsets.all(40),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                  error: (error, _) =>
+                                      _ErrorBox(message: error.toString()),
                                 ),
-                              ),
-                              loading: () => const Padding(
-                                padding: EdgeInsets.all(40),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
+                                loading: () => const Padding(
+                                  padding: EdgeInsets.all(40),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
                                 ),
-                              ),
-                              error: (error, _) =>
-                                  _ErrorBox(message: error.toString()),
-                            ),
+                                error: (error, _) =>
+                                    _ErrorBox(message: error.toString()),
+                              );
+                            },
+
                             loading: () => const Padding(
                               padding: EdgeInsets.all(40),
                               child: Center(child: CircularProgressIndicator()),
                             ),
+
                             error: (error, _) =>
                                 _ErrorBox(message: error.toString()),
-                          );
-                        },
+                          ),
 
-                        loading: () => const Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
+                          if (!isAdmin) ...[
+                            summaryAsync.when(
+                              data: (summary) {
+                                final meetingDate = DateTime.tryParse(
+                                  summary.upcomingMeetingDateTime ?? '',
+                                )?.toLocal();
+                                if (summary.upcomingMeetingTitle == null ||
+                                    meetingDate == null ||
+                                    !meetingDate.isAfter(DateTime.now())) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 24),
+                                    const _SectionTitle(
+                                      title: 'Upcoming Meeting',
+                                    ),
+                                    const SizedBox(height: 10),
+                                    _UpcomingMeetingCard(
+                                      currentUserId: currentUserId,
+                                      title: summary.upcomingMeetingTitle!,
+                                      dateTimeText:
+                                          summary.upcomingMeetingDateTime!,
+                                      location:
+                                          summary.upcomingMeetingLocation ??
+                                          'No location',
+                                      daysText:
+                                          summary.upcomingMeetingDaysText ?? '',
+                                    ),
+                                  ],
+                                );
+                              },
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, _) => const SizedBox.shrink(),
+                            ),
+                          ],
 
-                        error: (error, _) =>
-                            _ErrorBox(message: error.toString()),
+                          const SizedBox(height: 24),
+
+                          _WhatsNewSection(
+                            notificationsAsync: notificationsAsync,
+                            role: role,
+                            accessibleMeetingIds: memberMeetings
+                                ?.map((meeting) => meeting.id)
+                                .toSet(),
+                            onViewAll: () => _showNotificationsSheet(
+                              context,
+                              currentUserId: currentUserId,
+                              role: role,
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          _SectionTitle(title: config.menuTitle),
+
+                          const SizedBox(height: 10),
+
+                          _MenuGrid(
+                            tiles: config.tiles,
+                            currentUserId: currentUserId,
+                            lightAngle: _glassLightAngle,
+                          ),
+                        ],
                       ),
-
-                      if (!isAdmin) ...[
-                        summaryAsync.when(
-                          data: (summary) {
-                            final meetingDate = DateTime.tryParse(
-                              summary.upcomingMeetingDateTime ?? '',
-                            )?.toLocal();
-                            if (summary.upcomingMeetingTitle == null ||
-                                meetingDate == null ||
-                                !meetingDate.isAfter(DateTime.now())) {
-                              return const SizedBox.shrink();
-                            }
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 24),
-                                const _SectionTitle(title: 'Upcoming Meeting'),
-                                const SizedBox(height: 10),
-                                _UpcomingMeetingCard(
-                                  currentUserId: currentUserId,
-                                  title: summary.upcomingMeetingTitle!,
-                                  dateTimeText:
-                                      summary.upcomingMeetingDateTime!,
-                                  location:
-                                      summary.upcomingMeetingLocation ??
-                                      'No location',
-                                  daysText:
-                                      summary.upcomingMeetingDaysText ?? '',
-                                ),
-                              ],
-                            );
-                          },
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, _) => const SizedBox.shrink(),
-                        ),
-                      ],
-
-                      const SizedBox(height: 24),
-
-                      _SectionTitle(title: config.menuTitle),
-
-                      const SizedBox(height: 10),
-
-                      _MenuGrid(
-                        tiles: config.tiles,
-                        currentUserId: currentUserId,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WhatsNewSection extends StatelessWidget {
+  final AsyncValue<List<NotificationModel>> notificationsAsync;
+  final String role;
+  final Set<int>? accessibleMeetingIds;
+  final VoidCallback onViewAll;
+
+  const _WhatsNewSection({
+    required this.notificationsAsync,
+    required this.role,
+    required this.accessibleMeetingIds,
+    required this.onViewAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: _SectionTitle(title: "What's New")),
+            TextButton(onPressed: onViewAll, child: const Text('View all')),
+          ],
+        ),
+        const SizedBox(height: 8),
+        notificationsAsync.when(
+          loading: () => const SizedBox(
+            height: 88,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, _) => _WhatsNewEmpty(onViewAll: onViewAll),
+          data: (notifications) {
+            final recent = _visibleNotifications(
+              notifications,
+              role: role,
+              accessibleMeetingIds: accessibleMeetingIds,
+            ).take(3).toList();
+            if (recent.isEmpty) return _WhatsNewEmpty(onViewAll: onViewAll);
+            return Container(
+              decoration: AppGlassDecoration.surface(
+                borderRadius: BorderRadius.circular(22),
+                tint: DashboardScreen.gold,
+              ),
+              child: Column(
+                children: [
+                  for (var index = 0; index < recent.length; index++) ...[
+                    _WhatsNewTile(
+                      notification: recent[index],
+                      onTap: onViewAll,
+                    ),
+                    if (index != recent.length - 1)
+                      const Divider(height: 1, indent: 66, endIndent: 16),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _WhatsNewTile extends StatelessWidget {
+  final NotificationModel notification;
+  final VoidCallback onTap;
+  const _WhatsNewTile({required this.notification, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _color(notification.type).withValues(alpha: 0.11),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(
+                _NotificationTile._notificationIcon(notification.type),
+                color: _color(notification.type),
+                size: 21,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: DashboardScreen.darkBlue,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (!notification.read)
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: DashboardScreen.gold,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF6E7FA8),
+                      fontSize: 11,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    _relativeTime(notification.createdAt),
+                    style: const TextStyle(
+                      color: Color(0xFF9AA6C5),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -168,6 +372,60 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+
+  static Color _color(String type) {
+    switch (type.toUpperCase()) {
+      case 'MEETING_CREATED':
+        return const Color(0xFF233E8B);
+      case 'PAPER_CREATED':
+      case 'PAPER_SHARED':
+        return const Color(0xFFE74C3C);
+      case 'DOCUMENT_UPLOADED':
+        return const Color(0xFF20A67A);
+      default:
+        return const Color(0xFFC88824);
+    }
+  }
+
+  static String _relativeTime(DateTime? value) {
+    if (value == null) return 'Recently';
+    final difference = DateTime.now().difference(value.toLocal());
+    if (difference.isNegative || difference.inMinutes < 1) return 'Just now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
+    if (difference.inHours < 24) return '${difference.inHours}h ago';
+    if (difference.inDays < 7) return '${difference.inDays}d ago';
+    return '${value.toLocal().day}/${value.toLocal().month}/${value.toLocal().year}';
+  }
+}
+
+class _WhatsNewEmpty extends StatelessWidget {
+  final VoidCallback onViewAll;
+  const _WhatsNewEmpty({required this.onViewAll});
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(22),
+    child: InkWell(
+      onTap: onViewAll,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE5E9F2)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.auto_awesome_outlined, color: DashboardScreen.gold),
+            SizedBox(width: 12),
+            Expanded(child: Text('No new updates right now.')),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _Header extends ConsumerWidget {
@@ -495,6 +753,31 @@ class _Header extends ConsumerWidget {
   }
 }
 
+List<NotificationModel> _visibleNotifications(
+  List<NotificationModel> notifications, {
+  required String role,
+  required Set<int>? accessibleMeetingIds,
+}) {
+  final access = RoleAccess(role);
+  return notifications.where((notification) {
+    final type = notification.type.trim().toUpperCase();
+    final title = notification.title.trim().toLowerCase();
+    final message = notification.message.trim().toLowerCase();
+    final meetingRelated =
+        type.startsWith('MEETING_') ||
+        title.startsWith('new meeting') ||
+        message.contains('meeting') && message.contains('scheduled');
+
+    if (!meetingRelated) return true;
+    if (access.isAdmin) return false;
+    if (access.isSecretary) return true;
+
+    final meetingId = notification.relatedMeetingId;
+    return meetingId != null &&
+        (accessibleMeetingIds?.contains(meetingId) ?? false);
+  }).toList();
+}
+
 void _showNotificationsSheet(
   BuildContext context, {
   required int? currentUserId,
@@ -521,7 +804,11 @@ class _NotificationsSheet extends ConsumerWidget {
     final notificationsAsync = userId == null
         ? const AsyncValue<List<NotificationModel>>.data([])
         : ref.watch(notificationListProvider(userId));
-    final canAnnounce = RoleAccess(role).isSecretary;
+    final access = RoleAccess(role);
+    final canAnnounce = access.isSecretary;
+    final memberMeetings = access.isMember
+        ? ref.watch(meetingListProvider).valueOrNull
+        : null;
 
     return SafeArea(
       top: false,
@@ -623,17 +910,24 @@ class _NotificationsSheet extends ConsumerWidget {
             Flexible(
               child: notificationsAsync.when(
                 data: (items) {
-                  if (items.isEmpty) {
+                  final visibleItems = _visibleNotifications(
+                    items,
+                    role: role,
+                    accessibleMeetingIds: memberMeetings
+                        ?.map((meeting) => meeting.id)
+                        .toSet(),
+                  );
+                  if (visibleItems.isEmpty) {
                     return const _NotificationsEmptyState();
                   }
 
                   return ListView.separated(
                     shrinkWrap: true,
-                    itemCount: items.length,
+                    itemCount: visibleItems.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       return _NotificationTile(
-                        notification: items[index],
+                        notification: visibleItems[index],
                         currentUserId: userId,
                       );
                     },
@@ -1201,16 +1495,9 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: AppGlassDecoration.surface(
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        tint: iconColor,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1295,16 +1582,9 @@ class _RoleOverview extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: AppGlassDecoration.surface(
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        tint: const Color(0xFF233E8B),
       ),
       child: Row(
         children: [
@@ -1371,7 +1651,7 @@ class _UpcomingMeetingCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Material(
-      color: const Color(0xFF233E8B),
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
@@ -1385,6 +1665,9 @@ class _UpcomingMeetingCard extends ConsumerWidget {
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
+          decoration: AppGlassDecoration.dark(
+            borderRadius: BorderRadius.circular(24),
+          ),
           child: Row(
             children: [
               Container(
@@ -1485,8 +1768,13 @@ class _UpcomingMeetingCard extends ConsumerWidget {
 class _MenuGrid extends ConsumerWidget {
   final List<_MenuTileData> tiles;
   final int currentUserId;
+  final ValueNotifier<double> lightAngle;
 
-  const _MenuGrid({required this.tiles, required this.currentUserId});
+  const _MenuGrid({
+    required this.tiles,
+    required this.currentUserId,
+    required this.lightAngle,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1512,70 +1800,146 @@ class _MenuGrid extends ConsumerWidget {
           itemBuilder: (context, index) {
             final item = tiles[index];
 
-            return Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => item.screen),
-                  );
-                  ref.invalidate(dashboardSummaryProvider(currentUserId));
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 14,
-                        offset: const Offset(0, 7),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFF233E8B,
-                          ).withValues(alpha: 0.09),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: Icon(
-                          item.icon,
-                          color: const Color(0xFF233E8B),
-                          size: 21,
-                        ),
-                      ),
+            const glassBlue = Color(0xFF233E8B);
+            const pillRadius = BorderRadius.all(Radius.circular(999));
 
-                      const SizedBox(width: 10),
-
-                      Expanded(
-                        child: Text(
-                          item.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF00184A),
-                            fontSize: 12,
-                            height: 1.2,
-                            fontWeight: FontWeight.w800,
+            return ValueListenableBuilder<double>(
+              valueListenable: lightAngle,
+              builder: (context, angle, _) => DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: pillRadius,
+                  boxShadow: [
+                    BoxShadow(
+                      color: DashboardScreen.darkBlue.withValues(alpha: 0.16),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.90),
+                      blurRadius: 5,
+                      offset: const Offset(-2, -3),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: pillRadius,
+                  clipBehavior: Clip.antiAlias,
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      borderRadius: pillRadius,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.96),
+                        width: 1.4,
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        transform: GradientRotation(angle),
+                        colors: [
+                          Colors.white.withValues(alpha: 0.90),
+                          const Color(0xFFEFF3FA).withValues(alpha: 0.70),
+                          const Color(0xFFDCE4F1).withValues(alpha: 0.62),
+                        ],
+                        stops: const [0, 0.52, 1],
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: pillRadius,
+                      splashColor: glassBlue.withValues(alpha: 0.10),
+                      highlightColor: Colors.white.withValues(alpha: 0.25),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => item.screen),
+                        );
+                        ref.invalidate(dashboardSummaryProvider(currentUserId));
+                      },
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            top: 3,
+                            left: 24,
+                            right: 24,
+                            child: Container(
+                              height: 1.5,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(99),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0),
+                                    Colors.white,
+                                    Colors.white.withValues(alpha: 0),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned.fill(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Colors.white.withValues(alpha: 0.96),
+                                          glassBlue.withValues(alpha: 0.13),
+                                        ],
+                                      ),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.95,
+                                        ),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: glassBlue.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          blurRadius: 9,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      item.icon,
+                                      color: glassBlue,
+                                      size: 21,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 11),
+                                  Expanded(
+                                    child: Text(
+                                      item.title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.left,
+                                      style: const TextStyle(
+                                        color: DashboardScreen.darkBlue,
+                                        fontSize: 12.5,
+                                        height: 1.15,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.1,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        color: Color(0xFF9AA6C5),
-                        size: 20,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),

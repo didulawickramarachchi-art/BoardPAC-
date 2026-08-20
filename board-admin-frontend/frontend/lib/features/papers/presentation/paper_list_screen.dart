@@ -20,11 +20,7 @@ class PaperListScreen extends ConsumerWidget {
   final int? meetingId;
   final String meetingTitle;
 
-  const PaperListScreen({
-    super.key,
-    this.meetingId,
-    this.meetingTitle = '',
-  });
+  const PaperListScreen({super.key, this.meetingId, this.meetingTitle = ''});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,9 +32,7 @@ class PaperListScreen extends ConsumerWidget {
 
     if (!access.canViewPapers) {
       return const Scaffold(
-        body: Center(
-          child: Text('You do not have access to board papers.'),
-        ),
+        body: Center(child: Text('You do not have access to board papers.')),
       );
     }
 
@@ -48,11 +42,13 @@ class PaperListScreen extends ConsumerWidget {
         backgroundColor: _primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(meetingId == null
-            ? 'Papers'
-            : isSecretary
-                ? 'Papers for $meetingTitle (ID: $meetingId)'
-                : 'Papers - $meetingTitle'),
+        title: Text(
+          meetingId == null
+              ? 'Papers'
+              : isSecretary
+              ? 'Papers for $meetingTitle (ID: $meetingId)'
+              : 'Papers - $meetingTitle',
+        ),
         actions: [
           IconButton(
             tooltip: 'Refresh papers',
@@ -114,7 +110,7 @@ class PaperListScreen extends ConsumerWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _cardBlue.withOpacity(0.09),
+                      color: _cardBlue.withValues(alpha: 0.09),
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: const Icon(

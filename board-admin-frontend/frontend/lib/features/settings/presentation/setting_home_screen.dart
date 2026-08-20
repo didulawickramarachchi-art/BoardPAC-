@@ -21,9 +21,7 @@ class SettingHomeScreen extends ConsumerWidget {
     if (!access.canManageSettings) {
       return const Scaffold(
         backgroundColor: bgColor,
-        body: Center(
-          child: Text('You do not have access to settings.'),
-        ),
+        body: Center(child: Text('You do not have access to settings.')),
       );
     }
 
@@ -111,7 +109,7 @@ class SettingHomeScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),

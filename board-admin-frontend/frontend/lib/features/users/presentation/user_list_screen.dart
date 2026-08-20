@@ -87,7 +87,7 @@ class UserListScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -99,7 +99,7 @@ class UserListScreen extends ConsumerWidget {
                     children: [
                       CircleAvatar(
                         radius: 26,
-                        backgroundColor: gold.withOpacity(0.18),
+                        backgroundColor: gold.withValues(alpha: 0.18),
                         backgroundImage:
                             user.profilePictureUrl != null &&
                                 user.profilePictureUrl!.isNotEmpty
@@ -220,7 +220,7 @@ class UserListScreen extends ConsumerWidget {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: primaryBlue.withOpacity(0.08),
+                              color: primaryBlue.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -481,7 +481,7 @@ class _UserSectionHeader extends StatelessWidget {
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
         decoration: BoxDecoration(
-          color: UserListScreen.primaryBlue.withOpacity(0.09),
+          color: UserListScreen.primaryBlue.withValues(alpha: 0.09),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -516,7 +516,7 @@ class _RoleChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: UserListScreen.primaryBlue.withOpacity(0.09),
+        color: UserListScreen.primaryBlue.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(

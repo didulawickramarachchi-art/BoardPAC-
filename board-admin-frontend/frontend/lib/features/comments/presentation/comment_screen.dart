@@ -95,9 +95,13 @@ class CommentScreen extends ConsumerWidget {
                 );
 
                 if (paperId != null) {
-                  await ref.read(paperCommentProvider(paperId!).notifier).addComment(request);
+                  await ref
+                      .read(paperCommentProvider(paperId!).notifier)
+                      .addComment(request);
                 } else if (meetingId != null) {
-                  await ref.read(meetingCommentProvider(meetingId!).notifier).addComment(request);
+                  await ref
+                      .read(meetingCommentProvider(meetingId!).notifier)
+                      .addComment(request);
                 }
 
                 if (context.mounted) Navigator.pop(context);
@@ -139,11 +143,16 @@ class CommentScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () async {
               if (paperId != null) {
-                await ref.read(paperCommentProvider(paperId!).notifier).shareComment(
+                await ref
+                    .read(paperCommentProvider(paperId!).notifier)
+                    .shareComment(
                       ShareCommentRequest(
                         commentId: commentId,
                         sharedByUserId: int.parse(fromController.text.trim()),
@@ -160,7 +169,10 @@ class CommentScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showSharePaperDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showSharePaperDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     if (paperId == null) return;
 
     final fromController = TextEditingController(text: '1');
@@ -187,10 +199,15 @@ class CommentScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () async {
-              await ref.read(paperCommentProvider(paperId!).notifier).sharePaper(
+              await ref
+                  .read(paperCommentProvider(paperId!).notifier)
+                  .sharePaper(
                     SharePaperRequest(
                       paperId: paperId!,
                       sharedByUserId: int.parse(fromController.text.trim()),
@@ -215,9 +232,7 @@ class CommentScreen extends ConsumerWidget {
 
     if (!access.canCommentPapers) {
       return const Scaffold(
-        body: Center(
-          child: Text('You do not have access to paper comments.'),
-        ),
+        body: Center(child: Text('You do not have access to paper comments.')),
       );
     }
 
@@ -249,10 +264,17 @@ class CommentScreen extends ConsumerWidget {
               final comment = items[index];
               return CommentCard(
                 comment: comment,
+                onReply: (message) => paperId != null
+                    ? ref
+                          .read(paperCommentProvider(paperId!).notifier)
+                          .reply(comment.id, message)
+                    : ref
+                          .read(meetingCommentProvider(meetingId!).notifier)
+                          .reply(comment.id, message),
                 onReact: paperId != null
                     ? (reaction) => ref
-                        .read(paperCommentProvider(paperId!).notifier)
-                        .react(comment.id, reaction)
+                          .read(paperCommentProvider(paperId!).notifier)
+                          .react(comment.id, reaction)
                     : null,
                 onShare: paperId != null
                     ? () => _showShareCommentDialog(context, ref, comment.id)
@@ -261,7 +283,8 @@ class CommentScreen extends ConsumerWidget {
             },
           );
         },
-        error: (error, _) => Center(child: Text('Failed to load comments: $error')),
+        error: (error, _) =>
+            Center(child: Text('Failed to load comments: $error')),
         loading: () => const AppLoading(),
       ),
     );

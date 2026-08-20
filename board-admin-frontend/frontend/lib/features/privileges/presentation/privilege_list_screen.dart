@@ -10,6 +10,7 @@ import '../../categories/provider/category_provider.dart';
 import '../../subcategories/model/subcategory_model.dart';
 import '../../subcategories/provider/subcategory_provider.dart';
 import '../../users/provider/user_provider.dart';
+import '../../users/model/user_model.dart';
 import '../model/privilege_request.dart';
 import '../provider/privilege_provider.dart';
 
@@ -154,12 +155,26 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final privileges = ref.watch(privilegeListProvider);
+    final usersAsync = ref.watch(userListProvider);
     return Scaffold(
       appBar: AppBar(title: Text(_subcategoryName(subcategory))),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addUser(context, ref),
-        icon: const Icon(Icons.person_add),
-        label: const Text('Add user'),
+        onPressed: usersAsync.when(
+          data: (users) =>
+              () => _addUser(context, ref, users),
+          loading: () => null,
+          error: (_, _) =>
+              () => ref.read(userListProvider.notifier).loadUsers(),
+        ),
+        icon: usersAsync.isLoading
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : usersAsync.hasError
+            ? const Icon(Icons.refresh_rounded)
+            : const Icon(Icons.person_add),
+        label: Text(usersAsync.hasError ? 'Retry users' : 'Add user'),
       ),
       body: privileges.when(
         loading: () => const AppLoading(),
@@ -207,14 +222,11 @@ class _SubcategoryUsersScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _addUser(BuildContext context, WidgetRef ref) async {
-    final users = ref.read(userListProvider).valueOrNull;
-    if (users == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Users are still loading.')));
-      return;
-    }
+  Future<void> _addUser(
+    BuildContext context,
+    WidgetRef ref,
+    List<UserModel> users,
+  ) async {
     final assignedIds = (ref.read(privilegeListProvider).valueOrNull ?? [])
         .where((item) => item.subcategoryId == subcategory.id)
         .map((item) => item.userId)

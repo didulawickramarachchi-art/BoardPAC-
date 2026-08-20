@@ -43,6 +43,11 @@ class AgendaSectionNotifier
     await repository.createSection(request);
     await load();
   }
+
+  Future<void> deleteSection(int sectionId) async {
+    await repository.deleteSection(sectionId);
+    await load();
+  }
 }
 
 final agendaItemProvider =
@@ -74,6 +79,11 @@ class AgendaItemNotifier
 
   Future<void> createItem(AgendaItemRequest request) async {
     await repository.createItem(request);
+    await load();
+  }
+
+  Future<void> deleteItem(int itemId) async {
+    await repository.deleteItem(itemId);
     await load();
   }
 }

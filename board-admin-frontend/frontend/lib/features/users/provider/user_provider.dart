@@ -16,9 +16,7 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 final currentUserProvider = FutureProvider<UserModel>((ref) {
   // Re-fetch /users/me whenever a different account logs in. Without this
   // dependency Riverpod can keep the previous account's UserModel cached.
-  ref.watch(
-    authProvider.select((auth) => (auth.userId, auth.username)),
-  );
+  ref.watch(authProvider.select((auth) => (auth.userId, auth.username)));
   return ref.read(userRepositoryProvider).getCurrentUser();
 });
 
@@ -27,7 +25,10 @@ final currentUserProvider = FutureProvider<UserModel>((ref) {
 /// part of the key so accounts never share an image when the API returns the
 /// same relative URL for multiple users.
 final profilePictureProvider =
-    FutureProvider.family<Uint8List, ({int userId, String url})>((ref, request) {
+    FutureProvider.family<Uint8List, ({int userId, String url})>((
+      ref,
+      request,
+    ) {
       return ref.read(userRepositoryProvider).getProfilePicture(request.url);
     });
 
@@ -47,44 +48,53 @@ class UserNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
   Future<void> loadUsers() async {
     try {
       final users = await repository.getUsers();
+      if (!mounted) return;
       state = AsyncData(users);
-    } catch (e) {
-      state = AsyncError(e, StackTrace.current);
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      state = AsyncError(error, stackTrace);
     }
   }
 
   Future<void> updateUser(int id, UserRequest request) async {
     await repository.updateUser(id, request);
+    if (!mounted) return;
     await loadUsers();
   }
 
   Future<void> createUser(CreateUserRequest request) async {
     await repository.createUser(request);
+    if (!mounted) return;
     await loadUsers();
   }
 
   Future<void> deactivateUser(int id) async {
     await repository.deactivateUser(id);
+    if (!mounted) return;
     await loadUsers();
   }
 
   Future<void> activateUser(int id) async {
     await repository.activateUser(id);
+    if (!mounted) return;
     await loadUsers();
   }
 
   Future<void> lockUser(int id) async {
     await repository.lockUser(id);
+    if (!mounted) return;
     await loadUsers();
   }
 
   Future<void> unlockUser(int id) async {
     await repository.unlockUser(id);
+    if (!mounted) return;
     await loadUsers();
   }
 
   Future<void> resetPassword(int id) async {
     await repository.resetPassword(id);
+    if (!mounted) return;
     await loadUsers();
   }
 }
