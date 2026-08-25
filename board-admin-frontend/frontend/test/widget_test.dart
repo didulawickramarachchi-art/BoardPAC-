@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/app.dart';
+import 'package:frontend/features/auth/presentation/login_screen.dart';
 
 void main() {
   testWidgets('shows the landing screen before login', (tester) async {
@@ -16,5 +18,19 @@ void main() {
     expect(find.text('Welcome Back'), findsOneWidget);
     expect(find.text('Sign in to your account'), findsOneWidget);
     expect(find.text('Sign In >'), findsOneWidget);
+  });
+
+  testWidgets('login remains usable in phone landscape', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const ProviderScope(child: MaterialApp(home: LoginScreen())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome Back'), findsOneWidget);
+    expect(find.text('Sign In >'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

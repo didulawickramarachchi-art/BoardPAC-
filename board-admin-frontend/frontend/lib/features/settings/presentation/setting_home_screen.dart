@@ -63,6 +63,12 @@ class SettingHomeScreen extends ConsumerWidget {
         subtitle: 'Update general system settings',
         icon: Icons.settings_rounded,
       ),
+      SettingGroupItem(
+        title: 'Survey',
+        group: 'SURVEY',
+        subtitle: 'Configure survey and reminder settings',
+        icon: Icons.poll_rounded,
+      ),
     ];
 
     return Scaffold(

@@ -1,350 +1,385 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../model/setting_definition.dart';
+import '../model/setting_model.dart';
 import '../model/setting_request.dart';
 import '../provider/setting_provider.dart';
 
-class SettingGroupScreen extends ConsumerWidget {
+class SettingGroupScreen extends ConsumerStatefulWidget {
   final String group;
-
   const SettingGroupScreen({super.key, required this.group});
+  @override
+  ConsumerState<SettingGroupScreen> createState() => _SettingGroupScreenState();
+}
 
-  static const Color navy = Color(0xFF14275B);
-  static const Color bgColor = Color(0xFFF6F7FC);
-  static const Color cardColor = Colors.white;
-  static const Color iconBg = Color(0xFFE9ECF3);
-  static const Color arrowBg = Color(0xFFFFF1D8);
-  static const Color subTextColor = Color(0xFF6E7FA8);
+class _SettingGroupScreenState extends ConsumerState<SettingGroupScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final Map<String, String> _values = {};
+  final Map<String, TextEditingController> _controllers = {};
+  bool _initialized = false;
+  bool _saving = false;
 
-  String _formatTitle(String value) {
-    return value
-        .replaceAll('_', ' ')
-        .toLowerCase()
-        .split(' ')
-        .map((word) {
-          if (word.isEmpty) return word;
-          return word[0].toUpperCase() + word.substring(1);
-        })
-        .join(' ');
+  List<SettingDefinition> get _definitions =>
+      settingDefinitions[widget.group] ?? const [];
+  String get _title => widget.group
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+
+  void _initialize(List<SettingModel> items) {
+    if (_initialized) return;
+    final stored = {
+      for (final item in items) item.settingKey: item.settingValue,
+    };
+    for (final definition in _definitions) {
+      final value = stored[definition.key] ?? definition.defaultValue;
+      _values[definition.key] = value;
+      if (definition.control == SettingControl.number ||
+          definition.control == SettingControl.text) {
+        _controllers[definition.key] = TextEditingController(text: value);
+      }
+    }
+    _initialized = true;
   }
 
-  Future<void> _showEditDialog(BuildContext context, WidgetRef ref) async {
-    final keyController = TextEditingController();
-    final valueController = TextEditingController();
-    final descController = TextEditingController();
+  bool _isTrue(String key) => _values[key]?.toLowerCase() == 'true';
+  bool _isEnabled(SettingDefinition d) =>
+      d.enabledBy == null || _isTrue(d.enabledBy!);
 
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: Text(
-          'Add / Update ${_formatTitle(group)} Setting',
-          style: const TextStyle(
-            color: navy,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _saving = true);
+    try {
+      for (final entry in _controllers.entries) {
+        _values[entry.key] = entry.value.text.trim();
+      }
+      await ref.read(settingGroupProvider(widget.group).notifier).saveAll([
+        for (final d in _definitions)
+          SettingRequest(
+            settingGroup: widget.group,
+            settingKey: d.key,
+            settingValue: _values[d.key] ?? d.defaultValue,
+            description: d.label,
           ),
+      ]);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Settings saved successfully.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to save settings: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingGroupProvider(widget.group));
+    return Scaffold(
+      appBar: AppBar(title: Text('$_title Settings')),
+      body: settings.when(
+        loading: () => const AppLoading(),
+        error: (error, _) => _ErrorView(
+          error: error,
+          onRetry: () =>
+              ref.read(settingGroupProvider(widget.group).notifier).load(),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        data: (items) {
+          _initialize(items);
+          if (_definitions.isEmpty) {
+            return const Center(child: Text('No settings configured.'));
+          }
+          return Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                    children: [
+                      Text(
+                        'Configure how $_title features behave across the web portal and member devices.',
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      ..._buildSections(),
+                    ],
+                  ),
+                ),
+                _SaveBar(saving: _saving, onSave: _save),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _buildSections() {
+    final sections = <String>[];
+    for (final d in _definitions) {
+      if (!sections.contains(d.section)) sections.add(d.section);
+    }
+    return [
+      for (final section in sections) ...[
+        _SectionCard(
+          title: section,
+          children: _definitions
+              .where((d) => d.section == section)
+              .map(_buildSetting)
+              .toList(),
+        ),
+        const SizedBox(height: 16),
+      ],
+    ];
+  }
+
+  Widget _buildSetting(SettingDefinition d) {
+    final enabled = _isEnabled(d);
+    late final Widget control;
+    switch (d.control) {
+      case SettingControl.toggle:
+        control = Switch.adaptive(
+          value: _isTrue(d.key),
+          onChanged: enabled
+              ? (v) => setState(() => _values[d.key] = '$v')
+              : null,
+        );
+      case SettingControl.number:
+        control = SizedBox(
+          width: 230,
+          child: TextFormField(
+            controller: _controllers[d.key],
+            enabled: enabled,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              isDense: true,
+              suffixText: d.suffix,
+              helperText: d.helper,
+            ),
+            validator: (value) {
+              final number = int.tryParse(value ?? '');
+              if (number == null || number < 0) return 'Enter a valid number';
+              if (d.max != null && number > d.max!) {
+                return 'Maximum is ${d.max}';
+              }
+              return null;
+            },
+          ),
+        );
+      case SettingControl.text:
+        final long = d.key == 'printing_disclaimer';
+        control = SizedBox(
+          width: 380,
+          child: TextFormField(
+            controller: _controllers[d.key],
+            enabled: enabled,
+            minLines: long ? 3 : 1,
+            maxLines: long ? 5 : 1,
+            decoration: const InputDecoration(isDense: true),
+            validator: (value) =>
+                (value ?? '').trim().isEmpty ? 'This field is required' : null,
+          ),
+        );
+      case SettingControl.select:
+        control = SizedBox(
+          width: 280,
+          child: DropdownButtonFormField<String>(
+            initialValue: d.options.contains(_values[d.key])
+                ? _values[d.key]
+                : d.defaultValue,
+            decoration: const InputDecoration(isDense: true),
+            items: d.options
+                .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+                .toList(),
+            onChanged: enabled
+                ? (v) => setState(() => _values[d.key] = v ?? '')
+                : null,
+          ),
+        );
+      case SettingControl.multiSelect:
+        final selected = (_values[d.key] ?? '')
+            .split(',')
+            .where((v) => v.isNotEmpty)
+            .toSet();
+        control = Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: d.options
+              .map(
+                (option) => FilterChip(
+                  label: Text(option),
+                  selected: selected.contains(option),
+                  onSelected: enabled
+                      ? (checked) => setState(() {
+                          checked
+                              ? selected.add(option)
+                              : selected.remove(option);
+                          _values[d.key] = selected.join(',');
+                        })
+                      : null,
+                ),
+              )
+              .toList(),
+        );
+    }
+    return Opacity(
+      opacity: enabled ? 1 : .48,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(d.indented ? 24 : 0, 12, 0, 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final label = Text(
+              d.label,
+              style: TextStyle(
+                color: AppColors.text,
+                fontWeight: d.indented ? FontWeight.w500 : FontWeight.w600,
+                height: 1.35,
+              ),
+            );
+            if (constraints.maxWidth < 680 ||
+                d.control == SettingControl.multiSelect) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [label, const SizedBox(height: 10), control],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: label),
+                const SizedBox(width: 24),
+                control,
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+  const _SectionCard({required this.title, required this.children});
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              _DialogTextField(
-                controller: keyController,
-                label: 'Setting Key',
-                icon: Icons.key_rounded,
+              const Icon(
+                Icons.devices_rounded,
+                color: AppColors.navy,
+                size: 20,
               ),
-              const SizedBox(height: 14),
-              _DialogTextField(
-                controller: valueController,
-                label: 'Setting Value',
-                icon: Icons.tune_rounded,
-              ),
-              const SizedBox(height: 14),
-              _DialogTextField(
-                controller: descController,
-                label: 'Description',
-                icon: Icons.description_rounded,
-                maxLines: 3,
+              const SizedBox(width: 9),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ],
           ),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                color: subTextColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: navy,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () async {
-              await ref
-                  .read(settingGroupProvider(group).notifier)
-                  .save(
-                    SettingRequest(
-                      settingGroup: group,
-                      settingKey: keyController.text.trim(),
-                      settingValue: valueController.text.trim(),
-                      description: descController.text.trim(),
-                    ),
-                  );
-
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncData = ref.watch(settingGroupProvider(group));
-
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: navy,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          _formatTitle(group),
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: IconButton(
-              onPressed: () => _showEditDialog(context, ref),
-              icon: const Icon(Icons.add_rounded),
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: navy,
-        foregroundColor: Colors.white,
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        onPressed: () => _showEditDialog(context, ref),
-        child: const Icon(Icons.add_rounded),
-      ),
-      body: asyncData.when(
-        data: (items) {
-          if (items.isEmpty) {
-            return const _EmptySettingsView();
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 90),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 14),
-            itemBuilder: (context, index) {
-              final item = items[index];
-
-              return Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: iconBg,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.settings_suggest_rounded,
-                        color: navy,
-                        size: 25,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.settingKey,
-                            style: const TextStyle(
-                              color: navy,
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: arrowBg,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              item.settingValue,
-                              style: const TextStyle(
-                                color: navy,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          if ((item.description ?? '').isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              item.description!,
-                              style: const TextStyle(
-                                color: subTextColor,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w500,
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              'Failed to load settings:\n$e',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: navy, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-        loading: () => const AppLoading(),
-      ),
-    );
-  }
-}
-
-class _DialogTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final IconData icon;
-  final int maxLines;
-
-  const _DialogTextField({
-    required this.controller,
-    required this.label,
-    required this.icon,
-    this.maxLines = 1,
-  });
-
-  static const Color navy = Color(0xFF14275B);
-  static const Color iconBg = Color(0xFFE9ECF3);
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: navy),
-        filled: true,
-        fillColor: iconBg.withValues(alpha: 0.55),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: navy, width: 1.4),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptySettingsView extends StatelessWidget {
-  const _EmptySettingsView();
-
-  static const Color navy = Color(0xFF14275B);
-  static const Color subTextColor = Color(0xFF6E7FA8);
-  static const Color iconBg = Color(0xFFE9ECF3);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: const Icon(Icons.settings_rounded, color: navy, size: 34),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No settings found',
-              style: TextStyle(
-                color: navy,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Tap the + button to add a new setting.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: subTextColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+          const SizedBox(height: 7),
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const Divider(height: 1),
+            children[i],
           ],
+        ],
+      ),
+    ),
+  );
+}
+
+class _SaveBar extends StatelessWidget {
+  final bool saving;
+  final VoidCallback onSave;
+  const _SaveBar({required this.saving, required this.onSave});
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    elevation: 10,
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            onPressed: saving ? null : onSave,
+            icon: saving
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_rounded),
+            label: Text(saving ? 'Saving…' : 'Save settings'),
+          ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _ErrorView extends StatelessWidget {
+  final Object error;
+  final VoidCallback onRetry;
+  const _ErrorView({required this.error, required this.onRetry});
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.cloud_off_rounded,
+            size: 44,
+            color: AppColors.textMuted,
+          ),
+          const SizedBox(height: 12),
+          Text('Could not load settings\n$error', textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try again'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

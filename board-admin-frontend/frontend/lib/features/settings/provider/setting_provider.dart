@@ -37,4 +37,11 @@ class SettingNotifier extends StateNotifier<AsyncValue<List<SettingModel>>> {
     await repository.save(request);
     await load();
   }
+
+  Future<void> saveAll(List<SettingRequest> requests) async {
+    for (final request in requests) {
+      await repository.save(request);
+    }
+    await load();
+  }
 }

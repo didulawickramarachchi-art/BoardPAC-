@@ -143,7 +143,11 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
           '${safeName.isEmpty ? 'document' : safeName}_annotated_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final uploadedPath = await ref
           .read(paperRepositoryProvider)
-          .uploadAttachment(fileName: fileName, fileBytes: bytes);
+          .uploadAttachment(
+            fileName: fileName,
+            paperId: widget.paperId,
+            fileBytes: bytes,
+          );
 
       await ref
           .read(

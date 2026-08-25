@@ -98,31 +98,7 @@ class UserListScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(14),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor: gold.withValues(alpha: 0.18),
-                        backgroundImage:
-                            user.profilePictureUrl != null &&
-                                user.profilePictureUrl!.isNotEmpty
-                            ? ResizeImage(
-                                NetworkImage(user.profilePictureUrl!),
-                                width: 128,
-                                height: 128,
-                              )
-                            : null,
-                        child:
-                            user.profilePictureUrl == null ||
-                                user.profilePictureUrl!.isEmpty
-                            ? Text(
-                                initials,
-                                style: const TextStyle(
-                                  color: darkBlue,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              )
-                            : null,
-                      ),
+                      _UserAvatar(user: user, initials: initials),
 
                       const SizedBox(width: 14),
 
@@ -394,6 +370,85 @@ class UserListScreen extends ConsumerWidget {
           ),
         ),
         loading: () => const AppLoading(),
+      ),
+    );
+  }
+}
+
+class _UserAvatar extends ConsumerWidget {
+  final UserModel user;
+  final String initials;
+
+  const _UserAvatar({required this.user, required this.initials});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final imageUrl = user.profilePictureUrl?.trim();
+    final picture = imageUrl?.isNotEmpty == true
+        ? ref.watch(profilePictureProvider((userId: user.id, url: imageUrl!)))
+        : null;
+
+    final fallback = Center(
+      child: Text(
+        initials,
+        style: const TextStyle(
+          color: UserListScreen.darkBlue,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+
+    return Semantics(
+      image: picture?.valueOrNull != null,
+      label: '${user.firstName} ${user.lastName} profile picture'.trim(),
+      child: Container(
+        width: 54,
+        height: 54,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(
+            color: UserListScreen.gold.withValues(alpha: 0.45),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: UserListScreen.primaryBlue.withValues(alpha: 0.10),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipOval(
+          child: ColoredBox(
+            color: UserListScreen.gold.withValues(alpha: 0.18),
+            child:
+                picture?.when(
+                  data: (bytes) => Image.memory(
+                    bytes,
+                    fit: BoxFit.cover,
+                    width: 50,
+                    height: 50,
+                    gaplessPlayback: true,
+                    errorBuilder: (_, _, _) => fallback,
+                  ),
+                  loading: () => Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      fallback,
+                      const Align(
+                        alignment: Alignment.bottomCenter,
+                        child: LinearProgressIndicator(minHeight: 2),
+                      ),
+                    ],
+                  ),
+                  error: (_, _) => fallback,
+                ) ??
+                fallback,
+          ),
+        ),
       ),
     );
   }

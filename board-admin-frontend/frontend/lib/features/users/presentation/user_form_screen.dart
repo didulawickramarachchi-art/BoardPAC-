@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/auth/role_access.dart';
+import '../../../core/network/api_error_message.dart';
 import '../model/user_model.dart';
 import '../model/user_request.dart';
 import '../provider/user_provider.dart';
@@ -70,13 +71,25 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
   }
 
   Future<void> _save() async {
+    if (isSaving) return;
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final email = _emailController.text.trim();
+    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('First name, last name, and board email are required.'),
+        ),
+      );
+      return;
+    }
     setState(() => isSaving = true);
 
     final request = UserRequest(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
+      firstName: firstName,
+      lastName: lastName,
       displayName: _displayNameController.text.trim(),
-      email: _emailController.text.trim(),
+      email: email,
       mobileNumber: _mobileController.text.trim(),
       jobTitle: _jobTitleController.text.trim(),
       role: role,
@@ -87,13 +100,26 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       twoStepEnabled: twoStepEnabled,
     );
 
-    await ref
-        .read(userListProvider.notifier)
-        .updateUser(widget.user.id, request);
-
-    if (mounted) {
-      setState(() => isSaving = false);
+    try {
+      await ref
+          .read(userListProvider.notifier)
+          .updateUser(widget.user.id, request);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User updated successfully.')),
+      );
       Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ApiErrorMessage.from(error, fallback: 'Could not update user.'),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => isSaving = false);
     }
   }
 

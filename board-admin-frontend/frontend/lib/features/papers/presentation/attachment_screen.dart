@@ -303,6 +303,7 @@ class AttachmentScreen extends ConsumerWidget {
                         final uploadedFilePath = await repository
                             .uploadAttachment(
                               fileName: fileName,
+                              paperId: paperId,
                               filePath: selectedFilePath,
                               fileBytes: selectedBytes,
                               onProgress: (sent, total) {

@@ -46,6 +46,8 @@ class PaperRepository {
 
   Future<String> uploadAttachment({
     required String fileName,
+    int? meetingId,
+    int? paperId,
     String? filePath,
     Uint8List? fileBytes,
     void Function(int sent, int total)? onProgress,
@@ -57,6 +59,8 @@ class PaperRepository {
               fileBytes ?? Uint8List(0),
               filename: fileName,
             ),
+      'meetingId': ?meetingId,
+      'paperId': ?paperId,
     });
 
     final response = await dio.post(

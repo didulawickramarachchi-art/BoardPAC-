@@ -6,6 +6,7 @@ import 'package:frontend/features/reports/presentation/meeting_history_report_sc
 import 'package:frontend/features/settings/presentation/setting_home_screen.dart';
 
 import '../../../core/auth/role_access.dart';
+import '../../../core/network/api_error_message.dart';
 import '../../../core/responsive/responsive_layout.dart';
 import '../../../core/widgets/app_glass_surface.dart';
 import '../../auth/provider/auth_provider.dart';
@@ -122,8 +123,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       child: CircularProgressIndicator(),
                                     ),
                                   ),
-                                  error: (error, _) =>
-                                      _ErrorBox(message: error.toString()),
+                                  error: (error, _) => _ErrorBox(
+                                    message: ApiErrorMessage.from(error),
+                                  ),
                                 ),
                                 loading: () => const Padding(
                                   padding: EdgeInsets.all(40),
@@ -131,8 +133,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     child: CircularProgressIndicator(),
                                   ),
                                 ),
-                                error: (error, _) =>
-                                    _ErrorBox(message: error.toString()),
+                                error: (error, _) => _ErrorBox(
+                                  message: ApiErrorMessage.from(error),
+                                ),
                               );
                             },
 
@@ -142,7 +145,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ),
 
                             error: (error, _) =>
-                                _ErrorBox(message: error.toString()),
+                                _ErrorBox(message: ApiErrorMessage.from(error)),
                           ),
 
                           if (!isAdmin) ...[
@@ -1491,6 +1494,69 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
+BoxDecoration _lightDetailGlass(Color accent) {
+  const radius = BorderRadius.all(Radius.circular(22));
+  final brightTint = Color.alphaBlend(
+    accent.withValues(alpha: 0.16),
+    Colors.white.withValues(alpha: 0.92),
+  );
+  final middleTint = Color.alphaBlend(
+    accent.withValues(alpha: 0.10),
+    const Color(0xFFF3F6FC).withValues(alpha: 0.84),
+  );
+  final deepTint = Color.alphaBlend(
+    accent.withValues(alpha: 0.15),
+    const Color(0xFFE7EDF8).withValues(alpha: 0.78),
+  );
+  return BoxDecoration(
+    borderRadius: radius,
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      stops: const [0, 0.48, 1],
+      colors: [brightTint, middleTint, deepTint],
+    ),
+    border: Border.all(
+      color: Color.alphaBlend(
+        accent.withValues(alpha: 0.12),
+        Colors.white.withValues(alpha: 0.90),
+      ),
+      width: 1.1,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: const Color(0xFF00184A).withValues(alpha: 0.10),
+        blurRadius: 26,
+        offset: const Offset(0, 11),
+      ),
+      BoxShadow(
+        color: accent.withValues(alpha: 0.14),
+        blurRadius: 22,
+        spreadRadius: -8,
+        offset: const Offset(4, 6),
+      ),
+      BoxShadow(
+        color: Colors.white.withValues(alpha: 0.85),
+        blurRadius: 5,
+        offset: const Offset(-2, -3),
+      ),
+    ],
+  );
+}
+
+/// Muted accents derived from the app's navy/gold identity. Supporting hues
+/// are deliberately desaturated so every card belongs to the same system.
+abstract final class _DashboardCardColors {
+  static const navy = Color(0xFF3155A6);
+  static const gold = Color(0xFFC58A24);
+  static const plum = Color(0xFF765B9E);
+  static const teal = Color(0xFF2C7D86);
+  static const royalBlue = Color(0xFF3D6FD1);
+  static const coral = Color(0xFFC45C5C);
+  static const green = Color(0xFF2E8069);
+  static const violet = Color(0xFF66549A);
+}
+
 class _SummaryCard extends StatelessWidget {
   final String title;
   final String value;
@@ -1510,10 +1576,7 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: AppGlassDecoration.surface(
-        borderRadius: BorderRadius.circular(22),
-        tint: iconColor,
-      ),
+      decoration: _lightDetailGlass(iconColor),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1521,10 +1584,18 @@ class _SummaryCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: iconBg,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.90),
+                  iconColor.withValues(alpha: 0.14),
+                ],
+              ),
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.88)),
             ),
-            child: Icon(icon, color: iconColor, size: 22),
+            child: Icon(icon, color: iconColor, size: 23),
           ),
 
           const Spacer(),
@@ -1533,7 +1604,7 @@ class _SummaryCard extends StatelessWidget {
             value,
             style: const TextStyle(
               color: Color(0xFF00184A),
-              fontSize: 27,
+              fontSize: 35,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -1545,8 +1616,8 @@ class _SummaryCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Color(0xFF7D8CB2),
-              fontSize: 12,
+              color: Color(0xFF68799F),
+              fontSize: 15,
               height: 1.2,
               fontWeight: FontWeight.w600,
             ),
@@ -1568,7 +1639,7 @@ class _SummaryGrid extends StatelessWidget {
       builder: (context, constraints) {
         final columns = responsiveColumnCount(
           constraints.maxWidth,
-          compact: constraints.maxWidth < 380 ? 1 : 2,
+          compact: 2,
           medium: 3,
           expanded: 4,
           large: 4,
@@ -1579,7 +1650,7 @@ class _SummaryGrid extends StatelessWidget {
           crossAxisCount: columns,
           crossAxisSpacing: 14,
           mainAxisSpacing: 14,
-          childAspectRatio: columns == 1 ? 2.3 : 1.18,
+          childAspectRatio: constraints.maxWidth < 600 ? 0.96 : 1.18,
           children: cards,
         );
       },
@@ -1597,18 +1668,23 @@ class _RoleOverview extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: AppGlassDecoration.surface(
-        borderRadius: BorderRadius.circular(22),
-        tint: const Color(0xFF233E8B),
-      ),
+      decoration: _lightDetailGlass(_DashboardCardColors.navy),
       child: Row(
         children: [
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFF233E8B).withValues(alpha: 0.09),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.90),
+                  const Color(0xFF6F8FE4).withValues(alpha: 0.14),
+                ],
+              ),
               borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.88)),
             ),
             child: Icon(config.icon, color: const Color(0xFF233E8B), size: 23),
           ),
@@ -1633,7 +1709,7 @@ class _RoleOverview extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF7D8CB2),
+                    color: Color(0xFF68799F),
                     fontSize: 12,
                     height: 1.25,
                     fontWeight: FontWeight.w600,
@@ -2156,21 +2232,21 @@ List<_SummaryCard> _summaryCardsForRole(
       title: 'Members',
       value: roleCounts.members.toString(),
       icon: Icons.groups_2_outlined,
-      iconColor: const Color(0xFF233E8B),
+      iconColor: _DashboardCardColors.navy,
       iconBg: const Color(0xFFEAF0FF),
     ),
     'secretaries': _SummaryCard(
       title: 'Secretaries',
       value: roleCounts.secretaries.toString(),
       icon: Icons.badge_outlined,
-      iconColor: DashboardScreen.gold,
+      iconColor: _DashboardCardColors.gold,
       iconBg: const Color(0xFFFFF3DC),
     ),
     'admins': _SummaryCard(
       title: 'Admins',
       value: roleCounts.admins.toString(),
       icon: Icons.admin_panel_settings_outlined,
-      iconColor: const Color(0xFFE84393),
+      iconColor: _DashboardCardColors.plum,
       iconBg: const Color(0xFFFFE7F2),
     ),
     'pendingDevices': _SummaryCard(
@@ -2180,63 +2256,63 @@ List<_SummaryCard> _summaryCardsForRole(
           .length
           .toString(),
       icon: Icons.person_add_alt_1_rounded,
-      iconColor: const Color(0xFF3168F4),
-      iconBg: const Color(0xFFEAF0FF),
+      iconColor: _DashboardCardColors.teal,
+      iconBg: const Color(0xFFE0F8F5),
     ),
     'users': _SummaryCard(
       title: 'Users',
       value: summary.totalUsers.toString(),
       icon: Icons.people_outline_rounded,
-      iconColor: const Color(0xFF233E8B),
+      iconColor: _DashboardCardColors.navy,
       iconBg: const Color(0xFFEAF0FF),
     ),
     'meetings': _SummaryCard(
       title: 'Meetings',
       value: summary.totalMeetings.toString(),
       icon: Icons.event_rounded,
-      iconColor: DashboardScreen.gold,
+      iconColor: _DashboardCardColors.gold,
       iconBg: const Color(0xFFFFF3DC),
     ),
     'circulars': _SummaryCard(
       title: 'Circulars',
       value: summary.totalCirculars.toString(),
       icon: Icons.mail_outline_rounded,
-      iconColor: const Color(0xFFE84393),
+      iconColor: _DashboardCardColors.plum,
       iconBg: const Color(0xFFFFE7F2),
     ),
     'approvals': _SummaryCard(
       title: 'Pending Approvals',
       value: summary.pendingApprovals.toString(),
       icon: Icons.how_to_vote_rounded,
-      iconColor: const Color(0xFF3168F4),
+      iconColor: _DashboardCardColors.royalBlue,
       iconBg: const Color(0xFFEAF0FF),
     ),
     'papers': _SummaryCard(
       title: 'Unread Papers',
       value: summary.unreadPapers.toString(),
       icon: Icons.picture_as_pdf_rounded,
-      iconColor: const Color(0xFFE74C3C),
+      iconColor: _DashboardCardColors.coral,
       iconBg: const Color(0xFFFFEAEA),
     ),
     'comments': _SummaryCard(
       title: 'Shared Comments',
       value: summary.sharedComments.toString(),
       icon: Icons.comment_outlined,
-      iconColor: const Color(0xFF20C997),
+      iconColor: _DashboardCardColors.green,
       iconBg: const Color(0xFFE0F8F1),
     ),
     'documents': _SummaryCard(
       title: 'Shared Docs',
       value: summary.sharedDocuments.toString(),
       icon: Icons.share_rounded,
-      iconColor: const Color(0xFF7C3AED),
+      iconColor: _DashboardCardColors.violet,
       iconBg: const Color(0xFFF1EAFE),
     ),
     'privileges': _SummaryCard(
       title: 'Privileges',
       value: summary.totalUsers.toString(),
       icon: Icons.admin_panel_settings_outlined,
-      iconColor: const Color(0xFF233E8B),
+      iconColor: _DashboardCardColors.navy,
       iconBg: const Color(0xFFEAF0FF),
     ),
   };

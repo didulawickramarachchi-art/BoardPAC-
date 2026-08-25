@@ -9,8 +9,7 @@ class ApiConstants {
     defaultValue: '',
   );
 
-  // Use the environment value when provided, otherwise pick a sensible
-  // platform-specific default (Android emulator => 10.0.2.2, others => localhost).
+  // Use the environment value when provided, otherwise use the deployed API.
   static String get baseUrl {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
     return ApiConstantsPlatform.defaultBaseUrl;

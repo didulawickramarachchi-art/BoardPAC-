@@ -3,6 +3,7 @@ package com.portSrilanka.board_admin_backend.service;
 import com.portSrilanka.board_admin_backend.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -15,8 +16,12 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${APP_MAIL_FROM}")
+    private String from;
+
     public void sendEmail(String to, String subject, String body) {
         SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setFrom(from);
         msg.setTo(to);
         msg.setSubject(subject);
         msg.setText(body);

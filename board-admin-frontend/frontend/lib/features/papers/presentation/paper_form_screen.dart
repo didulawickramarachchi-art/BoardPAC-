@@ -80,6 +80,7 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
             .read(paperRepositoryProvider)
             .uploadAttachment(
               fileName: fileName,
+              meetingId: widget.meetingId,
               filePath: selectedFilePath,
               fileBytes: selectedFileBytes,
             );

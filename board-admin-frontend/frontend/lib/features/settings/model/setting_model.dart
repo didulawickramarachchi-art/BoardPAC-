@@ -15,10 +15,10 @@ class SettingModel {
 
   factory SettingModel.fromJson(Map<String, dynamic> json) {
     return SettingModel(
-      id: json['id'],
+      id: (json['id'] as num?)?.toInt() ?? 0,
       settingGroup: json['settingGroup'] ?? '',
       settingKey: json['settingKey'] ?? '',
-      settingValue: json['settingValue'] ?? '',
+      settingValue: json['settingValue']?.toString() ?? '',
       description: json['description'],
     );
   }

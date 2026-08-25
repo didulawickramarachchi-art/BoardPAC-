@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <!-- Storage / Media Permissions -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
@@ -12,7 +14,8 @@
     <application
         android:label="SLPA BoardPack"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".MainActivity"

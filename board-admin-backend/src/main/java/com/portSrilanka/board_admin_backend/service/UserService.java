@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -84,19 +85,22 @@ public class UserService {
         return mapToResponse(user);
     }
 
+    @Transactional
     public UserResponse updateUser(Long id, UserRequest request) {
         User user = findUser(id);
 
-        user.setSalutation(request.getSalutation());
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setDisplayName(request.getDisplayName());
-        user.setBoardEmail(request.getBoardEmail());
-        user.setOfficeEmail(request.getOfficeEmail());
-        user.setOfficeNumber(request.getOfficeNumber());
-        user.setMobileNumber(request.getMobileNumber());
-        user.setJobTitle(request.getJobTitle());
-        user.setProfilePictureUrl(request.getProfilePictureUrl());
+        if (request.getSalutation() != null) user.setSalutation(request.getSalutation());
+        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) user.setLastName(request.getLastName());
+        if (request.getDisplayName() != null) user.setDisplayName(request.getDisplayName());
+        if (request.getBoardEmail() != null) user.setBoardEmail(request.getBoardEmail());
+        if (request.getOfficeEmail() != null) user.setOfficeEmail(request.getOfficeEmail());
+        if (request.getOfficeNumber() != null) user.setOfficeNumber(request.getOfficeNumber());
+        if (request.getMobileNumber() != null) user.setMobileNumber(request.getMobileNumber());
+        if (request.getJobTitle() != null) user.setJobTitle(request.getJobTitle());
+        if (request.getProfilePictureUrl() != null) {
+            user.setProfilePictureUrl(request.getProfilePictureUrl());
+        }
         user.setTwoStepEnabled(request.isTwoStepEnabled());
         if (request.getBoardType() != null) {
             user.setBoardType(request.getBoardType());
@@ -116,7 +120,10 @@ public class UserService {
             Role role = roleRepository.findByName(requestedRole)
                     .orElseThrow(() -> new com.portSrilanka.board_admin_backend.exception.BadRequestException(
                             "Role not found: " + requestedRole));
-            user.setRoles(Set.of(role));
+            // Keep Hibernate's managed collection instance. Replacing it with
+            // Set.of(...) can fail during flush and produces a generic 500.
+            user.getRoles().clear();
+            user.getRoles().add(role);
             effectiveRole = requestedRole;
         }
         if (request.getAccessProfile() != null) {
@@ -131,7 +138,7 @@ public class UserService {
             user.setAccessProfile(AccessProfile.defaultFor(effectiveRole));
         }
 
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
 
         return mapToResponse(user);
     }

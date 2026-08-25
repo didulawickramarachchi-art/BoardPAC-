@@ -217,19 +217,24 @@ class _DashboardMonth extends StatelessWidget {
               final date = DateTime(visibleMonth.year, visibleMonth.month, day);
               final selected = _sameDay(date, selectedDay);
               final today = _isToday(date);
+              final hasMeetings = marked.contains(day);
               return Semantics(
                 button: true,
                 selected: selected,
                 label:
                     '${_monthName(date.month)} $day'
-                    '${marked.contains(day) ? ', has meetings' : ''}',
+                    '${hasMeetings ? ', has meetings' : ''}',
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
                   onTap: () => onSelected(date),
                   child: Container(
                     margin: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: selected ? AppColors.navy : Colors.transparent,
+                      color: hasMeetings
+                          ? AppColors.danger
+                          : selected
+                          ? AppColors.navy
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       border: today && !selected
                           ? Border.all(color: AppColors.gold, width: 1.5)
@@ -241,19 +246,21 @@ class _DashboardMonth extends StatelessWidget {
                         Text(
                           '$day',
                           style: TextStyle(
-                            color: selected ? Colors.white : AppColors.text,
+                            color: selected || hasMeetings
+                                ? Colors.white
+                                : AppColors.text,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        if (marked.contains(day))
+                        if (hasMeetings)
                           Positioned(
                             bottom: 3,
                             child: Container(
                               width: 5,
                               height: 5,
                               decoration: const BoxDecoration(
-                                color: AppColors.gold,
+                                color: Colors.white,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -636,7 +643,11 @@ class _CalendarCard extends StatelessWidget {
                 child: Container(
                   margin: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.navy : Colors.transparent,
+                    color: marked
+                        ? AppColors.danger
+                        : selected
+                        ? AppColors.navy
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -645,7 +656,9 @@ class _CalendarCard extends StatelessWidget {
                       Text(
                         '$day',
                         style: TextStyle(
-                          color: selected ? Colors.white : AppColors.text,
+                          color: selected || marked
+                              ? Colors.white
+                              : AppColors.text,
                           fontWeight: selected
                               ? FontWeight.w900
                               : FontWeight.w600,
@@ -656,7 +669,7 @@ class _CalendarCard extends StatelessWidget {
                         width: 5,
                         height: 5,
                         decoration: BoxDecoration(
-                          color: marked ? AppColors.gold : Colors.transparent,
+                          color: marked ? Colors.white : Colors.transparent,
                           shape: BoxShape.circle,
                         ),
                       ),
