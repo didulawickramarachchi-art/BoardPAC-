@@ -125,6 +125,7 @@ public class AgendaService {
     private AgendaItemResponse mapItem(AgendaItem item) {
         return AgendaItemResponse.builder()
                 .id(item.getId())
+                .sectionId(item.getSection() != null ? item.getSection().getId() : null)
                 .itemType(item.getItemType())
                 .title(item.getTitle())
                 .numberLabel(item.getNumberLabel())

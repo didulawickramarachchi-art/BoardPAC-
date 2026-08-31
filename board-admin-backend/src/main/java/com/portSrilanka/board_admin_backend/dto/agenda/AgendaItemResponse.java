@@ -8,6 +8,7 @@ import lombok.Data;
 @Builder
 public class AgendaItemResponse {
     private Long id;
+    private Long sectionId;
     private AgendaItemType itemType;
     private String title;
     private String numberLabel;

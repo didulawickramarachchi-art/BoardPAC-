@@ -7,6 +7,7 @@ import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../comments/presentation/comment_screen.dart';
+import '../../approvals/presentation/approval_screen.dart';
 import '../provider/paper_provider.dart';
 import 'attachment_screen.dart';
 import 'paper_detail_screen.dart';
@@ -202,10 +203,10 @@ class PaperListScreen extends ConsumerWidget {
                             ),
                           ),
                         );
-                      } else if (value == 'approve' && access.canUploadPapers) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Approve action')),
-                        );
+                      } else if (value == 'approve' && access.canApprovePapers) {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => ApprovalScreen(
+                          paperId: paper.id, paperTitle: paper.title,
+                        )));
                       } else if (value == 'comment' &&
                           access.canCommentPapers) {
                         Navigator.push(
@@ -213,6 +214,7 @@ class PaperListScreen extends ConsumerWidget {
                           MaterialPageRoute(
                             builder: (_) => CommentScreen(
                               paperId: paper.id,
+                              meetingId: meetingId,
                               title: paper.title,
                             ),
                           ),
@@ -232,7 +234,7 @@ class PaperListScreen extends ConsumerWidget {
                         value: 'annotations',
                         child: Text('Annotations'),
                       ),
-                      if (paper.requiresApproval && access.canUploadPapers)
+                      if (paper.requiresApproval && access.canApprovePapers)
                         const PopupMenuItem(
                           value: 'approve',
                           child: Text('Approve'),

@@ -47,33 +47,10 @@ class MeetingRepository {
     required Set<int> privilegedSubcategoryIds,
     required Set<String> privilegedSubcategoryNames,
   }) async {
-    final meetings = await getMeetings();
-    return meetings
-        .where(
-          (meeting) => _hasSubcategoryPrivilege(
-            meeting,
-            privilegedSubcategoryIds,
-            privilegedSubcategoryNames,
-          ),
-        )
-        .toList();
-  }
-
-  bool _hasSubcategoryPrivilege(
-    MeetingModel meeting,
-    Set<int> privilegedSubcategoryIds,
-    Set<String> privilegedSubcategoryNames,
-  ) {
-    final subcategoryId = meeting.subcategoryId;
-    if (subcategoryId != null &&
-        privilegedSubcategoryIds.contains(subcategoryId)) {
-      return true;
-    }
-
-    final subcategoryName = meeting.subcategoryName?.trim().toLowerCase();
-    return subcategoryName != null &&
-        subcategoryName.isNotEmpty &&
-        privilegedSubcategoryNames.contains(subcategoryName);
+    // `/meetings` is scoped by the authenticated user on the backend. Keep the
+    // privilege arguments for source compatibility while the server remains
+    // the authorization boundary.
+    return getMeetings();
   }
 
   Future<List<ParticipantOptionModel>> getParticipantOptions(
@@ -91,5 +68,12 @@ class MeetingRepository {
 
   Future<void> updateParticipantStatus(ParticipantStatusRequest request) async {
     await dio.put('/meetings/participants/status', data: request.toJson());
+  }
+
+  Future<void> rsvp(int meetingId, String status, String? reason) async {
+    await dio.put(
+      '/meetings/$meetingId/rsvp',
+      data: {'participantStatus': status, 'statusReason': reason},
+    );
   }
 }

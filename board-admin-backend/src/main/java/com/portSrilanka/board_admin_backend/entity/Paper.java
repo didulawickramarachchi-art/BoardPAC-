@@ -34,6 +34,13 @@ public class Paper extends BaseEntity {
     private String filePath;
     private String fileName;
     private Integer versionNumber;
+    @ManyToOne @JoinColumn(name = "root_paper_id")
+    private Paper rootPaper;
+    @Column(name = "current_version", nullable = false)
+    @Builder.Default
+    private boolean currentVersion = true;
+    @Column(length = 1000)
+    private String revisionNote;
     private boolean requiresApproval;
     private boolean isMainPaper;
 

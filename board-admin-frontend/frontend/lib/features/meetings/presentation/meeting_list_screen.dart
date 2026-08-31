@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/network/api_error_message.dart';
+import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/category_image_card.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../notifications/provider/notification_provider.dart';
 import '../../categories/provider/category_provider.dart';
 import '../../agendas/presentation/agenda_section_screen.dart';
 import '../../papers/presentation/paper_list_screen.dart';
@@ -29,6 +31,8 @@ class MeetingListScreen extends ConsumerStatefulWidget {
 }
 
 class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
+  static const _categoryPreferencePrefix = 'member_meeting_category_';
+  static const _subcategoryPreferencePrefix = 'member_meeting_subcategory_';
   String? selectedCategory;
   String? selectedSubcategory;
   late bool showHistory;
@@ -37,6 +41,37 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
   void initState() {
     super.initState();
     showHistory = widget.initiallyShowHistory;
+    _restoreMemberFilters();
+  }
+
+  Future<void> _restoreMemberFilters() async {
+    final auth = ref.read(authProvider);
+    if (!RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile).isMember) return;
+    final userId = auth.userId;
+    if (userId == null) return;
+    final storage = SecureStorageService();
+    final category = await storage.read('$_categoryPreferencePrefix$userId');
+    final subcategory = await storage.read(
+      '$_subcategoryPreferencePrefix$userId',
+    );
+    if (!mounted) return;
+    setState(() {
+      selectedCategory = _storedValue(category);
+      selectedSubcategory = _storedValue(subcategory);
+    });
+  }
+
+  Future<void> _saveMemberFilters(RoleAccess access, int? userId) async {
+    if (!access.isMember || userId == null) return;
+    final storage = SecureStorageService();
+    await storage.write(
+      '$_categoryPreferencePrefix$userId',
+      selectedCategory ?? '',
+    );
+    await storage.write(
+      '$_subcategoryPreferencePrefix$userId',
+      selectedSubcategory ?? '',
+    );
   }
 
   static const Color primaryBlue = Color(0xFF12275B);
@@ -52,6 +87,14 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
         ref.watch(subcategoryListProvider).valueOrNull ?? [];
     final auth = ref.watch(authProvider);
     final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
+    final notifications = access.isMember && auth.userId != null
+        ? ref.watch(notificationListProvider(auth.userId!)).valueOrNull ?? []
+        : const [];
+    final unreadMeetingIds = notifications
+        .where((notification) => !notification.read)
+        .map((notification) => notification.relatedMeetingId)
+        .whereType<int>()
+        .toSet();
 
     if (!access.canViewMeetings) {
       return const Scaffold(
@@ -71,13 +114,16 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
             ? null
             : IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() {
-                  if (selectedSubcategory != null) {
-                    selectedSubcategory = null;
-                  } else {
-                    selectedCategory = null;
-                  }
-                }),
+                onPressed: () {
+                  setState(() {
+                    if (selectedSubcategory != null) {
+                      selectedSubcategory = null;
+                    } else {
+                      selectedCategory = null;
+                    }
+                  });
+                  _saveMemberFilters(access, auth.userId);
+                },
               ),
         title: Text(
           selectedSubcategory ??
@@ -177,6 +223,13 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
               final name = rawName.isEmpty ? 'Uncategorized' : rawName;
               categories[name] = (categories[name] ?? 0) + 1;
             }
+            final unreadByCategory = <String, int>{};
+            for (final meeting in visibleByPeriod) {
+              if (!unreadMeetingIds.contains(meeting.id)) continue;
+              final rawName = (meeting.categoryName ?? '').trim();
+              final name = rawName.isEmpty ? 'Uncategorized' : rawName;
+              unreadByCategory[name] = (unreadByCategory[name] ?? 0) + 1;
+            }
             final names = categories.keys.toList()..sort();
             return ListView.separated(
               padding: const EdgeInsets.all(16),
@@ -190,12 +243,18 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
                 );
                 return CategoryImageCard(
                   title: name,
-                  subtitle: '${categories[name]} meetings',
+                  subtitle: _filterSubtitle(
+                    categories[name] ?? 0,
+                    unreadByCategory[name] ?? 0,
+                  ),
                   imageUrl: matching.isEmpty ? null : matching.first.imageUrl,
-                  onTap: () => setState(() {
-                    selectedCategory = name;
-                    selectedSubcategory = null;
-                  }),
+                  onTap: () {
+                    setState(() {
+                      selectedCategory = name;
+                      selectedSubcategory = null;
+                    });
+                    _saveMemberFilters(access, auth.userId);
+                  },
                 );
               },
             );
@@ -213,6 +272,13 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
               final rawName = (meeting.subcategoryName ?? '').trim();
               final name = rawName.isEmpty ? 'Unassigned' : rawName;
               subcategories[name] = (subcategories[name] ?? 0) + 1;
+            }
+            final unreadBySubcategory = <String, int>{};
+            for (final meeting in categoryMeetings) {
+              if (!unreadMeetingIds.contains(meeting.id)) continue;
+              final rawName = (meeting.subcategoryName ?? '').trim();
+              final name = rawName.isEmpty ? 'Unassigned' : rawName;
+              unreadBySubcategory[name] = (unreadBySubcategory[name] ?? 0) + 1;
             }
             final names = subcategories.keys.toList()..sort();
             return ListView.separated(
@@ -235,8 +301,14 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
                     : matches.first.displayName;
                 return _SubcategoryMeetingCard(
                   title: displayName,
-                  subtitle: '${subcategories[name]} meetings',
-                  onTap: () => setState(() => selectedSubcategory = name),
+                  subtitle: _filterSubtitle(
+                    subcategories[name] ?? 0,
+                    unreadBySubcategory[name] ?? 0,
+                  ),
+                  onTap: () {
+                    setState(() => selectedSubcategory = name);
+                    _saveMemberFilters(access, auth.userId);
+                  },
                 );
               },
             );
@@ -938,4 +1010,15 @@ class _BottomSheetTile extends StatelessWidget {
       onTap: onTap,
     );
   }
+}
+
+String? _storedValue(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
+}
+
+String _filterSubtitle(int meetingCount, int unreadCount) {
+  final meetings = '$meetingCount meeting${meetingCount == 1 ? '' : 's'}';
+  if (unreadCount == 0) return meetings;
+  return '$meetings - $unreadCount new update${unreadCount == 1 ? '' : 's'}';
 }

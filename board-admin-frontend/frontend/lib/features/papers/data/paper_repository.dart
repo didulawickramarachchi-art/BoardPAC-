@@ -6,6 +6,8 @@ import '../model/attachment_model.dart';
 import '../model/attachment_request.dart';
 import '../model/paper_model.dart';
 import '../model/paper_request.dart';
+import '../model/paper_read_state_model.dart';
+import '../model/recent_paper_model.dart';
 
 class PaperRepository {
   final Dio dio;
@@ -22,8 +24,54 @@ class PaperRepository {
     return (response.data as List).map((e) => PaperModel.fromJson(e)).toList();
   }
 
+  Future<List<PaperModel>> getVersionHistory(int paperId) async {
+    final response = await dio.get('/papers/$paperId/versions');
+    return (response.data as List).map((e) => PaperModel.fromJson(e)).toList();
+  }
+
+  Future<PaperModel> createRevision(
+    int paperId, {
+    required String filePath,
+    required String fileName,
+    String? revisionNote,
+  }) async {
+    final response = await dio.post(
+      '/papers/$paperId/versions',
+      data: {
+        'filePath': filePath,
+        'fileName': fileName,
+        'revisionNote': revisionNote,
+      },
+    );
+    return PaperModel.fromJson(response.data);
+  }
+
   Future<void> createPaper(PaperRequest request) async {
     await dio.post('/papers', data: request.toJson());
+  }
+
+  Future<PaperReadStateModel> getReadState(int paperId) async {
+    final response = await dio.get('/paper-read-states/$paperId');
+    return PaperReadStateModel.fromJson(response.data);
+  }
+
+  Future<PaperReadStateModel> updateReadState({
+    required int paperId,
+    required int lastPage,
+    required int totalPages,
+  }) async {
+    final response = await dio.put(
+      '/paper-read-states/$paperId',
+      data: {'lastPage': lastPage, 'totalPages': totalPages},
+    );
+    return PaperReadStateModel.fromJson(response.data);
+  }
+
+  Future<List<RecentPaperModel>> getRecentPapers() async {
+    final response = await dio.get('/paper-read-states/recent');
+    return (response.data as List)
+        .map((item) => RecentPaperModel.fromJson(item))
+        .toList();
   }
 
   Future<List<AttachmentModel>> getAttachments(int paperId) async {

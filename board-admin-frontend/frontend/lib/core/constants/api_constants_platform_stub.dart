@@ -1,3 +1,3 @@
 class ApiConstantsPlatform {
-  static const String defaultBaseUrl = 'https://boardpac.onrender.com/api';
+  static const String defaultBaseUrl = 'http://localhost:8080/api';
 }

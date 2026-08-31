@@ -20,6 +20,24 @@ class DeviceNotificationService {
       FlutterLocalNotificationsPlugin();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   bool _initialized = false;
+  static const _reminderOffsetsKey = 'meeting_reminder_offsets_minutes';
+
+  Future<List<int>> reminderOffsets() async {
+    final stored = await _storage.read(key: _reminderOffsetsKey);
+    if (stored == null || stored.trim().isEmpty) return const [1440, 60];
+    return stored
+        .split(',')
+        .map(int.tryParse)
+        .whereType<int>()
+        .where((v) => v > 0)
+        .toList();
+  }
+
+  Future<void> setReminderOffsets(List<int> minutes) async {
+    final values = minutes.toSet().where((v) => v > 0).toList()
+      ..sort((a, b) => b.compareTo(a));
+    await _storage.write(key: _reminderOffsetsKey, value: values.join(','));
+  }
 
   Future<void> initialize() async {
     final supportedPlatform =
@@ -87,30 +105,25 @@ class DeviceNotificationService {
     await initialize();
     if (!_initialized || !meetingDateTime.isAfter(DateTime.now())) return;
 
-    final reminderTime = meetingDateTime.subtract(const Duration(days: 1));
-    if (!reminderTime.isAfter(DateTime.now())) {
-      final reminderKey = 'meeting_reminder_shown_$meetingId';
-      if (await _storage.read(key: reminderKey) == 'true') return;
-      await _plugin.show(
-        id: _reminderNotificationId(meetingId),
-        title: 'Meeting within 24 hours',
-        body: '$title starts at ${_formatDateTime(meetingDateTime)}.',
-        notificationDetails: _details,
-        payload: 'meeting:$meetingId',
-      );
-      await _storage.write(key: reminderKey, value: 'true');
-      return;
+    for (var index = 0; index < 5; index++) {
+      await _plugin.cancel(id: _reminderNotificationId(meetingId, index));
     }
 
-    await _plugin.zonedSchedule(
-      id: _reminderNotificationId(meetingId),
-      title: 'Meeting tomorrow',
-      body: '$title starts at ${_formatDateTime(meetingDateTime)}.',
-      scheduledDate: tz.TZDateTime.from(reminderTime, tz.local),
-      notificationDetails: _details,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      payload: 'meeting:$meetingId',
-    );
+    final offsets = await reminderOffsets();
+    for (var index = 0; index < offsets.length; index++) {
+      final minutes = offsets[index];
+      final reminderTime = meetingDateTime.subtract(Duration(minutes: minutes));
+      if (!reminderTime.isAfter(DateTime.now())) continue;
+      await _plugin.zonedSchedule(
+        id: _reminderNotificationId(meetingId, index),
+        title: _reminderTitle(minutes),
+        body: '$title starts at ${_formatDateTime(meetingDateTime)}.',
+        scheduledDate: tz.TZDateTime.from(reminderTime, tz.local),
+        notificationDetails: _details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: 'meeting:$meetingId',
+      );
+    }
   }
 
   static const NotificationDetails _details = NotificationDetails(
@@ -130,8 +143,14 @@ class DeviceNotificationService {
 
   int _createdNotificationId(int meetingId) => (meetingId * 2) & 0x7fffffff;
 
-  int _reminderNotificationId(int meetingId) =>
-      ((meetingId * 2) + 1) & 0x7fffffff;
+  int _reminderNotificationId(int meetingId, int index) =>
+      ((meetingId * 10) + index + 1) & 0x7fffffff;
+
+  String _reminderTitle(int minutes) => minutes >= 1440
+      ? 'Meeting in ${minutes ~/ 1440} day${minutes ~/ 1440 == 1 ? '' : 's'}'
+      : minutes >= 60
+      ? 'Meeting in ${minutes ~/ 60} hour${minutes ~/ 60 == 1 ? '' : 's'}'
+      : 'Meeting in $minutes minutes';
 
   String _formatDateTime(DateTime value) {
     final local = value.toLocal();

@@ -19,8 +19,22 @@ public class CommentController {
 
     @PostMapping
     @PreAuthorize("(hasRole('SECRETARY') or hasRole('MEMBER')) and @accessProfileService.canComment(authentication.name)")
-    public ResponseEntity<CommentResponse> create(@RequestBody CommentRequest request) {
-        return ResponseEntity.ok(commentService.create(request));
+    public ResponseEntity<CommentResponse> create(@RequestBody CommentRequest request, Authentication authentication) {
+        return ResponseEntity.ok(commentService.create(request, authentication.getName()));
+    }
+
+    @PutMapping("/{commentId}")
+    @PreAuthorize("(hasRole('SECRETARY') or hasRole('MEMBER')) and @accessProfileService.canComment(authentication.name)")
+    public ResponseEntity<CommentResponse> update(@PathVariable Long commentId, @RequestBody CommentRequest request,
+                                                   Authentication authentication) {
+        return ResponseEntity.ok(commentService.update(commentId, request, authentication.getName()));
+    }
+
+    @DeleteMapping("/{commentId}")
+    @PreAuthorize("(hasRole('SECRETARY') or hasRole('MEMBER')) and @accessProfileService.canComment(authentication.name)")
+    public ResponseEntity<Void> delete(@PathVariable Long commentId, Authentication authentication) {
+        commentService.delete(commentId, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/paper/{paperId}")

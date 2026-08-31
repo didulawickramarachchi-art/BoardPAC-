@@ -6,7 +6,9 @@ import lombok.Data;
 public class CommentRequest {
     private Long meetingId;
     private Long paperId;
-    private Long createdByUserId;
     private String commentText;
     private boolean annotated;
+    private String visibility;
+    private Integer pageNumber;
+    private java.util.Set<Long> selectedUserIds;
 }

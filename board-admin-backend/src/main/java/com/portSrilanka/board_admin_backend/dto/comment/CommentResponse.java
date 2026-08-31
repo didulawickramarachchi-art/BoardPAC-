@@ -16,6 +16,11 @@ public class CommentResponse {
     private String createdByProfilePictureUrl;
     private String commentText;
     private boolean annotated;
+    private String visibility;
+    private Integer pageNumber;
+    private boolean ownedByCurrentUser;
+    private List<Long> selectedUserIds;
+    private LocalDateTime updatedAt;
     private LocalDateTime createdAt;
     private long reactionCount;
     private boolean reactedByCurrentUser;

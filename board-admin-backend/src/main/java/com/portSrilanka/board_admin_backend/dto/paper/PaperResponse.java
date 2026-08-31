@@ -8,6 +8,7 @@ import lombok.Data;
 @Builder
 public class PaperResponse {
     private Long id;
+    private Long agendaItemId;
     private String title;
     private PaperType paperType;
     private String referenceNumber;
@@ -16,4 +17,8 @@ public class PaperResponse {
     private Integer versionNumber;
     private boolean requiresApproval;
     private boolean isMainPaper;
+    private Long rootPaperId;
+    private boolean currentVersion;
+    private String revisionNote;
+    private java.time.LocalDateTime createdAt;
 }

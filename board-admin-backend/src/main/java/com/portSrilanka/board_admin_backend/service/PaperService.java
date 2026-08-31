@@ -8,6 +8,7 @@ import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -92,6 +93,7 @@ public class PaperService {
     public List<PaperResponse> getByMeeting(Long meetingId) {
         return paperRepository.findByMeetingId(meetingId)
                 .stream()
+                .filter(Paper::isCurrentVersion)
                 .map(this::mapPaper)
                 .toList();
     }
@@ -99,6 +101,7 @@ public class PaperService {
     public List<PaperResponse> getAll() {
         return paperRepository.findAll()
                 .stream()
+                .filter(Paper::isCurrentVersion)
                 .map(this::mapPaper)
                 .toList();
     }
@@ -106,12 +109,46 @@ public class PaperService {
     public List<PaperResponse> getByAgendaItem(Long agendaItemId) {
         return paperRepository.findByAgendaItemId(agendaItemId)
                 .stream()
+                .filter(Paper::isCurrentVersion)
                 .map(this::mapPaper)
                 .toList();
     }
 
-    public String markRead(Long paperId, Long userId) {
-        PackDelivery delivery = packDeliveryRepository.findByPaperIdAndUserId(paperId, userId)
+    public List<PaperResponse> versionHistory(Long paperId, String username, boolean secretary) {
+        Paper paper = paperRepository.findById(paperId).orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!secretary && meetingParticipantRepository.findByMeetingIdAndUserId(paper.getMeeting().getId(), user.getId()).isEmpty()) {
+            throw new org.springframework.security.access.AccessDeniedException("Paper access denied");
+        }
+        Long rootId = paper.getRootPaper() == null ? paper.getId() : paper.getRootPaper().getId();
+        return paperRepository.findVersionHistory(rootId).stream().map(this::mapPaper).toList();
+    }
+
+    @Transactional
+    public PaperResponse createRevision(Long paperId, PaperRevisionRequest request, String username) {
+        Paper previous = paperRepository.findById(paperId).orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+        if (!previous.isCurrentVersion()) throw new BadRequestException("Create revisions from the current paper version");
+        if (request.getFilePath() == null || request.getFilePath().isBlank()) throw new BadRequestException("A revised document is required");
+        User creator = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
+        Paper root = previous.getRootPaper() == null ? previous : previous.getRootPaper();
+        previous.setCurrentVersion(false);
+        paperRepository.save(previous);
+        Paper revision = paperRepository.save(Paper.builder().meeting(previous.getMeeting()).agendaItem(previous.getAgendaItem())
+                .paperType(previous.getPaperType()).title(previous.getTitle()).referenceNumber(previous.getReferenceNumber())
+                .filePath(request.getFilePath().trim()).fileName(request.getFileName()).versionNumber((previous.getVersionNumber() == null ? 1 : previous.getVersionNumber()) + 1)
+                .requiresApproval(previous.isRequiresApproval()).isMainPaper(previous.isMainPaper()).disclaimerMessage(previous.getDisclaimerMessage())
+                .rootPaper(root).currentVersion(true).revisionNote(request.getRevisionNote()).build());
+        List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetingIdOrderByDisplaySequenceAsc(previous.getMeeting().getId());
+        for (MeetingParticipant participant : participants) packDeliveryRepository.save(PackDelivery.builder().paper(revision).user(participant.getUser()).deliveryStatus(DeliveryStatus.NOT_READ).build());
+        notificationService.notifyPaperCreated(revision, participants, creator);
+        auditService.logInfo("PAPER", "CREATE_REVISION", username, "Paper " + paperId + " revised to version " + revision.getVersionNumber(), "WEB");
+        return mapPaper(revision);
+    }
+
+    public String markRead(Long paperId, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        PackDelivery delivery = packDeliveryRepository.findByPaperIdAndUserId(paperId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Pack delivery record not found"));
 
         delivery.setDeliveryStatus(DeliveryStatus.READ);
@@ -154,6 +191,7 @@ public class PaperService {
     private PaperResponse mapPaper(Paper paper) {
         return PaperResponse.builder()
                 .id(paper.getId())
+                .agendaItemId(paper.getAgendaItem() != null ? paper.getAgendaItem().getId() : null)
                 .title(paper.getTitle())
                 .paperType(paper.getPaperType())
                 .referenceNumber(paper.getReferenceNumber())
@@ -162,6 +200,10 @@ public class PaperService {
                 .versionNumber(paper.getVersionNumber())
                 .requiresApproval(paper.isRequiresApproval())
                 .isMainPaper(paper.isMainPaper())
+                .rootPaperId(paper.getRootPaper() == null ? paper.getId() : paper.getRootPaper().getId())
+                .currentVersion(paper.isCurrentVersion())
+                .revisionNote(paper.getRevisionNote())
+                .createdAt(paper.getCreatedAt())
                 .build();
     }
 }

@@ -9,4 +9,6 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar /app/app.jar
 ENV PORT=10000
 EXPOSE 10000
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Pass Render's injected PORT as a command-line property. Command-line
+# properties take precedence over an accidentally configured SERVER_PORT.
+ENTRYPOINT ["sh", "-c", "exec java -jar /app/app.jar --server.port=${PORT:-10000}"]

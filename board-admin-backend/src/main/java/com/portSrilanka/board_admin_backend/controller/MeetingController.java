@@ -27,15 +27,20 @@ public class MeetingController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<List<MeetingResponse>> getAll(Authentication authentication) {
         return ResponseEntity.ok(meetingService.getAllForUser(authentication.getName()));
     }
 
     @GetMapping("/subcategory/{subcategoryId}")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
-    public ResponseEntity<List<MeetingResponse>> getBySubcategory(@PathVariable Long subcategoryId) {
-        return ResponseEntity.ok(meetingService.getBySubcategory(subcategoryId));
+    public ResponseEntity<List<MeetingResponse>> getBySubcategory(
+            @PathVariable Long subcategoryId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                meetingService.getBySubcategoryForUser(subcategoryId, authentication.getName())
+        );
     }
 
     @PutMapping("/{meetingId}/open")
@@ -78,10 +83,14 @@ public class MeetingController {
         return ResponseEntity.ok(meetingService.updateParticipantStatus(request));
     }
 
-    @PostMapping("/notes")
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
-    public ResponseEntity<String> addNote(@RequestBody MeetingNoteRequest request) {
-        return ResponseEntity.ok(meetingService.addMeetingNote(request));
+    @PutMapping("/{meetingId}/rsvp")
+    @PreAuthorize("hasRole('MEMBER') or hasRole('SECRETARY')")
+    public ResponseEntity<MeetingParticipantResponse> rsvp(
+            @PathVariable Long meetingId,
+            @RequestBody ParticipantStatusUpdateRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(meetingService.rsvp(meetingId, request, authentication.getName()));
     }
 
     @DeleteMapping("/{meetingId}")

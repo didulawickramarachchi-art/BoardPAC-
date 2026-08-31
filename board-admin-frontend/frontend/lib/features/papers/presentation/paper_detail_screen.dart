@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
@@ -11,9 +13,11 @@ import '../../annotations/presentation/pdf_annotation_screen.dart';
 import '../../comments/model/comment_request.dart';
 import '../../comments/provider/comment_provider.dart';
 import '../../comments/presentation/comment_card.dart';
+import '../../favorites/presentation/favorite_button.dart';
 import '../model/attachment_model.dart';
 import '../model/paper_model.dart';
 import '../provider/paper_provider.dart';
+import '../provider/offline_paper_provider.dart';
 import 'attachment_screen.dart';
 
 class PaperDetailScreen extends ConsumerWidget {
@@ -119,16 +123,7 @@ class PaperDetailScreen extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
-                final auth = ref.read(authProvider);
-                final userId = auth.userId;
                 final text = textController.text.trim();
-
-                if (userId == null) {
-                  setState(() {
-                    errorMessage = 'Please log in again before commenting.';
-                  });
-                  return;
-                }
 
                 if (text.isEmpty) {
                   setState(() {
@@ -142,7 +137,6 @@ class PaperDetailScreen extends ConsumerWidget {
                     .addComment(
                       CommentRequest(
                         paperId: paper.id,
-                        createdByUserId: userId,
                         commentText: text,
                         annotated: annotated,
                       ),
@@ -158,10 +152,80 @@ class PaperDetailScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _uploadRevision(BuildContext context, WidgetRef ref) async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf'],
+      withData: kIsWeb,
+    );
+    if (picked == null || picked.files.isEmpty) return;
+    if (!context.mounted) return;
+    final file = picked.files.first;
+    final noteController = TextEditingController();
+    final note = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Publish revised paper'),
+        content: TextField(
+          controller: noteController,
+          maxLines: 3,
+          decoration: const InputDecoration(labelText: 'What changed?'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, noteController.text.trim()),
+            child: const Text('Upload revision'),
+          ),
+        ],
+      ),
+    );
+    if (note == null || !context.mounted) return;
+    try {
+      final remotePath = await ref
+          .read(paperRepositoryProvider)
+          .uploadAttachment(
+            fileName: file.name,
+            filePath: file.path,
+            fileBytes: file.bytes,
+          );
+      final revised = await ref
+          .read(paperRepositoryProvider)
+          .createRevision(
+            paper.id,
+            filePath: remotePath,
+            fileName: file.name,
+            revisionNote: note,
+          );
+      ref.invalidate(paperVersionHistoryProvider(paper.id));
+      if (context.mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => PaperDetailScreen(paper: revised)),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Revision upload failed: $error')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
+    final fileName = paper.fileName ?? '${paper.title}.pdf';
+    ref.read(offlinePaperProvider(paper.id).notifier).initialize(fileName);
+    final offline = ref.watch(offlinePaperProvider(paper.id));
+    final versions = ref.watch(paperVersionHistoryProvider(paper.id));
+    final readablePath = offline.value ?? paper.filePath;
     final attachmentsAsync = ref.watch(attachmentListProvider(paper.id));
     final commentsAsync = ref.watch(paperCommentProvider(paper.id));
 
@@ -182,6 +246,11 @@ class PaperDetailScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
+          FavoriteButton(
+            type: 'PAPER',
+            targetId: paper.id,
+            color: Colors.white,
+          ),
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
@@ -206,18 +275,90 @@ class PaperDetailScreen extends ConsumerWidget {
         children: [
           _PaperHeaderCard(
             paper: paper,
-            onOpen: () => _openFile(context, paper.filePath),
+            offlineState: offline,
+            onDownload: paper.filePath?.trim().isNotEmpty == true
+                ? () => ref
+                      .read(offlinePaperProvider(paper.id).notifier)
+                      .download(paper.filePath!, fileName)
+                : null,
+            onRemoveDownload: () =>
+                ref.read(offlinePaperProvider(paper.id).notifier).remove(),
+            onOpen:
+                auth.userId != null &&
+                    paper.filePath?.toLowerCase().contains('.pdf') == true
+                ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PdfAnnotationScreen(
+                        paperId: paper.id,
+                        userId: auth.userId!,
+                        documentKey: 'paper:${paper.id}',
+                        documentTitle: fileName,
+                        filePath: readablePath!,
+                        editable: access.canAnnotatePapers,
+                      ),
+                    ),
+                  )
+                : () => _openFile(context, paper.filePath),
             onAnnotate:
                 auth.userId != null &&
+                    access.canAnnotatePapers &&
                     paper.filePath?.toLowerCase().contains('.pdf') == true
                 ? () => _annotatePdf(
                     context,
                     userId: auth.userId!,
                     documentKey: 'paper:${paper.id}',
                     title: paper.fileName ?? paper.title,
-                    filePath: paper.filePath!,
+                    filePath: readablePath!,
                   )
                 : null,
+          ),
+          const SizedBox(height: 16),
+          _SectionHeader(
+            title: 'Version history',
+            icon: Icons.history_rounded,
+            action: access.canUploadPapers
+                ? TextButton.icon(
+                    onPressed: () => _uploadRevision(context, ref),
+                    icon: const Icon(Icons.upload_file_outlined),
+                    label: const Text('New revision'),
+                  )
+                : null,
+          ),
+          versions.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (error, _) => Text('Could not load version history: $error'),
+            data: (items) => Card(
+              child: Column(
+                children: items
+                    .map(
+                      (version) => ListTile(
+                        leading: CircleAvatar(
+                          child: Text('v${version.versionNumber ?? 1}'),
+                        ),
+                        title: Text(version.fileName ?? version.title),
+                        subtitle: Text(
+                          version.revisionNote?.trim().isNotEmpty == true
+                              ? version.revisionNote!
+                              : 'Original publication',
+                        ),
+                        trailing: version.currentVersion
+                            ? const Chip(label: Text('Current'))
+                            : const Icon(Icons.history),
+                        onTap: version.id == paper.id
+                            ? null
+                            : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      PaperDetailScreen(paper: version),
+                                ),
+                              ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           _SectionHeader(
@@ -325,11 +466,17 @@ class _PaperHeaderCard extends StatelessWidget {
   final PaperModel paper;
   final VoidCallback onOpen;
   final VoidCallback? onAnnotate;
+  final AsyncValue<String?> offlineState;
+  final VoidCallback? onDownload;
+  final VoidCallback onRemoveDownload;
 
   const _PaperHeaderCard({
     required this.paper,
     required this.onOpen,
     this.onAnnotate,
+    required this.offlineState,
+    this.onDownload,
+    required this.onRemoveDownload,
   });
 
   @override
@@ -404,6 +551,42 @@ class _PaperHeaderCard extends StatelessWidget {
                 filePath: paper.filePath!,
                 onOpen: onOpen,
                 onAnnotate: onAnnotate,
+              ),
+              const SizedBox(height: 10),
+              offlineState.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (error, _) => Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.orangeAccent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Offline download failed: $error',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: onDownload,
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                    ),
+                  ],
+                ),
+                data: (path) => OutlinedButton.icon(
+                  onPressed: path == null ? onDownload : onRemoveDownload,
+                  icon: Icon(
+                    path == null
+                        ? Icons.download_for_offline_outlined
+                        : Icons.offline_pin_outlined,
+                  ),
+                  label: Text(
+                    path == null
+                        ? 'Keep available offline'
+                        : 'Available offline · Remove',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                  ),
+                ),
               ),
             ],
           ],

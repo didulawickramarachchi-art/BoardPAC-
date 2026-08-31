@@ -29,6 +29,7 @@ import '../../users/provider/user_provider.dart';
 import '../../users/model/user_model.dart';
 import '../model/dashboard_summary_model.dart';
 import '../provider/dashboard_provider.dart';
+import 'member_dashboard_home.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -69,6 +70,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         : null;
     final usersAsync = isAdmin ? ref.watch(userListProvider) : null;
     final devicesAsync = isAdmin ? ref.watch(deviceListProvider) : null;
+
+    if (access.isMember) {
+      return MemberDashboardHome(
+        userId: currentUserId,
+        role: role,
+        summary: summaryAsync,
+        notifications: notificationsAsync,
+      );
+    }
 
     return Scaffold(
       backgroundColor: DashboardScreen.bgColor,

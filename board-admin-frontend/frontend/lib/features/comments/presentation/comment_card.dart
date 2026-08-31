@@ -10,6 +10,8 @@ class CommentCard extends StatelessWidget {
   final ValueChanged<String>? onReact;
   final VoidCallback? onShare;
   final Future<void> Function(String message)? onReply;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const CommentCard({
     super.key,
@@ -17,6 +19,8 @@ class CommentCard extends StatelessWidget {
     this.onReact,
     this.onShare,
     this.onReply,
+    this.onEdit,
+    this.onDelete,
   });
 
   Future<void> _showReplyDialog(BuildContext context) async {
@@ -101,8 +105,25 @@ class CommentCard extends StatelessWidget {
                               size: 16,
                               color: Color(0xFF6E7DA5),
                             ),
+                          if (onEdit != null || onDelete != null)
+                            PopupMenuButton<String>(
+                              padding: EdgeInsets.zero,
+                              onSelected: (value) => value == 'edit' ? onEdit?.call() : onDelete?.call(),
+                              itemBuilder: (_) => [
+                                if (onEdit != null) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                if (onDelete != null) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                              ],
+                            ),
                         ],
                       ),
+                      Wrap(spacing: 6, runSpacing: 4, children: [
+                        Chip(
+                          visualDensity: VisualDensity.compact,
+                          avatar: Icon(comment.visibility == 'PRIVATE' ? Icons.lock_outline : comment.visibility == 'SELECTED_PARTICIPANTS' ? Icons.group_outlined : Icons.public, size: 15),
+                          label: Text(comment.visibility == 'PRIVATE' ? 'Private' : comment.visibility == 'SELECTED_PARTICIPANTS' ? 'Selected' : 'All participants'),
+                        ),
+                        if (comment.pageNumber != null) Chip(visualDensity: VisualDensity.compact, label: Text('Page ${comment.pageNumber}')),
+                      ]),
                       const SizedBox(height: 4),
                       Text(comment.commentText),
                     ],

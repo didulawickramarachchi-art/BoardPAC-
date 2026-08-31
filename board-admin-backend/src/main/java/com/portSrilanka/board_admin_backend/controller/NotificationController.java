@@ -22,8 +22,8 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER') or hasRole('ADMIN')")
-    public ResponseEntity<List<NotificationResponse>> getForUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(notificationService.getForUser(userId));
+    public ResponseEntity<List<NotificationResponse>> getForUser(@PathVariable Long userId, Authentication authentication) {
+        return ResponseEntity.ok(notificationService.getForUser(userId, authentication.getName(), isAdmin(authentication)));
     }
 
     @PostMapping("/announcement")
@@ -38,15 +38,15 @@ public class NotificationController {
 
     @PutMapping("/user/{userId}/read")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER') or hasRole('ADMIN')")
-    public ResponseEntity<String> markAllRead(@PathVariable Long userId) {
-        notificationService.markAllRead(userId);
+    public ResponseEntity<String> markAllRead(@PathVariable Long userId, Authentication authentication) {
+        notificationService.markAllRead(userId, authentication.getName(), isAdmin(authentication));
         return ResponseEntity.ok("Notifications marked as read");
     }
 
     @DeleteMapping("/user/{userId}")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER') or hasRole('ADMIN')")
-    public ResponseEntity<String> clearForUser(@PathVariable Long userId) {
-        notificationService.clearForUser(userId);
+    public ResponseEntity<String> clearForUser(@PathVariable Long userId, Authentication authentication) {
+        notificationService.clearForUser(userId, authentication.getName(), isAdmin(authentication));
         return ResponseEntity.ok("Notifications cleared");
     }
 
@@ -68,5 +68,9 @@ public class NotificationController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(notificationService.react(notificationId, request, authentication.getName()));
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }

@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     ports:
-      - "8080:8080"
+      - "8080:10000"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/board_admin_db
       SPRING_DATASOURCE_USERNAME: postgres

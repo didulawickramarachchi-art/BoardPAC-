@@ -16,9 +16,11 @@ class ApprovalScreen extends ConsumerWidget {
   });
 
   Future<void> _showApprovalDialog(BuildContext context, WidgetRef ref) async {
-    final userIdController = TextEditingController(text: '1');
-    final commentController = TextEditingController();
-    String selectedStatus = 'APPROVE';
+    final current = ref.read(approvalListProvider(paperId)).value
+        ?.where((item) => item.ownedByCurrentUser).firstOrNull;
+    final commentController = TextEditingController(text: current?.approvalComment ?? '');
+    String selectedStatus = current?.approvalStatus ?? 'APPROVE';
+    String? errorMessage;
 
     await showDialog(
       context: context,
@@ -29,19 +31,12 @@ class ApprovalScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: userIdController,
-                  decoration: const InputDecoration(labelText: 'User ID'),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: selectedStatus,
                   decoration: const InputDecoration(
                     labelText: 'Approval Status',
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
                     DropdownMenuItem(value: 'APPROVE', child: Text('Approve')),
                     DropdownMenuItem(value: 'REJECT', child: Text('Reject')),
                     DropdownMenuItem(value: 'ABSTAIN', child: Text('Abstain')),
@@ -65,6 +60,10 @@ class ApprovalScreen extends ConsumerWidget {
                   ),
                   maxLines: 3,
                 ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+                ],
               ],
             ),
           ),
@@ -75,19 +74,26 @@ class ApprovalScreen extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
-                await ref
-                    .read(approvalListProvider(paperId).notifier)
-                    .submit(
-                      ApprovalRequest(
-                        paperId: paperId,
-                        userId: int.parse(userIdController.text.trim()),
-                        approvalStatus: selectedStatus,
-                        approvalComment: commentController.text.trim(),
-                      ),
-                    );
-                if (context.mounted) Navigator.pop(context);
+                final confirmed = await showDialog<bool>(context: context, builder: (confirmContext) => AlertDialog(
+                  title: const Text('Confirm decision'),
+                  content: Text('Record “${_statusLabel(selectedStatus)}” for this paper?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(confirmContext, false), child: const Text('Back')),
+                    FilledButton(onPressed: () => Navigator.pop(confirmContext, true), child: const Text('Confirm')),
+                  ],
+                ));
+                if (confirmed != true) return;
+                try {
+                  await ref.read(approvalListProvider(paperId).notifier).submit(ApprovalRequest(
+                    paperId: paperId, approvalStatus: selectedStatus,
+                    approvalComment: commentController.text.trim(),
+                  ));
+                  if (context.mounted) Navigator.pop(context);
+                } catch (error) {
+                  setLocalState(() => errorMessage = 'Could not record decision: $error');
+                }
               },
-              child: const Text('Submit'),
+              child: Text(current == null ? 'Submit' : 'Update'),
             ),
           ],
         ),
@@ -101,9 +107,10 @@ class ApprovalScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text('Approvals - $paperTitle')),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showApprovalDialog(context, ref),
-        child: const Icon(Icons.how_to_vote_outlined),
+        icon: const Icon(Icons.how_to_vote_outlined),
+        label: const Text('Record decision'),
       ),
       body: approvalsAsync.when(
         data: (items) {
@@ -118,9 +125,13 @@ class ApprovalScreen extends ConsumerWidget {
               final approval = items[index];
               return Card(
                 child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: _statusColor(approval.approvalStatus).withValues(alpha: .14),
+                    child: Icon(_statusIcon(approval.approvalStatus), color: _statusColor(approval.approvalStatus)),
+                  ),
                   title: Text(approval.username),
                   subtitle: Text(
-                    'Status: ${approval.approvalStatus}\n'
+                    '${_statusLabel(approval.approvalStatus)}${approval.ownedByCurrentUser ? ' · Your decision' : ''}\n'
                     '${approval.approvalComment ?? ''}',
                   ),
                   isThreeLine: true,
@@ -135,4 +146,18 @@ class ApprovalScreen extends ConsumerWidget {
       ),
     );
   }
+
+  static String _statusLabel(String value) => switch (value) {
+    'APPROVE' => 'Approved', 'REJECT' => 'Rejected', 'ABSTAIN' => 'Abstained',
+    'INTEREST' => 'Interest declared', 'RPT' => 'Related-party transaction', _ => value,
+  };
+  static IconData _statusIcon(String value) => switch (value) {
+    'APPROVE' => Icons.check_circle_outline, 'REJECT' => Icons.cancel_outlined,
+    'ABSTAIN' => Icons.remove_circle_outline, 'INTEREST' => Icons.info_outline,
+    _ => Icons.gavel_outlined,
+  };
+  static Color _statusColor(String value) => switch (value) {
+    'APPROVE' => Colors.green, 'REJECT' => Colors.red, 'ABSTAIN' => Colors.orange,
+    _ => Colors.indigo,
+  };
 }

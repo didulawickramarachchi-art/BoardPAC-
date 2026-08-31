@@ -55,6 +55,9 @@ class NotificationNotifier
                 type: notification.type,
                 read: true,
                 relatedMeetingId: notification.relatedMeetingId,
+                relatedPaperId: notification.relatedPaperId,
+                relatedCommentId: notification.relatedCommentId,
+                relatedAttachmentId: notification.relatedAttachmentId,
                 createdByUserId: notification.createdByUserId,
                 createdByName: notification.createdByName,
                 createdByProfilePictureUrl:

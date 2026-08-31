@@ -19,5 +19,6 @@ public class MeetingResponse {
     private String location;
     private String description;
     private String categoryName;
+    private Long subcategoryId;
     private String subcategoryName;
 }

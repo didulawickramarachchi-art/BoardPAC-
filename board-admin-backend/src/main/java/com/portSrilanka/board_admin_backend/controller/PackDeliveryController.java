@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -24,7 +25,15 @@ public class PackDeliveryController {
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
-    public ResponseEntity<List<PackDeliveryResponse>> getByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(packDeliveryService.getByUser(userId));
+    public ResponseEntity<List<PackDeliveryResponse>> getByUser(@PathVariable Long userId, Authentication authentication) {
+        boolean secretary = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SECRETARY"));
+        return ResponseEntity.ok(packDeliveryService.getByUser(userId, authentication.getName(), secretary));
+    }
+
+    @PostMapping("/paper/{paperId}/downloaded")
+    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    public ResponseEntity<Void> downloaded(@PathVariable Long paperId, Authentication authentication) {
+        packDeliveryService.markDownloaded(paperId, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 }

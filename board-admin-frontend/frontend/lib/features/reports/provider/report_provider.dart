@@ -21,6 +21,10 @@ final auditLogProvider = FutureProvider<List<AuditLogModel>>((ref) async {
   return ref.read(reportRepositoryProvider).getAuditLogs();
 });
 
+final personalActivityProvider = FutureProvider<List<AuditLogModel>>((ref) {
+  return ref.read(reportRepositoryProvider).getMyActivity();
+});
+
 final userCategoryReportProvider =
     FutureProvider<List<UserCategoryReportModel>>((ref) async {
       return ref.read(reportRepositoryProvider).getUserCategoryReport();

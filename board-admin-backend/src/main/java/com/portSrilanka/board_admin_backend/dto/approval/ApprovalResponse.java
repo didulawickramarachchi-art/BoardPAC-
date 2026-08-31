@@ -12,4 +12,7 @@ public class ApprovalResponse {
     private String username;
     private ApprovalStatus approvalStatus;
     private String approvalComment;
+    private java.time.LocalDateTime createdAt;
+    private java.time.LocalDateTime updatedAt;
+    private boolean ownedByCurrentUser;
 }

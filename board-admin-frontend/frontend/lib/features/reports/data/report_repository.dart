@@ -25,6 +25,13 @@ class ReportRepository {
         .toList();
   }
 
+  Future<List<AuditLogModel>> getMyActivity() async {
+    final response = await dio.get('/activity/me');
+    return (response.data as List)
+        .map((e) => AuditLogModel.fromJson(e))
+        .toList();
+  }
+
   Future<List<UserCategoryReportModel>> getUserCategoryReport() async {
     final response = await dio.get('/admin-reports/user-category');
     return (response.data as List)

@@ -111,6 +111,28 @@ public class MeetingService {
                 .toList();
     }
 
+    public List<MeetingResponse> getBySubcategoryForUser(Long subcategoryId, String username) {
+        if (subcategoryId == null) {
+            throw new BadRequestException("Subcategory id is required");
+        }
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        boolean isSecretary = user.getRoles().stream()
+                .anyMatch(role -> role.getName().authorityName()
+                        .equals(SystemRole.SECRETARY.name()));
+        boolean hasAccess = isSecretary || accessRepository.findByUserId(user.getId())
+                .stream()
+                .anyMatch(access -> access.getSubcategory().getId().equals(subcategoryId));
+
+        if (!hasAccess) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "User has no access to this subcategory"
+            );
+        }
+        return getBySubcategory(subcategoryId);
+    }
+
     @Transactional
     public MeetingResponse openMeeting(Long meetingId) {
         Meeting meeting = findMeeting(meetingId);
@@ -334,6 +356,29 @@ public class MeetingService {
     }
 
     @Transactional
+    public MeetingParticipantResponse rsvp(Long meetingId, ParticipantStatusUpdateRequest request, String username) {
+        if (request.getParticipantStatus() == null) throw new BadRequestException("Participant status is required");
+        if (request.getParticipantStatus() != ParticipantStatus.ACCEPTED
+                && request.getParticipantStatus() != ParticipantStatus.DECLINED
+                && request.getParticipantStatus() != ParticipantStatus.TENTATIVE
+                && request.getParticipantStatus() != ParticipantStatus.CONCALL) {
+            throw new BadRequestException("Invalid RSVP status");
+        }
+        Meeting meeting = findMeeting(meetingId);
+        if (meeting.getStatus() == MeetingStatus.CLOSED) throw new BadRequestException("Cannot RSVP to a closed meeting");
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        MeetingParticipant participant = meetingParticipantRepository.findByMeetingIdAndUserId(meetingId, user.getId())
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("You are not invited to this meeting"));
+        participant.setParticipantStatus(request.getParticipantStatus());
+        participant.setStatusReason(request.getStatusReason() == null ? null : request.getStatusReason().trim());
+        participant = meetingParticipantRepository.save(participant);
+        auditService.logInfo("MEETING", "MEMBER_RSVP", username,
+                "Meeting=" + meetingId + ", status=" + request.getParticipantStatus(), "DEVICE");
+        return mapParticipant(participant);
+    }
+
+    @Transactional
     public String addMeetingNote(MeetingNoteRequest request) {
         if (request.getMeetingId() == null) {
             throw new BadRequestException("Meeting id is required");
@@ -452,6 +497,7 @@ public class MeetingService {
                 .location(meeting.getLocation())
                 .description(meeting.getDescription())
                 .categoryName(meeting.getCategory() != null ? meeting.getCategory().getName() : null)
+                .subcategoryId(meeting.getSubcategory() != null ? meeting.getSubcategory().getId() : null)
                 .subcategoryName(meeting.getSubcategory() != null ? meeting.getSubcategory().getName() : null)
                 .build();
     }

@@ -201,4 +201,9 @@ class ParticipantNotifier
     await repository.updateParticipantStatus(request);
     await load();
   }
+
+  Future<void> rsvp(String status, String? reason) async {
+    await repository.rsvp(meetingId, status, reason);
+    await load();
+  }
 }

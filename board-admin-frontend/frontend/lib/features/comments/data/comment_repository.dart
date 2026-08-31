@@ -27,6 +27,14 @@ class CommentRepository {
     await dio.post('/comments', data: request.toJson());
   }
 
+  Future<void> updateComment(int commentId, CommentRequest request) async {
+    await dio.put('/comments/$commentId', data: request.toJson());
+  }
+
+  Future<void> deleteComment(int commentId) async {
+    await dio.delete('/comments/$commentId');
+  }
+
   Future<void> react(int commentId, String reactionType) async {
     await dio.post(
       '/comments/$commentId/reaction',

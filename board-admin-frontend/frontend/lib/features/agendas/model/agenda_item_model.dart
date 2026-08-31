@@ -1,5 +1,6 @@
 class AgendaItemModel {
   final int id;
+  final int? sectionId;
   final String itemType;
   final String title;
   final String? numberLabel;
@@ -8,6 +9,7 @@ class AgendaItemModel {
 
   AgendaItemModel({
     required this.id,
+    this.sectionId,
     required this.itemType,
     required this.title,
     this.numberLabel,
@@ -18,6 +20,7 @@ class AgendaItemModel {
   factory AgendaItemModel.fromJson(Map<String, dynamic> json) {
     return AgendaItemModel(
       id: json['id'],
+      sectionId: (json['sectionId'] as num?)?.toInt(),
       itemType: json['itemType'] ?? '',
       title: json['title'] ?? '',
       numberLabel: json['numberLabel'],

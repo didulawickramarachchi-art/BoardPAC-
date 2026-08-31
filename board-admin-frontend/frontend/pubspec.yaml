@@ -46,6 +46,8 @@ dependencies:
   flutter_timezone: ^5.1.0
   image: ^4.9.1
   syncfusion_flutter_pdfviewer: 33.2.13
+  record: ^6.2.1
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

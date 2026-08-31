@@ -44,7 +44,8 @@ public class NotificationService {
     private final NotificationReactionRepository reactionRepository;
     private final UserRepository userRepository;
 
-    public List<NotificationResponse> getForUser(Long userId) {
+    public List<NotificationResponse> getForUser(Long userId, String username, boolean admin) {
+        requireUserAccess(userId, username, admin);
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(notification -> map(notification, userId))
@@ -52,14 +53,16 @@ public class NotificationService {
     }
 
     @Transactional
-    public void markAllRead(Long userId) {
+    public void markAllRead(Long userId, String username, boolean admin) {
+        requireUserAccess(userId, username, admin);
         List<BoardNotification> notifications = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId);
         notifications.forEach(notification -> notification.setRead(true));
         notificationRepository.saveAll(notifications);
     }
 
     @Transactional
-    public void clearForUser(Long userId) {
+    public void clearForUser(Long userId, String username, boolean admin) {
+        requireUserAccess(userId, username, admin);
         notificationRepository.deleteAll(notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId));
     }
 
@@ -67,6 +70,7 @@ public class NotificationService {
     public NotificationResponse reply(Long notificationId, NotificationReplyRequest request, String username) {
         BoardNotification notification = findNotification(notificationId);
         User user = findUser(username);
+        requireRecipient(notification, user);
         String message = clean(request.getMessage(), "");
         if (message.isEmpty()) {
             throw new IllegalArgumentException("Reply message is required");
@@ -85,6 +89,7 @@ public class NotificationService {
     public NotificationResponse react(Long notificationId, NotificationReactionRequest request, String username) {
         BoardNotification notification = findNotification(notificationId);
         User user = findUser(username);
+        requireRecipient(notification, user);
         String reactionType = clean(request.getReactionType(), "LIKE").toUpperCase();
         NotificationReaction existing = reactionRepository
                 .findByNotificationIdAndUserId(notificationId, user.getId())
@@ -570,6 +575,20 @@ public class NotificationService {
     private User findUser(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private void requireUserAccess(Long userId, String username, boolean admin) {
+        if (admin) return;
+        User user = findUser(username);
+        if (!user.getId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Notification access denied");
+        }
+    }
+
+    private void requireRecipient(BoardNotification notification, User user) {
+        if (!notification.getRecipient().getId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Notification access denied");
+        }
     }
 
     private String clean(String value, String fallback) {

@@ -5,6 +5,11 @@ class CommentModel {
   final String? createdByProfilePictureUrl;
   final String commentText;
   final bool annotated;
+  final String visibility;
+  final int? pageNumber;
+  final bool ownedByCurrentUser;
+  final List<int> selectedUserIds;
+  final DateTime? updatedAt;
   final DateTime? createdAt;
   final int reactionCount;
   final bool reactedByCurrentUser;
@@ -19,6 +24,11 @@ class CommentModel {
     this.createdByProfilePictureUrl,
     required this.commentText,
     required this.annotated,
+    required this.visibility,
+    this.pageNumber,
+    required this.ownedByCurrentUser,
+    required this.selectedUserIds,
+    this.updatedAt,
     this.createdAt,
     required this.reactionCount,
     required this.reactedByCurrentUser,
@@ -35,6 +45,11 @@ class CommentModel {
       createdByProfilePictureUrl: json['createdByProfilePictureUrl'],
       commentText: json['commentText'] ?? '',
       annotated: json['annotated'] ?? false,
+      visibility: json['visibility'] ?? 'ALL_PARTICIPANTS',
+      pageNumber: (json['pageNumber'] as num?)?.toInt(),
+      ownedByCurrentUser: json['ownedByCurrentUser'] ?? false,
+      selectedUserIds: (json['selectedUserIds'] as List? ?? const []).map((e) => (e as num).toInt()).toList(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       reactionCount: (json['reactionCount'] as num?)?.toInt() ?? 0,
       reactedByCurrentUser: json['reactedByCurrentUser'] ?? false,

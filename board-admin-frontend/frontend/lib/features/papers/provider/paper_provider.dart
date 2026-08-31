@@ -5,6 +5,8 @@ import '../model/attachment_model.dart';
 import '../model/attachment_request.dart';
 import '../model/paper_model.dart';
 import '../model/paper_request.dart';
+import '../model/paper_read_state_model.dart';
+import '../model/recent_paper_model.dart';
 import '../../../core/network/api_error_message.dart';
 import 'package:dio/dio.dart';
 
@@ -15,6 +17,20 @@ final paperRepositoryProvider = Provider<PaperRepository>((ref) {
 final allPaperListProvider = FutureProvider<List<PaperModel>>((ref) async {
   return ref.read(paperRepositoryProvider).getAllPapers();
 });
+
+final paperReadStateProvider = FutureProvider.autoDispose
+    .family<PaperReadStateModel, int>((ref, paperId) {
+      return ref.read(paperRepositoryProvider).getReadState(paperId);
+    });
+
+final recentPaperListProvider = FutureProvider<List<RecentPaperModel>>(
+  (ref) => ref.read(paperRepositoryProvider).getRecentPapers(),
+);
+
+final paperVersionHistoryProvider =
+    FutureProvider.family<List<PaperModel>, int>((ref, paperId) {
+      return ref.read(paperRepositoryProvider).getVersionHistory(paperId);
+    });
 
 final paperListProvider =
     StateNotifierProvider.family<

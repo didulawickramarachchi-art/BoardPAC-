@@ -5,6 +5,9 @@ class NotificationModel {
   final String type;
   final bool read;
   final int? relatedMeetingId;
+  final int? relatedPaperId;
+  final int? relatedCommentId;
+  final int? relatedAttachmentId;
   final int? createdByUserId;
   final String createdByName;
   final String? createdByProfilePictureUrl;
@@ -20,6 +23,9 @@ class NotificationModel {
     required this.type,
     required this.read,
     this.relatedMeetingId,
+    this.relatedPaperId,
+    this.relatedCommentId,
+    this.relatedAttachmentId,
     this.createdByUserId,
     required this.createdByName,
     this.createdByProfilePictureUrl,
@@ -37,6 +43,9 @@ class NotificationModel {
       type: (json['type'] ?? json['notificationType'] ?? 'GENERAL').toString(),
       read: json['read'] == true || json['isRead'] == true,
       relatedMeetingId: _nullableInt(json['relatedMeetingId']),
+      relatedPaperId: _nullableInt(json['relatedPaperId']),
+      relatedCommentId: _nullableInt(json['relatedCommentId']),
+      relatedAttachmentId: _nullableInt(json['relatedAttachmentId']),
       createdByUserId: _nullableInt(json['createdByUserId']),
       createdByName: (json['createdByName'] ?? 'System').toString(),
       createdByProfilePictureUrl: _nullableString(

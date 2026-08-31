@@ -7,6 +7,7 @@ import '../../../core/widgets/app_loading.dart';
 import '../model/meeting_model.dart';
 import '../provider/meeting_provider.dart';
 import 'meeting_detail_screen.dart';
+import 'reminder_settings_screen.dart';
 
 /// Compact member calendar used on the dashboard. It deliberately keeps the
 /// month and the selected day's meetings together, matching the mental model
@@ -459,7 +460,19 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   Widget build(BuildContext context) {
     final meetings = ref.watch(meetingListProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Meeting Calendar')),
+      appBar: AppBar(
+        title: const Text('Meeting Calendar'),
+        actions: [
+          IconButton(
+            tooltip: 'Reminder settings',
+            icon: const Icon(Icons.notifications_active_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       body: meetings.when(
         loading: () => const AppLoading(),
         error: (error, _) => Center(child: Text('Failed to load: $error')),
