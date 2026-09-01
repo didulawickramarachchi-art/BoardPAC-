@@ -15,8 +15,13 @@ class MemberLibraryScreen extends ConsumerWidget {
     length: 2,
     child: Scaffold(
       appBar: AppBar(
+        foregroundColor: Colors.white,
         title: const Text('My Library'),
         bottom: const TabBar(
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white,
+          indicatorColor: Colors.white,
+          dividerColor: Colors.transparent,
           tabs: [
             Tab(icon: Icon(Icons.star_rounded), text: 'Favorites'),
             Tab(icon: Icon(Icons.history_rounded), text: 'Last viewed'),

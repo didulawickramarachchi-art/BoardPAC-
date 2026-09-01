@@ -229,46 +229,75 @@ class _BrandPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     constraints: const BoxConstraints(minHeight: 610),
-    padding: const EdgeInsets.all(50),
     decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Colors.white.withValues(alpha: .09), Colors.transparent],
-      ),
       border: Border(
         right: BorderSide(color: Colors.white.withValues(alpha: .12)),
       ),
     ),
-    child: const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Stack(
+      fit: StackFit.expand,
       children: [
-        _LogoMark(size: 92),
-        Spacer(),
-        Text(
-          'Govern with clarity.\nLead with confidence.',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 34,
-            height: 1.15,
-            letterSpacing: -.8,
-            fontWeight: FontWeight.w700,
-          ),
+        Image.asset(
+          'assets/images/BG.jpeg',
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
         ),
-        SizedBox(height: 18),
-        SizedBox(
-          width: 390,
-          child: Text(
-            'A secure digital workspace for meetings, decisions, and board collaboration.',
-            style: TextStyle(
-              color: Color(0xFFB9C8EA),
-              fontSize: 15,
-              height: 1.55,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF071C4D).withValues(alpha: .32),
+                const Color(0xFF071C4D).withValues(alpha: .48),
+                const Color(0xFF00143F).withValues(alpha: .72),
+              ],
+              stops: const [0, .48, 1],
             ),
           ),
         ),
-        SizedBox(height: 46),
-        _SecurityBadge(),
+        const Padding(
+          padding: EdgeInsets.all(50),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _LogoMark(size: 92),
+              Spacer(),
+              Text(
+                'Govern with clarity.\nLead with confidence.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 34,
+                  height: 1.15,
+                  letterSpacing: -.8,
+                  fontWeight: FontWeight.w700,
+                  shadows: [
+                    Shadow(
+                      color: Color(0x99000000),
+                      blurRadius: 14,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 18),
+              SizedBox(
+                width: 390,
+                child: Text(
+                  'A secure digital workspace for meetings, decisions, and board collaboration.',
+                  style: TextStyle(
+                    color: Color(0xFFD7E1F5),
+                    fontSize: 15,
+                    height: 1.55,
+                    shadows: [Shadow(color: Color(0x99000000), blurRadius: 10)],
+                  ),
+                ),
+              ),
+              SizedBox(height: 46),
+              _SecurityBadge(),
+            ],
+          ),
+        ),
       ],
     ),
   );

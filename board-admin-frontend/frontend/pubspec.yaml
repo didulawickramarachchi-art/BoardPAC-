@@ -75,6 +75,7 @@ flutter:
     - assets/images/logo.png
     - assets/images/logo.svg
     - assets/images/slpa_logo.png
+    - assets/images/BG.jpeg
 
 flutter_icons:
   android: true
