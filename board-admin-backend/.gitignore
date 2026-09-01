@@ -6,6 +6,7 @@
 
 # IDE
 /.idea/
+/.tools/
 *.iml
 *.ipr
 *.iws

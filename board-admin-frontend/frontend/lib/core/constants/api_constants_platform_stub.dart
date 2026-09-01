@@ -1,3 +1,3 @@
 class ApiConstantsPlatform {
-  static const String defaultBaseUrl = 'http://localhost:8080/api';
+  static const String defaultBaseUrl = 'https://pajamas-penalize-posing.ngrok-free.dev/api';
 }
