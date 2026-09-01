@@ -47,10 +47,25 @@ class MeetingRepository {
     required Set<int> privilegedSubcategoryIds,
     required Set<String> privilegedSubcategoryNames,
   }) async {
-    // `/meetings` is scoped by the authenticated user on the backend. Keep the
-    // privilege arguments for source compatibility while the server remains
-    // the authorization boundary.
-    return getMeetings();
+    if (privilegedSubcategoryIds.isEmpty) return <MeetingModel>[];
+
+    final responses = await Future.wait(
+      privilegedSubcategoryIds.map(
+        (subcategoryId) => dio.get('/meetings/subcategory/$subcategoryId'),
+      ),
+    );
+
+    final meetingsById = <int, MeetingModel>{};
+    for (final response in responses) {
+      for (final item in response.data as List) {
+        final meeting = MeetingModel.fromJson(item);
+        meetingsById[meeting.id] = meeting;
+      }
+    }
+
+    final meetings = meetingsById.values.toList()
+      ..sort((a, b) => a.meetingDateTime.compareTo(b.meetingDateTime));
+    return meetings;
   }
 
   Future<List<ParticipantOptionModel>> getParticipantOptions(
