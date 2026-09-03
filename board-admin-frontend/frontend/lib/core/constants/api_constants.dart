@@ -9,7 +9,7 @@ class ApiConstants {
     defaultValue: '',
   );
 
-  // Use the environment value when provided, otherwise use the local API.
+  // Use the environment value when provided, otherwise use the public API.
   static String get baseUrl {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
     return ApiConstantsPlatform.defaultBaseUrl;

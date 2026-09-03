@@ -404,7 +404,7 @@ class _LoginPanel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) => SingleChildScrollView(
     padding: compact
         ? const EdgeInsets.fromLTRB(28, 22, 28, 18)
         : const EdgeInsets.fromLTRB(38, 48, 38, 40),
