@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../../core/auth/role_access.dart';
+import '../../../core/network/api_error_message.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/reaction_bar.dart';
@@ -283,23 +285,7 @@ class PaperDetailScreen extends ConsumerWidget {
                 : null,
             onRemoveDownload: () =>
                 ref.read(offlinePaperProvider(paper.id).notifier).remove(),
-            onOpen:
-                auth.userId != null &&
-                    paper.filePath?.toLowerCase().contains('.pdf') == true
-                ? () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PdfAnnotationScreen(
-                        paperId: paper.id,
-                        userId: auth.userId!,
-                        documentKey: 'paper:${paper.id}',
-                        documentTitle: fileName,
-                        filePath: readablePath!,
-                        editable: access.canAnnotatePapers,
-                      ),
-                    ),
-                  )
-                : () => _openFile(context, paper.filePath),
+            onOpen: () => _openFile(context, paper.filePath),
             onAnnotate:
                 auth.userId != null &&
                     access.canAnnotatePapers &&
@@ -561,7 +547,7 @@ class _PaperHeaderCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Offline download failed: $error',
+                        _offlineDownloadError(error),
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
@@ -594,6 +580,16 @@ class _PaperHeaderCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _offlineDownloadError(Object error) {
+  if (error is DioException && error.type == DioExceptionType.connectionError) {
+    return 'Cannot reach the paper storage server. Check your connection or ask an administrator to verify the file URL.';
+  }
+  return ApiErrorMessage.from(
+    error,
+    fallback: 'The paper file could not be downloaded. Please try again.',
+  );
 }
 
 class _AttachmentCard extends StatelessWidget {

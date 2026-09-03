@@ -50,6 +50,16 @@ class _PersonalActivityScreenState
                           child: ChoiceChip(
                             label: Text(_moduleLabel(value)),
                             selected: filter == value,
+                            backgroundColor: const Color(0xFF12275B),
+                            selectedColor: const Color(0xFFFFB52E),
+                            checkmarkColor: const Color(0xFF12275B),
+                            side: BorderSide.none,
+                            labelStyle: TextStyle(
+                              color: filter == value
+                                  ? const Color(0xFF12275B)
+                                  : Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                             onSelected: (_) => setState(() => filter = value),
                           ),
                         ),

@@ -7,6 +7,13 @@ class AppTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final String? labelText;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final Iterable<String>? autofillHints;
+  final bool autofocus;
 
   const AppTextField({
     super.key,
@@ -15,6 +22,13 @@ class AppTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.inputFormatters,
+    this.labelText,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.textInputAction,
+    this.onSubmitted,
+    this.autofillHints,
+    this.autofocus = false,
   });
 
   @override
@@ -24,7 +38,16 @@ class AppTextField extends StatelessWidget {
       obscureText: obscureText,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
-      decoration: InputDecoration(hintText: hintText),
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
+      autofillHints: autofillHints,
+      autofocus: autofocus,
+      decoration: InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        prefixIcon: prefixIcon,
+        suffixIcon: suffixIcon,
+      ),
     );
   }
 }

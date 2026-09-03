@@ -48,6 +48,7 @@ dependencies:
   syncfusion_flutter_pdfviewer: 33.2.13
   record: ^6.2.1
   path_provider: ^2.1.5
+  audioplayers: ^6.7.1
 
 dev_dependencies:
   flutter_test:

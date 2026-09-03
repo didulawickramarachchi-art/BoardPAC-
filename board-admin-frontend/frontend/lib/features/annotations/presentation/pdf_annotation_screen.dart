@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/storage/secure_storage_service.dart';
 import '../../papers/provider/paper_provider.dart';
@@ -181,21 +181,67 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     );
   }
 
-  void _showAnnotations() {
+  Future<void> _showAnnotations() async {
     final annotations = _controller.getAnnotations()
       ..sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
+    final voiceNotes = <_SavedVoiceNote>[];
+    try {
+      final records = await ref
+          .read(annotationRepositoryProvider)
+          .getByPaperAndUser(widget.paperId, widget.userId);
+      for (final record in records) {
+        if (record.annotationType != 'AUDIO') continue;
+        try {
+          final data = jsonDecode(record.annotationDataJson);
+          if (data is! Map || data['kind'] != 'voice_note') continue;
+          final audioUrl = data['audioUrl']?.toString().trim() ?? '';
+          if (audioUrl.isEmpty) continue;
+          voiceNotes.add(
+            _SavedVoiceNote(
+              audioUrl: audioUrl,
+              fileName: data['fileName']?.toString() ?? 'Voice note',
+              pageNumber: record.pageNumber ?? 1,
+            ),
+          );
+        } catch (_) {
+          // Ignore malformed legacy annotation data.
+        }
+      }
+    } catch (_) {
+      // Local PDF annotations remain available while offline.
+    }
+    if (!mounted) return;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: SizedBox(
           height: 380,
-          child: annotations.isEmpty
+          child: annotations.isEmpty && voiceNotes.isEmpty
               ? const Center(child: Text('No annotations in this document'))
               : ListView.builder(
-                  itemCount: annotations.length,
+                  itemCount: voiceNotes.length + annotations.length,
                   itemBuilder: (_, index) {
-                    final annotation = annotations[index];
+                    if (index < voiceNotes.length) {
+                      final voiceNote = voiceNotes[index];
+                      return ListTile(
+                        leading: const Icon(Icons.graphic_eq_rounded),
+                        title: Text(voiceNote.fileName),
+                        subtitle: Text(
+                          'Voice note · Page ${voiceNote.pageNumber}',
+                        ),
+                        trailing: const Icon(Icons.play_circle_outline_rounded),
+                        onTap: () {
+                          Navigator.pop(sheetContext);
+                          _controller.jumpToPage(voiceNote.pageNumber);
+                          _showVoiceNotePlayer(
+                            voiceNote.audioUrl,
+                            voiceNote.fileName,
+                          );
+                        },
+                      );
+                    }
+                    final annotation = annotations[index - voiceNotes.length];
                     return ListTile(
                       leading: const Icon(Icons.edit_note_rounded),
                       title: Text(
@@ -365,6 +411,15 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     );
   }
 
+  Future<void> _showVoiceNotePlayer(String audioUrl, String fileName) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _VoiceNotePlayer(audioUrl: audioUrl, title: fileName),
+    );
+  }
+
   Future<void> _addVoiceNote() async {
     if (_savingVoice) return;
     final result = await showModalBottomSheet<_VoiceNoteResult>(
@@ -416,10 +471,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
             content: const Text('Voice note added to this page.'),
             action: SnackBarAction(
               label: 'Play',
-              onPressed: () => launchUrl(
-                Uri.parse(audioUrl),
-                mode: LaunchMode.externalApplication,
-              ),
+              onPressed: () => _showVoiceNotePlayer(audioUrl, fileName),
             ),
           ),
         );
@@ -921,6 +973,135 @@ class _AnnotationMessageDialogState extends State<_AnnotationMessageDialog> {
   void _submit() {
     FocusScope.of(context).unfocus();
     Navigator.pop(context, _textController.text.trim());
+  }
+}
+
+class _SavedVoiceNote {
+  final String audioUrl;
+  final String fileName;
+  final int pageNumber;
+
+  const _SavedVoiceNote({
+    required this.audioUrl,
+    required this.fileName,
+    required this.pageNumber,
+  });
+}
+
+class _VoiceNotePlayer extends StatefulWidget {
+  final String audioUrl;
+  final String title;
+
+  const _VoiceNotePlayer({required this.audioUrl, required this.title});
+
+  @override
+  State<_VoiceNotePlayer> createState() => _VoiceNotePlayerState();
+}
+
+class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
+  final AudioPlayer _player = AudioPlayer();
+  StreamSubscription<PlayerState>? _stateSubscription;
+  StreamSubscription<Duration>? _durationSubscription;
+  StreamSubscription<Duration>? _positionSubscription;
+  PlayerState _state = PlayerState.stopped;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _stateSubscription = _player.onPlayerStateChanged.listen((state) {
+      if (mounted) setState(() => _state = state);
+    });
+    _durationSubscription = _player.onDurationChanged.listen((duration) {
+      if (mounted) setState(() => _duration = duration);
+    });
+    _positionSubscription = _player.onPositionChanged.listen((position) {
+      if (mounted) setState(() => _position = position);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _play());
+  }
+
+  Future<void> _play() async {
+    try {
+      setState(() => _error = null);
+      await _player.play(UrlSource(widget.audioUrl));
+    } catch (error) {
+      if (mounted) setState(() => _error = 'Unable to play this voice note.');
+    }
+  }
+
+  String _format(Duration value) {
+    final minutes = value.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = value.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  void dispose() {
+    _stateSubscription?.cancel();
+    _durationSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _player.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxMilliseconds = _duration.inMilliseconds > 0
+        ? _duration.inMilliseconds.toDouble()
+        : 1.0;
+    final positionMilliseconds = _position.inMilliseconds
+        .clamp(0, maxMilliseconds.toInt())
+        .toDouble();
+    final isPlaying = _state == PlayerState.playing;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.graphic_eq_rounded, size: 42),
+            const SizedBox(height: 8),
+            Text('Voice note', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 4),
+            Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 16),
+            Slider(
+              value: positionMilliseconds,
+              max: maxMilliseconds,
+              onChanged: _duration == Duration.zero
+                  ? null
+                  : (value) =>
+                        _player.seek(Duration(milliseconds: value.round())),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(_format(_position)),
+                IconButton.filled(
+                  tooltip: isPlaying ? 'Pause' : 'Play',
+                  onPressed: isPlaying ? _player.pause : _play,
+                  icon: Icon(
+                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  ),
+                ),
+                Text(_format(_duration)),
+              ],
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -19,7 +19,7 @@ public class FileUploadController {
     private final PaperStoragePathService paperStoragePathService;
 
     @PostMapping("/upload")
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') or @accessProfileService.canAnnotate(authentication.name)")
     public ResponseEntity<Map<String, String>> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "meetingId", required = false) Long meetingId,

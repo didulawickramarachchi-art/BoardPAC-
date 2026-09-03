@@ -73,6 +73,7 @@ class AppTheme {
           fontSize: 19,
           fontWeight: FontWeight.w700,
         ),
+        actionsPadding: EdgeInsets.only(right: 8),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
@@ -104,6 +105,10 @@ class AppTheme {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.blue, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -195,6 +200,38 @@ class AppTheme {
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
+        ),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: AppColors.surface,
+        indicatorColor: AppColors.gold.withValues(alpha: 0.22),
+        selectedIconTheme: const IconThemeData(color: AppColors.navy),
+        unselectedIconTheme: const IconThemeData(color: AppColors.textMuted),
+        selectedLabelTextStyle: const TextStyle(
+          color: AppColors.navy,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelTextStyle: const TextStyle(color: AppColors.textMuted),
+      ),
+      tabBarTheme: const TabBarThemeData(
+        labelColor: AppColors.navy,
+        unselectedLabelColor: AppColors.textMuted,
+        indicatorColor: AppColors.gold,
+        dividerColor: AppColors.border,
+        labelStyle: TextStyle(fontWeight: FontWeight.w700),
+      ),
+      searchBarTheme: SearchBarThemeData(
+        backgroundColor: WidgetStateProperty.all(AppColors.surface),
+        surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+        elevation: WidgetStateProperty.all(0),
+        side: WidgetStateProperty.all(
+          const BorderSide(color: AppColors.border),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        hintStyle: WidgetStateProperty.all(
+          const TextStyle(color: AppColors.textMuted),
         ),
       ),
       dividerTheme: const DividerThemeData(
