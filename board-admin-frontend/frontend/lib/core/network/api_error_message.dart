@@ -13,7 +13,7 @@ class ApiErrorMessage {
       case 401:
         return 'Your session has expired. Please log in again.';
       case 403:
-        return 'Access denied. Please log in with an account that has permission to view subcategories.';
+        return 'You do not have permission to view this content. Sign in again or contact an administrator.';
       case 404:
         return 'The requested data was not found.';
       case 500:

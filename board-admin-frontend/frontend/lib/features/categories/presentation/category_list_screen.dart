@@ -304,56 +304,12 @@ class CategoryListScreen extends ConsumerWidget {
             },
           );
         },
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 58,
-                    height: 58,
-                    decoration: BoxDecoration(
-                      color: gold.withValues(alpha: 0.18),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.error_outline_rounded,
-                      size: 30,
-                      color: primaryBlue,
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  Text(
-                    'Failed to load categories:\n$error',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: darkBlue,
-                      fontSize: 14,
-                      height: 1.4,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        error: (error, _) => AppEmptyState(
+          icon: Icons.cloud_off_rounded,
+          title: 'Could not load categories',
+          message: error.toString(),
+          actionLabel: 'Try again',
+          onAction: () => ref.invalidate(categoryListProvider),
         ),
         loading: () => const AppLoading(),
       ),

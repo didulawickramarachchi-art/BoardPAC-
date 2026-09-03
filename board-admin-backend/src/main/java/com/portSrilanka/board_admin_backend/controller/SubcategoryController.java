@@ -17,7 +17,7 @@ public class SubcategoryController {
     private final SubcategoryService subcategoryService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SubcategoryResponse> create(@RequestBody SubcategoryRequest request) {
         return ResponseEntity.ok(subcategoryService.create(request));
     }
@@ -29,13 +29,13 @@ public class SubcategoryController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SubcategoryResponse> update(@PathVariable Long id, @RequestBody SubcategoryRequest request) {
         return ResponseEntity.ok(subcategoryService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> delete(@PathVariable Long id) {
         return ResponseEntity.ok(subcategoryService.delete(id));
     }

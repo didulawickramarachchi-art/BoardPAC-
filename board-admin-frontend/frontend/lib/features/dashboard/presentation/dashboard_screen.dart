@@ -2170,6 +2170,17 @@ class _RoleDashboardConfig {
 
 const _adminTiles = [
   _MenuTileData('Users', Icons.people_outline_rounded, UserListScreen()),
+  _MenuTileData(
+    'Privileges',
+    Icons.admin_panel_settings_outlined,
+    PrivilegeListScreen(),
+  ),
+  _MenuTileData('Categories', Icons.category_outlined, CategoryListScreen()),
+  _MenuTileData(
+    'Subcategories',
+    Icons.account_tree_outlined,
+    SubcategoryListScreen(),
+  ),
   _MenuTileData('Devices', Icons.devices_other_rounded, DeviceListScreen()),
   _MenuTileData('Reports', Icons.bar_chart_rounded, ReportHomeScreen()),
   _MenuTileData('Settings', Icons.settings_outlined, SettingHomeScreen()),
@@ -2181,18 +2192,7 @@ const _adminTiles = [
 ];
 
 const _secretaryTiles = [
-  _MenuTileData(
-    'Privileges',
-    Icons.admin_panel_settings_outlined,
-    PrivilegeListScreen(),
-  ),
   _MenuTileData('Meetings', Icons.event_note_outlined, MeetingListScreen()),
-  _MenuTileData('Categories', Icons.category_outlined, CategoryListScreen()),
-  _MenuTileData(
-    'Subcategories',
-    Icons.account_tree_outlined,
-    SubcategoryListScreen(),
-  ),
   _MenuTileData('Papers', Icons.picture_as_pdf_outlined, PaperListScreen()),
   _MenuTileData(
     'Meeting History Report',

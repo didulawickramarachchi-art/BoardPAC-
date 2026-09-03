@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/network/api_error_message.dart';
 import '../model/category_model.dart';
 import '../model/category_request.dart';
 
@@ -11,10 +12,16 @@ class CategoryRepository {
   CategoryRepository(this.dio);
 
   Future<List<CategoryModel>> getCategories() async {
-    final response = await dio.get('/categories');
-    return (response.data as List)
-        .map((e) => CategoryModel.fromJson(e))
-        .toList();
+    try {
+      final response = await dio.get('/categories');
+      return (response.data as List)
+          .map((e) => CategoryModel.fromJson(e))
+          .toList();
+    } catch (error) {
+      throw CategoryLoadException(
+        ApiErrorMessage.from(error, fallback: 'Unable to load categories.'),
+      );
+    }
   }
 
   Future<void> createCategory(CategoryRequest request) async {
@@ -51,4 +58,13 @@ class CategoryRepository {
   Future<void> deleteCategory(int categoryId) async {
     await dio.delete('/categories/$categoryId');
   }
+}
+
+class CategoryLoadException implements Exception {
+  final String message;
+
+  const CategoryLoadException(this.message);
+
+  @override
+  String toString() => message;
 }

@@ -136,7 +136,7 @@ class RoleAccess {
 
   bool get canManageUsers => isAdmin;
   bool get canViewUsers => isAdmin;
-  bool get canManagePrivileges => isSecretary;
+  bool get canManagePrivileges => isAdmin;
   bool get canManageDevices => isAdmin;
 
   bool get canViewMeetings => isSecretary || isMember;
@@ -158,10 +158,10 @@ class RoleAccess {
   bool get canViewReports => isAdmin;
   bool get canManageSettings => isAdmin;
   bool get canManageBoardSetup => isSecretary && canManageMeetings;
-  bool get canViewCategories => isSecretary || isMember;
-  bool get canManageCategories => isSecretary;
-  bool get canViewSubcategories => isSecretary || isMember;
-  bool get canManageSubcategories => isSecretary;
+  bool get canViewCategories => isAdmin || isSecretary || isMember;
+  bool get canManageCategories => isAdmin;
+  bool get canViewSubcategories => isAdmin || isSecretary || isMember;
+  bool get canManageSubcategories => isAdmin;
 
   String get _roleKey => normalizeRole(role);
   String get _profileKey => normalizeAccessProfile(accessProfile, role);

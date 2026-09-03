@@ -23,7 +23,7 @@ class PrivilegeListScreen extends ConsumerWidget {
     final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
     if (!access.canManagePrivileges) {
       return const Scaffold(
-        body: Center(child: Text('Only secretaries can manage privileges.')),
+        body: Center(child: Text('Only administrators can manage privileges.')),
       );
     }
     final subcategories = ref.watch(subcategoryListProvider);
