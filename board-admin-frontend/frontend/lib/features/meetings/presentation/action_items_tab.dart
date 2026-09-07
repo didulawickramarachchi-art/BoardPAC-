@@ -19,8 +19,10 @@ class ActionItemsTab extends ConsumerWidget {
     int? assignee = participants.isEmpty ? null : participants.first.userId;
     DateTime? due;
     String? error;
+    bool isCreating = false;
     await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('New action item'),
@@ -79,32 +81,58 @@ class ActionItemsTab extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: isCreating ? null : () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () async {
-                if (title.text.trim().isEmpty || assignee == null) {
-                  setState(
-                    () => error = 'Enter a title and select an assignee.',
-                  );
-                  return;
-                }
-                try {
-                  await ref
-                      .read(actionItemProvider(meetingId).notifier)
-                      .create(
-                        title: title.text.trim(),
-                        description: description.text.trim(),
-                        assigneeUserId: assignee!,
-                        dueDate: due,
-                      );
-                  if (context.mounted) Navigator.pop(context);
-                } catch (e) {
-                  setState(() => error = 'Could not create action item: $e');
-                }
-              },
-              child: const Text('Create'),
+              onPressed: isCreating
+                  ? null
+                  : () async {
+                      if (title.text.trim().isEmpty || assignee == null) {
+                        setState(
+                          () => error = 'Enter a title and select an assignee.',
+                        );
+                        return;
+                      }
+                      setState(() {
+                        isCreating = true;
+                        error = null;
+                      });
+                      try {
+                        await ref
+                            .read(actionItemProvider(meetingId).notifier)
+                            .create(
+                              title: title.text.trim(),
+                              description: description.text.trim(),
+                              assigneeUserId: assignee!,
+                              dueDate: due,
+                            );
+                        if (context.mounted) Navigator.pop(context);
+                      } catch (e) {
+                        if (context.mounted) {
+                          setState(() {
+                            isCreating = false;
+                            error = 'Could not create action item: $e';
+                          });
+                        }
+                      }
+                    },
+              child: isCreating
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text('Creating...'),
+                      ],
+                    )
+                  : const Text('Create'),
             ),
           ],
         ),

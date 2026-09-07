@@ -21,57 +21,66 @@ class AgendaSectionScreen extends ConsumerWidget {
 
   Future<void> _showCreateDialog(BuildContext context, WidgetRef ref) async {
     final titleController = TextEditingController();
-    final numberController = TextEditingController();
-    final orderController = TextEditingController();
+    bool isCreating = false;
 
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Create Section'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
+      barrierDismissible: false,
+      builder: (_) => StatefulBuilder(
+        builder: (dialogContext, setLocalState) => AlertDialog(
+          title: const Text('Create Section'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isCreating ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: numberController,
-              decoration: const InputDecoration(labelText: 'Number Label'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: orderController,
-              decoration: const InputDecoration(labelText: 'Display Order'),
-              keyboardType: TextInputType.number,
+            FilledButton(
+              onPressed: isCreating
+                  ? null
+                  : () async {
+                      if (titleController.text.trim().isEmpty) return;
+                      setLocalState(() => isCreating = true);
+                      try {
+                        await ref
+                            .read(agendaSectionProvider(meetingId).notifier)
+                            .createSection(
+                              AgendaSectionRequest(
+                                meetingId: meetingId,
+                                title: titleController.text.trim(),
+                                numberLabel: null,
+                                displayOrder: null,
+                              ),
+                            );
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      } catch (error) {
+                        if (dialogContext.mounted) {
+                          setLocalState(() => isCreating = false);
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            SnackBar(
+                              content: Text('Could not create section: $error'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: isCreating
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Create'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await ref
-                  .read(agendaSectionProvider(meetingId).notifier)
-                  .createSection(
-                    AgendaSectionRequest(
-                      meetingId: meetingId,
-                      title: titleController.text.trim(),
-                      numberLabel: numberController.text.trim(),
-                      displayOrder: orderController.text.trim().isEmpty
-                          ? null
-                          : int.parse(orderController.text.trim()),
-                    ),
-                  );
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text('Create'),
-          ),
-        ],
       ),
     );
   }
@@ -136,7 +145,7 @@ class AgendaSectionScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text('Agenda Sections - $meetingTitle')),
-      floatingActionButton: access.canManageMeetings
+      floatingActionButton: access.isSecretary
           ? FloatingActionButton(
               onPressed: () => _showCreateDialog(context, ref),
               child: const Icon(Icons.add),
@@ -148,43 +157,39 @@ class AgendaSectionScreen extends ConsumerWidget {
             return const AppEmptyState(message: 'No sections found');
           }
 
-          return ListView.builder(
+          // Preserve the provider's optimistic drag order while it is saved.
+          final sections = [...items];
+          if (!access.isSecretary) {
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: sections.length,
+              itemBuilder: (context, index) =>
+                  _sectionTile(context, ref, access, sections[index], index),
+            );
+          }
+          return ReorderableListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: items.length,
+            buildDefaultDragHandles: false,
+            itemCount: sections.length,
+            onReorder: (oldIndex, newIndex) {
+              if (newIndex > oldIndex) newIndex--;
+              final reordered = [...sections];
+              final moved = reordered.removeAt(oldIndex);
+              reordered.insert(newIndex, moved);
+              ref
+                  .read(agendaSectionProvider(meetingId).notifier)
+                  .reorder(reordered);
+            },
             itemBuilder: (context, index) {
-              final section = items[index];
-              return Card(
-                child: ListTile(
-                  title: Text(section.title),
-                  subtitle: Text(section.numberLabel ?? ''),
-                  trailing: access.canManageMeetings
-                      ? IconButton(
-                          tooltip: 'Delete section',
-                          onPressed: () => _deleteSection(
-                            context,
-                            ref,
-                            section.id,
-                            section.title,
-                          ),
-                          icon: const Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.redAccent,
-                          ),
-                        )
-                      : null,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AgendaItemScreen(
-                          meetingId: meetingId,
-                          meetingTitle: meetingTitle,
-                          sectionId: section.id,
-                          sectionTitle: section.title,
-                        ),
-                      ),
-                    );
-                  },
+              return ReorderableDragStartListener(
+                key: ValueKey(sections[index].id),
+                index: index,
+                child: _sectionTile(
+                  context,
+                  ref,
+                  access,
+                  sections[index],
+                  index,
                 ),
               );
             },
@@ -196,4 +201,47 @@ class AgendaSectionScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _sectionTile(
+    BuildContext context,
+    WidgetRef ref,
+    RoleAccess access,
+    dynamic section,
+    int index,
+  ) => Card(
+    key: ValueKey(section.id),
+    child: ListTile(
+      leading: CircleAvatar(child: Text('${index + 1}')),
+      title: Text(section.title),
+      subtitle: const Text('Agenda section'),
+      trailing: access.isSecretary
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Delete section',
+                  onPressed: () =>
+                      _deleteSection(context, ref, section.id, section.title),
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.redAccent,
+                  ),
+                ),
+                const Icon(Icons.drag_handle),
+              ],
+            )
+          : const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AgendaItemScreen(
+            meetingId: meetingId,
+            meetingTitle: meetingTitle,
+            sectionId: section.id,
+            sectionTitle: section.title,
+          ),
+        ),
+      ),
+    ),
+  );
 }

@@ -50,14 +50,25 @@ class MeetingDetailScreen extends ConsumerWidget {
     final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
 
     Future<void> refreshWorkspace() async {
-      await Future.wait([
-        ref.read(paperListProvider(meeting.id).notifier).load(),
-        ref.read(agendaSectionProvider(meeting.id).notifier).load(),
-        ref.read(agendaItemProvider(meeting.id).notifier).load(),
-        ref.read(participantListProvider(meeting.id).notifier).load(),
-      ]);
+      // Read and invalidate everything before awaiting. The screen may be
+      // closed while network requests are running, which disposes this ref.
+      final paperNotifier = ref.read(paperListProvider(meeting.id).notifier);
+      final sectionNotifier = ref.read(
+        agendaSectionProvider(meeting.id).notifier,
+      );
+      final itemNotifier = ref.read(agendaItemProvider(meeting.id).notifier);
+      final participantNotifier = ref.read(
+        participantListProvider(meeting.id).notifier,
+      );
       ref.invalidate(privateMeetingNotesProvider(meeting.id));
       ref.invalidate(meetingMinutesProvider(meeting.id));
+
+      await Future.wait([
+        paperNotifier.load(),
+        sectionNotifier.load(),
+        itemNotifier.load(),
+        participantNotifier.load(),
+      ]);
     }
 
     return DefaultTabController(
@@ -102,6 +113,7 @@ class MeetingDetailScreen extends ConsumerWidget {
                     ),
                   };
                   await Navigator.push(context, route);
+                  if (!context.mounted) return;
                   await refreshWorkspace();
                 },
                 itemBuilder: (_) => const [
@@ -526,13 +538,16 @@ class _AgendaPaperTile extends StatelessWidget {
       dense: true,
       leading: const Icon(Icons.picture_as_pdf_outlined),
       title: Text(paper.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Row(
+      subtitle: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 3,
+        runSpacing: 2,
         children: [
           Text('Version ${paper.versionNumber ?? 1}'),
-          const Text(' - '),
+          const Text('·'),
           _PaperReadStatus(paperId: paper.id),
           if (paper.requiresApproval) ...[
-            const Text(' - '),
+            const Text('·'),
             _PaperApprovalStatus(paperId: paper.id),
           ],
         ],

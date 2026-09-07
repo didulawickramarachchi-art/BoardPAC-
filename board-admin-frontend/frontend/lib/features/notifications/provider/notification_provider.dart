@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/dio_provider.dart';
+import '../../../core/notifications/device_notification_service.dart';
 import '../data/notification_repository.dart';
 import '../model/notification_model.dart';
 import '../model/notification_request.dart';
@@ -25,13 +28,36 @@ class NotificationNotifier
     extends StateNotifier<AsyncValue<List<NotificationModel>>> {
   final NotificationRepository repository;
   final int userId;
+  bool _hasLoaded = false;
+  Set<int> _knownIds = <int>{};
 
   NotificationNotifier(this.repository, this.userId)
     : super(const AsyncLoading());
 
   Future<void> load() async {
     try {
-      state = AsyncData(await repository.getForUser(userId));
+      final notifications = await repository.getForUser(userId);
+      if (_hasLoaded) {
+        for (final notification in notifications.where(
+          (item) =>
+              !_knownIds.contains(item.id) &&
+              (item.type == 'COMMENT_CREATED' || item.type == 'COMMENT_REPLY'),
+        )) {
+          unawaited(
+            DeviceNotificationService.instance.showBoardNotification(
+              notificationId: notification.id,
+              title: notification.title,
+              body: notification.message,
+              payload: notification.relatedPaperId == null
+                  ? 'meeting:${notification.relatedMeetingId}'
+                  : 'paper:${notification.relatedPaperId}',
+            ),
+          );
+        }
+      }
+      _knownIds = notifications.map((item) => item.id).toSet();
+      _hasLoaded = true;
+      state = AsyncData(notifications);
     } catch (e) {
       state = AsyncError(e, StackTrace.current);
     }

@@ -26,8 +26,6 @@ public class ApprovalController {
     @GetMapping("/paper/{paperId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ApprovalResponse>> getByPaper(@PathVariable Long paperId, Authentication authentication) {
-        boolean canSeeAll = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_SECRETARY") || a.getAuthority().equals("ROLE_ADMIN"));
-        return ResponseEntity.ok(approvalService.getByPaper(paperId, authentication.getName(), canSeeAll));
+        return ResponseEntity.ok(approvalService.getByPaper(paperId, authentication.getName(), true));
     }
 }

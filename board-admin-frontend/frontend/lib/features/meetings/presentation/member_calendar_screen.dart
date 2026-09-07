@@ -527,7 +527,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
     if (selected.isEmpty) {
       return const [
         SizedBox(
-          height: 180,
+          height: 220,
           child: AppEmptyState(message: 'No meetings on this date'),
         ),
       ];

@@ -5,6 +5,7 @@ import com.portSrilanka.board_admin_backend.dto.notification.NotificationReactio
 import com.portSrilanka.board_admin_backend.dto.notification.NotificationReplyRequest;
 import com.portSrilanka.board_admin_backend.dto.notification.NotificationResponse;
 import com.portSrilanka.board_admin_backend.entity.BoardNotification;
+import com.portSrilanka.board_admin_backend.entity.Comment;
 import com.portSrilanka.board_admin_backend.entity.Device;
 import com.portSrilanka.board_admin_backend.entity.Meeting;
 import com.portSrilanka.board_admin_backend.entity.MeetingParticipant;
@@ -15,6 +16,7 @@ import com.portSrilanka.board_admin_backend.entity.PaperAttachment;
 import com.portSrilanka.board_admin_backend.entity.Subcategory;
 import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.SystemRole;
+import com.portSrilanka.board_admin_backend.enums.CommentVisibility;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.NotificationReactionRepository;
@@ -389,6 +391,59 @@ public class NotificationService {
                 recipient.getBoardEmail(),
                 "An annotated paper was shared with you",
                 "Paper '" + paperTitle + "' has been shared with you by " + sharedByUsername
+        );
+    }
+
+    @Transactional
+    public void notifyNewComment(Comment comment) {
+        if (comment.getVisibility() == CommentVisibility.PRIVATE) return;
+
+        List<User> recipients = comment.getVisibility() == CommentVisibility.SELECTED_PARTICIPANTS
+                ? comment.getRecipients().stream().toList()
+                : comment.getMeeting().getParticipants().stream()
+                        .map(MeetingParticipant::getUser)
+                        .toList();
+        recipients = recipients.stream()
+                .filter(user -> !user.getId().equals(comment.getCreatedBy().getId()))
+                .toList();
+
+        String target = comment.getPaper() == null
+                ? comment.getMeeting().getTitle()
+                : comment.getPaper().getTitle();
+        String preview = clean(comment.getCommentText(), "New comment");
+        if (preview.length() > 120) preview = preview.substring(0, 117) + "...";
+
+        createForRecipients(
+                recipients,
+                comment.getCreatedBy(),
+                "New comment on " + target,
+                senderName(comment.getCreatedBy()) + ": " + preview,
+                "COMMENT_CREATED",
+                comment.getMeeting().getId(),
+                comment.getPaper() == null ? null : comment.getPaper().getId(),
+                comment.getId(),
+                null,
+                false
+        );
+    }
+
+    @Transactional
+    public void notifyCommentReply(Comment comment, User repliedBy, String replyText) {
+        User owner = comment.getCreatedBy();
+        if (owner.getId().equals(repliedBy.getId())) return;
+        String preview = clean(replyText, "New reply");
+        if (preview.length() > 120) preview = preview.substring(0, 117) + "...";
+        createForRecipient(
+                owner,
+                repliedBy,
+                "New reply to your comment",
+                senderName(repliedBy) + ": " + preview,
+                "COMMENT_REPLY",
+                comment.getMeeting().getId(),
+                comment.getPaper() == null ? null : comment.getPaper().getId(),
+                comment.getId(),
+                null,
+                false
         );
     }
 

@@ -7,8 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../../../core/storage/secure_storage_service.dart';
+import '../../../core/widgets/app_glass_surface.dart';
+import '../../approvals/provider/approval_provider.dart';
 import '../../papers/provider/paper_provider.dart';
 import '../../papers/data/offline_file_store.dart';
 import '../model/annotation_request.dart';
@@ -44,6 +47,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     text: '1',
   );
   late Future<String> _documentUrl;
+  late Future<Uint8List?> _localDocumentBytes;
   PdfAnnotationMode _mode = PdfAnnotationMode.none;
   Color _highlightColor = Colors.yellow;
   bool _saving = false;
@@ -56,6 +60,10 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   int _currentPage = 1;
   double _zoomLevel = 1;
   bool _fullScreen = false;
+  bool _documentLoaded = false;
+  bool _penMode = false;
+  final Map<int, List<_InkStroke>> _inkStrokes = {};
+  _InkStroke? _activeStroke;
   Set<int> _bookmarkedPages = <int>{};
 
   static const _colors = <Color>[
@@ -71,6 +79,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   void initState() {
     super.initState();
     _documentUrl = _findLatestDocument();
+    _localDocumentBytes = _documentUrl.then(OfflineFileStore().read);
     _applyHighlightColor();
     _loadReadState();
     _loadBookmarks();
@@ -115,38 +124,30 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   }
 
   Future<void> _startSearch() async {
-    final textController = TextEditingController();
     final query = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Search document'),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          textInputAction: TextInputAction.search,
-          decoration: const InputDecoration(hintText: 'Enter words to find'),
-          onSubmitted: (value) => Navigator.pop(dialogContext, value.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, textController.text.trim()),
-            child: const Text('Search'),
-          ),
-        ],
-      ),
+      builder: (_) => const _DocumentSearchDialog(),
     );
-    textController.dispose();
     if (query == null || query.isEmpty || !mounted) return;
-    _searchResult?.removeListener(_onSearchChanged);
-    _searchResult?.clear();
-    _searchResult = _controller.searchText(query)
-      ..addListener(_onSearchChanged);
-    setState(() {});
+    if (!_documentLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please wait for the document to load.')),
+      );
+      return;
+    }
+    try {
+      _searchResult?.removeListener(_onSearchChanged);
+      _searchResult?.clear();
+      _searchResult = _controller.searchText(query)
+        ..addListener(_onSearchChanged);
+      setState(() {});
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not search this document.')),
+        );
+      }
+    }
   }
 
   void _onSearchChanged() {
@@ -342,9 +343,81 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
 
   void _setMode(PdfAnnotationMode mode) {
     setState(() {
+      _penMode = false;
       _mode = _mode == mode ? PdfAnnotationMode.none : mode;
       _controller.annotationMode = _mode;
     });
+  }
+
+  void _setPenMode() {
+    _controller.annotationMode = PdfAnnotationMode.none;
+    setState(() {
+      _mode = PdfAnnotationMode.none;
+      _penMode = true;
+    });
+  }
+
+  void _startInk(PointerDownEvent event, Size size) {
+    final point = Offset(
+      event.localPosition.dx / size.width,
+      event.localPosition.dy / size.height,
+    );
+    setState(() {
+      _activeStroke = _InkStroke(color: _highlightColor, points: [point]);
+      (_inkStrokes[_currentPage] ??= []).add(_activeStroke!);
+    });
+  }
+
+  void _updateInk(PointerMoveEvent event, Size size) {
+    final stroke = _activeStroke;
+    if (stroke == null) return;
+    setState(
+      () => stroke.points.add(
+        Offset(
+          (event.localPosition.dx / size.width).clamp(0, 1),
+          (event.localPosition.dy / size.height).clamp(0, 1),
+        ),
+      ),
+    );
+  }
+
+  void _finishInk(PointerEvent _) {
+    if (_activeStroke != null) _changed = true;
+    _activeStroke = null;
+  }
+
+  Uint8List _flattenInk(Uint8List bytes) {
+    if (_inkStrokes.isEmpty) return bytes;
+    final document = PdfDocument(inputBytes: bytes);
+    for (final entry in _inkStrokes.entries) {
+      if (entry.key < 1 || entry.key > document.pages.count) continue;
+      final page = document.pages[entry.key - 1];
+      final size = page.getClientSize();
+      for (final stroke in entry.value) {
+        if (stroke.points.length < 2) continue;
+        final color = stroke.color;
+        final pen = PdfPen(
+          PdfColor(
+            (color.r * 255).round(),
+            (color.g * 255).round(),
+            (color.b * 255).round(),
+          ),
+          width: 2.2,
+        );
+        for (var index = 1; index < stroke.points.length; index++) {
+          final from = stroke.points[index - 1];
+          final to = stroke.points[index];
+          page.graphics.drawLine(
+            pen,
+            Offset(from.dx * size.width, from.dy * size.height),
+            Offset(to.dx * size.width, to.dy * size.height),
+          );
+        }
+      }
+    }
+    final result = Uint8List.fromList(document.saveSync());
+    document.dispose();
+    return result;
   }
 
   Future<void> _onAnnotationAdded(Annotation annotation) async {
@@ -431,40 +504,38 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     if (result == null || !mounted) return;
 
     setState(() => _savingVoice = true);
+    final paperRepository = ref.read(paperRepositoryProvider);
+    final annotationNotifier = ref.read(
+      annotationListProvider((
+        paperId: widget.paperId,
+        userId: widget.userId,
+      )).notifier,
+    );
     try {
       final now = DateTime.now();
       final fileName = 'voice_note_${now.millisecondsSinceEpoch}.wav';
-      final audioUrl = await ref
-          .read(paperRepositoryProvider)
-          .uploadAttachment(
-            fileName: fileName,
-            paperId: widget.paperId,
-            fileBytes: result.bytes,
-          );
-      await ref
-          .read(
-            annotationListProvider((
-              paperId: widget.paperId,
-              userId: widget.userId,
-            )).notifier,
-          )
-          .create(
-            AnnotationRequest(
-              paperId: widget.paperId,
-              userId: widget.userId,
-              annotationType: 'AUDIO',
-              pageNumber: _controller.pageNumber,
-              annotationDataJson: jsonEncode({
-                'kind': 'voice_note',
-                'documentKey': widget.documentKey,
-                'audioUrl': audioUrl,
-                'fileName': fileName,
-                'durationSeconds': result.duration.inSeconds,
-                'pageNumber': _controller.pageNumber,
-                'createdAt': now.toUtc().toIso8601String(),
-              }),
-            ),
-          );
+      final audioUrl = await paperRepository.uploadAttachment(
+        fileName: fileName,
+        paperId: widget.paperId,
+        fileBytes: result.bytes,
+      );
+      await annotationNotifier.create(
+        AnnotationRequest(
+          paperId: widget.paperId,
+          userId: widget.userId,
+          annotationType: 'AUDIO',
+          pageNumber: _controller.pageNumber,
+          annotationDataJson: jsonEncode({
+            'kind': 'voice_note',
+            'documentKey': widget.documentKey,
+            'audioUrl': audioUrl,
+            'fileName': fileName,
+            'durationSeconds': result.duration.inSeconds,
+            'pageNumber': _controller.pageNumber,
+            'createdAt': now.toUtc().toIso8601String(),
+          }),
+        ),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -490,45 +561,44 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
+    final paperRepository = ref.read(paperRepositoryProvider);
+    final annotationNotifier = ref.read(
+      annotationListProvider((
+        paperId: widget.paperId,
+        userId: widget.userId,
+      )).notifier,
+    );
 
     try {
-      final bytes = Uint8List.fromList(await _controller.saveDocument());
+      final viewerBytes = Uint8List.fromList(await _controller.saveDocument());
+      final bytes = _flattenInk(viewerBytes);
       final safeName = widget.documentTitle
           .replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_')
           .replaceAll(RegExp(r'_+'), '_');
       final fileName =
           '${safeName.isEmpty ? 'document' : safeName}_annotated_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final uploadedPath = await ref
-          .read(paperRepositoryProvider)
-          .uploadAttachment(
-            fileName: fileName,
-            paperId: widget.paperId,
-            fileBytes: bytes,
-          );
+      final uploadedPath = await paperRepository.uploadAttachment(
+        fileName: fileName,
+        paperId: widget.paperId,
+        fileBytes: bytes,
+      );
 
-      await ref
-          .read(
-            annotationListProvider((
-              paperId: widget.paperId,
-              userId: widget.userId,
-            )).notifier,
-          )
-          .create(
-            AnnotationRequest(
-              paperId: widget.paperId,
-              userId: widget.userId,
-              annotationType: 'HIGHLIGHT',
-              pageNumber: _controller.pageNumber,
-              annotationDataJson: jsonEncode({
-                'kind': 'pdf_snapshot',
-                'documentKey': widget.documentKey,
-                'sourceFilePath': widget.filePath,
-                'annotatedFilePath': uploadedPath,
-                'fileName': fileName,
-                'savedAt': DateTime.now().toUtc().toIso8601String(),
-              }),
-            ),
-          );
+      await annotationNotifier.create(
+        AnnotationRequest(
+          paperId: widget.paperId,
+          userId: widget.userId,
+          annotationType: 'HIGHLIGHT',
+          pageNumber: _controller.pageNumber,
+          annotationDataJson: jsonEncode({
+            'kind': 'pdf_snapshot',
+            'documentKey': widget.documentKey,
+            'sourceFilePath': widget.filePath,
+            'annotatedFilePath': uploadedPath,
+            'fileName': fileName,
+            'savedAt': DateTime.now().toUtc().toIso8601String(),
+          }),
+        ),
+      );
 
       _changed = false;
       if (mounted) {
@@ -592,6 +662,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     onAnnotationEdited: (_) => _changed = true,
     onAnnotationRemoved: (_) => _changed = true,
     onDocumentLoaded: (details) {
+      _documentLoaded = true;
       _totalPages = details.document.pages.count;
       final page = _resumePage.clamp(1, _totalPages);
       _currentPage = page;
@@ -617,6 +688,16 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final approvals = ref.watch(approvalListProvider(widget.paperId));
+    final decisions = approvals.valueOrNull ?? const [];
+    final approvedBy = decisions
+        .where((item) => item.approvalStatus == 'APPROVE')
+        .map((item) => item.username)
+        .toList();
+    final rejectedBy = decisions
+        .where((item) => item.approvalStatus == 'REJECT')
+        .map((item) => item.username)
+        .toList();
     return PopScope(
       canPop: !_changed,
       onPopInvokedWithResult: (didPop, _) async {
@@ -626,9 +707,13 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFFEAF0FA),
         appBar: _fullScreen
             ? null
             : AppBar(
+                backgroundColor: const Color(0xEA12275B),
+                foregroundColor: Colors.white,
+                elevation: 0,
                 title: Text(widget.documentTitle),
                 actions: [
                   IconButton(
@@ -660,100 +745,230 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
                     ),
                 ],
               ),
-        body: Column(
-          children: [
-            if (widget.editable)
-              _AnnotationToolbar(
-                mode: _mode,
-                selectedColor: _highlightColor,
-                colors: _colors,
-                onHighlight: () => _setMode(PdfAnnotationMode.highlight),
-                onUnderline: () => _setMode(PdfAnnotationMode.underline),
-                onStrikeout: () => _setMode(PdfAnnotationMode.strikethrough),
-                onSquiggly: () => _setMode(PdfAnnotationMode.squiggly),
-                onNote: () => _setMode(PdfAnnotationMode.stickyNote),
-                onVoice: _addVoiceNote,
-                savingVoice: _savingVoice,
-                onColor: (color) {
-                  setState(() => _highlightColor = color);
-                  _applyHighlightColor();
-                  if (_mode != PdfAnnotationMode.highlight) {
-                    _setMode(PdfAnnotationMode.highlight);
-                  }
-                },
-              ),
-            Expanded(
-              child: FutureBuilder<String>(
-                future: _documentUrl,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  return FutureBuilder<Uint8List?>(
-                    future: OfflineFileStore().read(snapshot.data!),
-                    builder: (context, local) {
-                      if (local.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (local.data != null) {
-                        return _localPdfViewer(local.data!);
-                      }
-                      return SfPdfViewer.network(
-                        snapshot.data!,
-                        controller: _controller,
-                        undoController: _undoController,
-                        canShowTextSelectionMenu: true,
-                        onAnnotationAdded: _onAnnotationAdded,
-                        onAnnotationSelected: _showAnnotationMessage,
-                        onAnnotationEdited: (_) => _changed = true,
-                        onAnnotationRemoved: (_) => _changed = true,
-                        onDocumentLoaded: (details) {
-                          _totalPages = details.document.pages.count;
-                          final page = _resumePage.clamp(1, _totalPages);
-                          _currentPage = page;
-                          _pageController.text = '$page';
-                          if (page > 1) _controller.jumpToPage(page);
-                          _trackPage(page);
-                        },
-                        onPageChanged: (details) {
-                          setState(() {
-                            _currentPage = details.newPageNumber;
-                            _pageController.text = '${details.newPageNumber}';
-                          });
-                          _trackPage(details.newPageNumber);
-                        },
-                        onZoomLevelChanged: (details) =>
-                            setState(() => _zoomLevel = details.newZoomLevel),
-                        onDocumentLoadFailed: (details) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(details.description)),
+        body: Container(
+          decoration: AppGlassDecoration.background,
+          child: Column(
+            children: [
+              if (widget.editable)
+                _AnnotationToolbar(
+                  mode: _mode,
+                  penMode: _penMode,
+                  selectedColor: _highlightColor,
+                  colors: _colors,
+                  onPan: () => _setMode(PdfAnnotationMode.none),
+                  onPen: _setPenMode,
+                  onHighlight: () => _setMode(PdfAnnotationMode.highlight),
+                  onUnderline: () => _setMode(PdfAnnotationMode.underline),
+                  onStrikeout: () => _setMode(PdfAnnotationMode.strikethrough),
+                  onSquiggly: () => _setMode(PdfAnnotationMode.squiggly),
+                  onNote: () => _setMode(PdfAnnotationMode.stickyNote),
+                  onVoice: _addVoiceNote,
+                  savingVoice: _savingVoice,
+                  onColor: (color) {
+                    setState(() => _highlightColor = color);
+                    _applyHighlightColor();
+                    if (_mode != PdfAnnotationMode.highlight) {
+                      _setMode(PdfAnnotationMode.highlight);
+                    }
+                  },
+                ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: FutureBuilder<String>(
+                        future: _documentUrl,
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          return FutureBuilder<Uint8List?>(
+                            future: _localDocumentBytes,
+                            builder: (context, local) {
+                              if (local.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              if (local.data != null) {
+                                return _localPdfViewer(local.data!);
+                              }
+                              return SfPdfViewer.network(
+                                snapshot.data!,
+                                controller: _controller,
+                                undoController: _undoController,
+                                canShowTextSelectionMenu: true,
+                                onAnnotationAdded: _onAnnotationAdded,
+                                onAnnotationSelected: _showAnnotationMessage,
+                                onAnnotationEdited: (_) => _changed = true,
+                                onAnnotationRemoved: (_) => _changed = true,
+                                onDocumentLoaded: (details) {
+                                  _documentLoaded = true;
+                                  _totalPages = details.document.pages.count;
+                                  final page = _resumePage.clamp(
+                                    1,
+                                    _totalPages,
+                                  );
+                                  _currentPage = page;
+                                  _pageController.text = '$page';
+                                  if (page > 1) _controller.jumpToPage(page);
+                                  _trackPage(page);
+                                },
+                                onPageChanged: (details) {
+                                  setState(() {
+                                    _currentPage = details.newPageNumber;
+                                    _pageController.text =
+                                        '${details.newPageNumber}';
+                                  });
+                                  _trackPage(details.newPageNumber);
+                                },
+                                onZoomLevelChanged: (details) => setState(
+                                  () => _zoomLevel = details.newZoomLevel,
+                                ),
+                                onDocumentLoadFailed: (details) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(details.description),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           );
                         },
-                      );
-                    },
-                  );
-                },
+                      ),
+                    ),
+                    if (_penMode)
+                      Positioned.fill(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) => Listener(
+                            behavior: HitTestBehavior.opaque,
+                            onPointerDown: (event) =>
+                                _startInk(event, constraints.biggest),
+                            onPointerMove: (event) =>
+                                _updateInk(event, constraints.biggest),
+                            onPointerUp: _finishInk,
+                            onPointerCancel: _finishInk,
+                            child: CustomPaint(
+                              painter: _InkPainter(
+                                _inkStrokes[_currentPage] ?? const [],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (approvedBy.isNotEmpty && _currentPage == 1)
+                      Positioned(
+                        top: 16,
+                        right: 16,
+                        child: IgnorePointer(
+                          child: _ApprovedPaperSeal(
+                            approvedBy: approvedBy,
+                            rejectedBy: rejectedBy,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
+              _ReaderControls(
+                currentPage: _currentPage,
+                totalPages: _totalPages,
+                pageController: _pageController,
+                zoomLevel: _zoomLevel,
+                bookmarked: _bookmarkedPages.contains(_currentPage),
+                fullScreen: _fullScreen,
+                searchResult: _searchResult,
+                editable: widget.editable,
+                undoController: _undoController,
+                onPreviousPage: _controller.previousPage,
+                onNextPage: _controller.nextPage,
+                onPageSubmitted: _jumpToPage,
+                onSliderChanged: (value) =>
+                    _controller.jumpToPage(value.round()),
+                onZoomOut: () => _changeZoom(-0.25),
+                onZoomIn: () => _changeZoom(0.25),
+                onBookmark: _toggleBookmark,
+                onFullScreen: () => setState(() => _fullScreen = !_fullScreen),
+                onSearch: _startSearch,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ApprovedPaperSeal extends StatelessWidget {
+  final List<String> approvedBy;
+  final List<String> rejectedBy;
+
+  const _ApprovedPaperSeal({
+    required this.approvedBy,
+    required this.rejectedBy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 280),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF8EE).withValues(alpha: .94),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF218A43), width: 2),
+          boxShadow: const [
+            BoxShadow(color: Color(0x26000000), blurRadius: 10),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.verified_rounded,
+              color: Color(0xFF167137),
+              size: 24,
             ),
-            _ReaderControls(
-              currentPage: _currentPage,
-              totalPages: _totalPages,
-              pageController: _pageController,
-              zoomLevel: _zoomLevel,
-              bookmarked: _bookmarkedPages.contains(_currentPage),
-              fullScreen: _fullScreen,
-              searchResult: _searchResult,
-              editable: widget.editable,
-              undoController: _undoController,
-              onPreviousPage: _controller.previousPage,
-              onNextPage: _controller.nextPage,
-              onPageSubmitted: _jumpToPage,
-              onSliderChanged: (value) => _controller.jumpToPage(value.round()),
-              onZoomOut: () => _changeZoom(-0.25),
-              onZoomIn: () => _changeZoom(0.25),
-              onBookmark: _toggleBookmark,
-              onFullScreen: () => setState(() => _fullScreen = !_fullScreen),
-              onSearch: _startSearch,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'APPROVED',
+                    style: TextStyle(
+                      color: Color(0xFF12602E),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  Text(
+                    'Approved by: ${approvedBy.join(', ')}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF277442),
+                      fontSize: 10,
+                    ),
+                  ),
+                  if (rejectedBy.isNotEmpty)
+                    Text(
+                      'Rejected by: ${rejectedBy.join(', ')}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF9A3030),
+                        fontSize: 10,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
         ),
@@ -804,9 +1019,11 @@ class _ReaderControls extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Material(
-    elevation: 5,
-    color: Theme.of(context).colorScheme.surface,
+  Widget build(BuildContext context) => Container(
+    decoration: AppGlassDecoration.surface(
+      borderRadius: BorderRadius.zero,
+      tint: const Color(0xFF8EA7E0),
+    ),
     child: SafeArea(
       top: false,
       child: Column(
@@ -926,6 +1143,47 @@ class _ReaderControls extends StatelessWidget {
         ],
       ),
     ),
+  );
+}
+
+class _DocumentSearchDialog extends StatefulWidget {
+  const _DocumentSearchDialog();
+
+  @override
+  State<_DocumentSearchDialog> createState() => _DocumentSearchDialogState();
+}
+
+class _DocumentSearchDialogState extends State<_DocumentSearchDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final query = _controller.text.trim();
+    if (query.isNotEmpty) Navigator.pop(context, query);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Search document'),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      textInputAction: TextInputAction.search,
+      decoration: const InputDecoration(hintText: 'Enter words to find'),
+      onSubmitted: (_) => _submit(),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _submit, child: const Text('Search')),
+    ],
   );
 }
 
@@ -1294,8 +1552,11 @@ class _VoiceNoteRecorderState extends State<_VoiceNoteRecorder> {
 
 class _AnnotationToolbar extends StatelessWidget {
   final PdfAnnotationMode mode;
+  final bool penMode;
   final Color selectedColor;
   final List<Color> colors;
+  final VoidCallback onPan;
+  final VoidCallback onPen;
   final VoidCallback onHighlight;
   final VoidCallback onUnderline;
   final VoidCallback onStrikeout;
@@ -1307,8 +1568,11 @@ class _AnnotationToolbar extends StatelessWidget {
 
   const _AnnotationToolbar({
     required this.mode,
+    required this.penMode,
     required this.selectedColor,
     required this.colors,
+    required this.onPan,
+    required this.onPen,
     required this.onHighlight,
     required this.onUnderline,
     required this.onStrikeout,
@@ -1321,86 +1585,386 @@ class _AnnotationToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      elevation: 2,
-      color: Theme.of(context).colorScheme.surface,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          children: [
-            FilterChip(
-              selected: mode == PdfAnnotationMode.highlight,
-              avatar: const Icon(Icons.highlight_alt, size: 18),
-              label: const Text('Highlight / text color'),
-              onSelected: (_) => onHighlight(),
+    final activeLabel = penMode
+        ? 'Pen'
+        : switch (mode) {
+            PdfAnnotationMode.highlight => 'Highlight',
+            PdfAnnotationMode.underline => 'Underline',
+            PdfAnnotationMode.strikethrough => 'Strikeout',
+            PdfAnnotationMode.squiggly => 'Squiggly',
+            PdfAnnotationMode.stickyNote => 'Message',
+            _ => 'Pan & read',
+          };
+    return Container(
+      decoration: AppGlassDecoration.surface(
+        borderRadius: BorderRadius.zero,
+        tint: const Color(0xFF8EA7E0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            color: const Color(0xFF12275B).withValues(alpha: .06),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    color: mode == PdfAnnotationMode.none && !penMode
+                        ? Colors.green
+                        : Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$activeLabel mode',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  penMode
+                      ? 'Write with Pencil or finger'
+                      : mode == PdfAnnotationMode.none
+                      ? 'Drag to navigate'
+                      : 'Select text to apply',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            FilterChip(
-              selected: mode == PdfAnnotationMode.underline,
-              avatar: const Icon(Icons.format_underlined_rounded, size: 18),
-              label: const Text('Underline'),
-              onSelected: (_) => onUnderline(),
-            ),
-            const SizedBox(width: 8),
-            FilterChip(
-              selected: mode == PdfAnnotationMode.strikethrough,
-              avatar: const Icon(Icons.format_strikethrough_rounded, size: 18),
-              label: const Text('Strikeout'),
-              onSelected: (_) => onStrikeout(),
-            ),
-            const SizedBox(width: 8),
-            FilterChip(
-              selected: mode == PdfAnnotationMode.squiggly,
-              avatar: const Icon(Icons.gesture_rounded, size: 18),
-              label: const Text('Squiggly'),
-              onSelected: (_) => onSquiggly(),
-            ),
-            const SizedBox(width: 8),
-            ActionChip(
-              avatar: savingVoice
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.mic_none_rounded, size: 18),
-              label: Text(savingVoice ? 'Saving voice note' : 'Voice note'),
-              onPressed: savingVoice ? null : onVoice,
-            ),
-            const SizedBox(width: 8),
-            FilterChip(
-              selected: mode == PdfAnnotationMode.stickyNote,
-              avatar: const Icon(Icons.add_comment_outlined, size: 18),
-              label: const Text('Section message'),
-              onSelected: (_) => onNote(),
-            ),
-            const SizedBox(width: 12),
-            ...colors.map(
-              (color) => Padding(
-                padding: const EdgeInsets.only(right: 7),
-                child: InkWell(
-                  onTap: () => onColor(color),
-                  customBorder: const CircleBorder(),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: color,
-                      border: Border.all(
-                        color: color == selectedColor
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.black26,
-                        width: color == selectedColor ? 3 : 1,
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            child: Row(
+              children: [
+                _AnnotationToolButton(
+                  icon: Icons.pan_tool_alt_outlined,
+                  label: 'Pan',
+                  selected: mode == PdfAnnotationMode.none && !penMode,
+                  onTap: onPan,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.draw_rounded,
+                  label: 'Pen',
+                  selected: penMode,
+                  onTap: onPen,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.highlight_alt,
+                  label: 'Highlight',
+                  selected: mode == PdfAnnotationMode.highlight,
+                  onTap: onHighlight,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.format_underlined_rounded,
+                  label: 'Underline',
+                  selected: mode == PdfAnnotationMode.underline,
+                  onTap: onUnderline,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.format_strikethrough_rounded,
+                  label: 'Strike',
+                  selected: mode == PdfAnnotationMode.strikethrough,
+                  onTap: onStrikeout,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.gesture_rounded,
+                  label: 'Squiggly',
+                  selected: mode == PdfAnnotationMode.squiggly,
+                  onTap: onSquiggly,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.add_comment_outlined,
+                  label: 'Message',
+                  selected: mode == PdfAnnotationMode.stickyNote,
+                  onTap: onNote,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.mic_none_rounded,
+                  label: savingVoice ? 'Saving' : 'Voice',
+                  selected: false,
+                  loading: savingVoice,
+                  onTap: savingVoice ? null : onVoice,
+                ),
+                Tooltip(
+                  message: 'Choose any color',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _pickColor(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: selectedColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.black26),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text('Color', style: TextStyle(fontSize: 10)),
+                        ],
                       ),
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickColor(BuildContext context) async {
+    final color = await showDialog<Color>(
+      context: context,
+      builder: (_) => _ColorWheelPicker(initialColor: selectedColor),
+    );
+    if (color != null) onColor(color);
+  }
+}
+
+class _ColorWheelPicker extends StatefulWidget {
+  final Color initialColor;
+  const _ColorWheelPicker({required this.initialColor});
+
+  @override
+  State<_ColorWheelPicker> createState() => _ColorWheelPickerState();
+}
+
+class _ColorWheelPickerState extends State<_ColorWheelPicker> {
+  late HSVColor _color;
+
+  @override
+  void initState() {
+    super.initState();
+    _color = HSVColor.fromColor(widget.initialColor);
+  }
+
+  void _select(Offset position, Size size) {
+    final center = size.center(Offset.zero);
+    final delta = position - center;
+    final radius = size.shortestSide / 2;
+    final saturation = (delta.distance / radius).clamp(0.0, 1.0);
+    var hue = delta.direction * 180 / 3.141592653589793;
+    if (hue < 0) hue += 360;
+    setState(() => _color = _color.withHue(hue).withSaturation(saturation));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Choose highlight color'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox.square(
+          dimension: 230,
+          child: LayoutBuilder(
+            builder: (context, constraints) => GestureDetector(
+              onTapDown: (details) =>
+                  _select(details.localPosition, constraints.biggest),
+              onPanUpdate: (details) =>
+                  _select(details.localPosition, constraints.biggest),
+              child: CustomPaint(painter: _ColorWheelPainter(_color)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            const Icon(Icons.brightness_6_outlined),
+            Expanded(
+              child: Slider(
+                value: _color.value,
+                onChanged: (value) =>
+                    setState(() => _color = _color.withValue(value)),
+              ),
+            ),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: _color.toColor(),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black26),
               ),
             ),
           ],
         ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
       ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, _color.toColor()),
+        child: const Text('Use color'),
+      ),
+    ],
+  );
+}
+
+class _ColorWheelPainter extends CustomPainter {
+  final HSVColor selected;
+  const _ColorWheelPainter(this.selected);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.shortestSide / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..shader = const SweepGradient(
+          colors: [
+            Colors.red,
+            Colors.yellow,
+            Colors.green,
+            Colors.cyan,
+            Colors.blue,
+            Color(0xFFFF00FF),
+            Colors.red,
+          ],
+        ).createShader(rect),
+    );
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Colors.white, Color(0x00FFFFFF)],
+        ).createShader(rect),
+    );
+
+    final angle = selected.hue * 3.141592653589793 / 180;
+    final marker =
+        center + Offset.fromDirection(angle, radius * selected.saturation);
+    canvas.drawCircle(marker, 10, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      marker,
+      8,
+      Paint()
+        ..color = selected.toColor()
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      marker,
+      9,
+      Paint()
+        ..color = Colors.black54
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
     );
   }
+
+  @override
+  bool shouldRepaint(covariant _ColorWheelPainter oldDelegate) =>
+      oldDelegate.selected != selected;
+}
+
+class _InkStroke {
+  final Color color;
+  final List<Offset> points;
+  _InkStroke({required this.color, required this.points});
+}
+
+class _InkPainter extends CustomPainter {
+  final List<_InkStroke> strokes;
+  const _InkPainter(this.strokes);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final stroke in strokes) {
+      if (stroke.points.length < 2) continue;
+      final paint = Paint()
+        ..color = stroke.color
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke;
+      final path = Path();
+      path.moveTo(
+        stroke.points.first.dx * size.width,
+        stroke.points.first.dy * size.height,
+      );
+      for (final point in stroke.points.skip(1)) {
+        path.lineTo(point.dx * size.width, point.dy * size.height);
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _InkPainter oldDelegate) => true;
+}
+
+class _AnnotationToolButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final bool loading;
+  final VoidCallback? onTap;
+
+  const _AnnotationToolButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(right: 3),
+    child: Material(
+      color: selected
+          ? Theme.of(context).colorScheme.primaryContainer
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              loading
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(icon, size: 22),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }

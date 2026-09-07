@@ -36,6 +36,13 @@ public class AgendaController {
         return ResponseEntity.ok(agendaService.deleteSection(sectionId));
     }
 
+    @PutMapping("/sections/{meetingId}/order")
+    @PreAuthorize("hasRole('SECRETARY')")
+    public ResponseEntity<List<AgendaSectionResponse>> reorderSections(@PathVariable Long meetingId,
+                                                                        @RequestBody AgendaOrderRequest request) {
+        return ResponseEntity.ok(agendaService.reorderSections(meetingId, request.getOrderedIds()));
+    }
+
     @PostMapping("/items")
     @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<AgendaItemResponse> createItem(@RequestBody AgendaItemRequest request) {
@@ -52,6 +59,13 @@ public class AgendaController {
     @PreAuthorize("hasRole('SECRETARY')")
     public ResponseEntity<String> deleteItem(@PathVariable Long itemId) {
         return ResponseEntity.ok(agendaService.deleteItem(itemId));
+    }
+
+    @PutMapping("/items/{meetingId}/order")
+    @PreAuthorize("hasRole('SECRETARY')")
+    public ResponseEntity<List<AgendaItemResponse>> reorderItems(@PathVariable Long meetingId,
+                                                                  @RequestBody AgendaOrderRequest request) {
+        return ResponseEntity.ok(agendaService.reorderItems(meetingId, request.getOrderedIds()));
     }
 
     @PostMapping("/share")

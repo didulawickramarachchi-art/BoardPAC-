@@ -48,6 +48,20 @@ class AgendaSectionNotifier
     await repository.deleteSection(sectionId);
     await load();
   }
+
+  Future<void> reorder(List<AgendaSectionModel> sections) async {
+    state = AsyncData(sections);
+    try {
+      await repository.reorderSections(
+        meetingId,
+        sections.map((item) => item.id).toList(),
+      );
+      await load();
+    } catch (_) {
+      await load();
+      rethrow;
+    }
+  }
 }
 
 final agendaItemProvider =
@@ -85,5 +99,33 @@ class AgendaItemNotifier
   Future<void> deleteItem(int itemId) async {
     await repository.deleteItem(itemId);
     await load();
+  }
+
+  Future<void> reorder(List<AgendaItemModel> items) async {
+    final current = state.value ?? const <AgendaItemModel>[];
+    final reorderedIds = items.map((item) => item.id).toSet();
+    final merged = <AgendaItemModel>[];
+    var inserted = false;
+    for (final item in current) {
+      if (reorderedIds.contains(item.id)) {
+        if (!inserted) {
+          merged.addAll(items);
+          inserted = true;
+        }
+      } else {
+        merged.add(item);
+      }
+    }
+    state = AsyncData(merged);
+    try {
+      await repository.reorderItems(
+        meetingId,
+        items.map((item) => item.id).toList(),
+      );
+      await load();
+    } catch (_) {
+      await load();
+      rethrow;
+    }
   }
 }

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -27,8 +29,8 @@ public class AgendaService {
         AgendaSection section = AgendaSection.builder()
                 .meeting(meeting)
                 .title(request.getTitle())
-                .numberLabel(request.getNumberLabel())
-                .displayOrder(request.getDisplayOrder())
+                .numberLabel(String.valueOf(agendaSectionRepository.countByMeetingId(request.getMeetingId()) + 1))
+                .displayOrder((int) agendaSectionRepository.countByMeetingId(request.getMeetingId()) + 1)
                 .build();
 
         section = agendaSectionRepository.save(section);
@@ -44,8 +46,16 @@ public class AgendaService {
                 .build();
     }
 
+    @Transactional
     public List<AgendaSectionResponse> getSections(Long meetingId) {
-        return agendaSectionRepository.findByMeetingIdOrderByDisplayOrderAsc(meetingId)
+        List<AgendaSection> sections = agendaSectionRepository.findByMeetingIdOrderByDisplayOrderAsc(meetingId);
+        for (int index = 0; index < sections.size(); index++) {
+            sections.get(index).setDisplayOrder(index + 1);
+            sections.get(index).setNumberLabel(String.valueOf(index + 1));
+        }
+        agendaSectionRepository.saveAll(sections);
+        renumberItems(meetingId);
+        return sections
                 .stream()
                 .map(section -> AgendaSectionResponse.builder()
                         .id(section.getId())
@@ -54,6 +64,25 @@ public class AgendaService {
                         .displayOrder(section.getDisplayOrder())
                         .build())
                 .toList();
+    }
+
+    @Transactional
+    public List<AgendaSectionResponse> reorderSections(Long meetingId, List<Long> orderedIds) {
+        List<AgendaSection> sections = agendaSectionRepository.findByMeetingIdOrderByDisplayOrderAsc(meetingId);
+        if (orderedIds == null || orderedIds.size() != sections.size()) {
+            throw new IllegalArgumentException("The complete agenda section order is required");
+        }
+        Map<Long, AgendaSection> byId = new HashMap<>();
+        sections.forEach(section -> byId.put(section.getId(), section));
+        for (int index = 0; index < orderedIds.size(); index++) {
+            AgendaSection section = byId.remove(orderedIds.get(index));
+            if (section == null) throw new IllegalArgumentException("Invalid agenda section order");
+            section.setDisplayOrder(index + 1);
+            section.setNumberLabel(String.valueOf(index + 1));
+        }
+        agendaSectionRepository.saveAll(sections);
+        renumberItems(meetingId);
+        return getSections(meetingId);
     }
 
     @Transactional
@@ -88,8 +117,8 @@ public class AgendaService {
                 .section(section)
                 .itemType(request.getItemType())
                 .title(request.getTitle())
-                .numberLabel(request.getNumberLabel())
-                .displayOrder(request.getDisplayOrder())
+                .numberLabel(nextItemNumber(meeting.getId(), section))
+                .displayOrder(nextItemOrder(meeting.getId(), section))
                 .description(request.getDescription())
                 .mediaPath(request.getMediaPath())
                 .build();
@@ -102,9 +131,67 @@ public class AgendaService {
         return mapItem(item);
     }
 
+    @Transactional
     public List<AgendaItemResponse> getItems(Long meetingId) {
+        renumberItems(meetingId);
         return agendaItemRepository.findByMeetingIdOrderByDisplayOrderAsc(meetingId)
                 .stream().map(this::mapItem).toList();
+    }
+
+    @Transactional
+    public List<AgendaItemResponse> reorderItems(Long meetingId, List<Long> orderedIds) {
+        if (orderedIds == null || orderedIds.isEmpty()) {
+            throw new IllegalArgumentException("Agenda item order is required");
+        }
+        List<AgendaItem> allItems = agendaItemRepository.findByMeetingIdOrderByDisplayOrderAsc(meetingId);
+        Map<Long, AgendaItem> byId = new HashMap<>();
+        allItems.forEach(item -> byId.put(item.getId(), item));
+        Long expectedSectionId = null;
+        boolean first = true;
+        for (int index = 0; index < orderedIds.size(); index++) {
+            AgendaItem item = byId.get(orderedIds.get(index));
+            if (item == null) throw new IllegalArgumentException("Invalid agenda item order");
+            Long sectionId = item.getSection() == null ? null : item.getSection().getId();
+            if (first) {
+                expectedSectionId = sectionId;
+                first = false;
+            } else if (!java.util.Objects.equals(expectedSectionId, sectionId)) {
+                throw new IllegalArgumentException("Agenda items must belong to the same section");
+            }
+            item.setDisplayOrder(index + 1);
+        }
+        agendaItemRepository.saveAll(orderedIds.stream().map(byId::get).toList());
+        renumberItems(meetingId);
+        return getItems(meetingId);
+    }
+
+    private int nextItemOrder(Long meetingId, AgendaSection section) {
+        if (section == null) {
+            return (int) agendaItemRepository.findByMeetingIdOrderByDisplayOrderAsc(meetingId).stream()
+                    .filter(item -> item.getSection() == null).count() + 1;
+        }
+        return (int) agendaItemRepository.countByMeetingIdAndSectionId(meetingId, section.getId()) + 1;
+    }
+
+    private String nextItemNumber(Long meetingId, AgendaSection section) {
+        int order = nextItemOrder(meetingId, section);
+        return section == null ? String.valueOf(order) : section.getNumberLabel() + "." + order;
+    }
+
+    private void renumberItems(Long meetingId) {
+        List<AgendaItem> items = agendaItemRepository.findByMeetingIdOrderByDisplayOrderAsc(meetingId);
+        Map<Long, Integer> counters = new HashMap<>();
+        int unassigned = 0;
+        for (AgendaItem item : items) {
+            if (item.getSection() == null) {
+                item.setNumberLabel(String.valueOf(++unassigned));
+            } else {
+                Long sectionId = item.getSection().getId();
+                int number = counters.merge(sectionId, 1, Integer::sum);
+                item.setNumberLabel(item.getSection().getNumberLabel() + "." + number);
+            }
+        }
+        agendaItemRepository.saveAll(items);
     }
 
     @Transactional

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/features/access_control/presentation/access_validation_screen.dart';
@@ -46,9 +48,23 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final ValueNotifier<double> _glassLightAngle = ValueNotifier<double>(0);
+  Timer? _notificationPoller;
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationPoller = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (!mounted) return;
+      final userId = ref.read(authProvider).userId;
+      if (userId != null) {
+        unawaited(ref.read(notificationListProvider(userId).notifier).load());
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _notificationPoller?.cancel();
     _glassLightAngle.dispose();
     super.dispose();
   }

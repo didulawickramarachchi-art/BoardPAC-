@@ -12,9 +12,11 @@ import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/reaction_bar.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../annotations/presentation/pdf_annotation_screen.dart';
-import '../../comments/model/comment_request.dart';
+import '../../approvals/presentation/approval_screen.dart';
+import '../../approvals/provider/approval_provider.dart';
 import '../../comments/provider/comment_provider.dart';
 import '../../comments/presentation/comment_card.dart';
+import '../../comments/presentation/comment_screen.dart';
 import '../../favorites/presentation/favorite_button.dart';
 import '../model/attachment_model.dart';
 import '../model/paper_model.dart';
@@ -76,80 +78,11 @@ class PaperDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showAddCommentDialog(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final textController = TextEditingController();
-    bool annotated = false;
-    String? errorMessage;
-
-    await showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add Comment'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: textController,
-                  decoration: const InputDecoration(labelText: 'Comment'),
-                  maxLines: 4,
-                ),
-                const SizedBox(height: 12),
-                CheckboxListTile(
-                  value: annotated,
-                  onChanged: (value) {
-                    setState(() => annotated = value ?? false);
-                  },
-                  title: const Text('Annotated'),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    errorMessage!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final text = textController.text.trim();
-
-                if (text.isEmpty) {
-                  setState(() {
-                    errorMessage = 'Please enter a comment.';
-                  });
-                  return;
-                }
-
-                await ref
-                    .read(paperCommentProvider(paper.id).notifier)
-                    .addComment(
-                      CommentRequest(
-                        paperId: paper.id,
-                        commentText: text,
-                        annotated: annotated,
-                      ),
-                    );
-
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+  void _openComments(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CommentScreen(paperId: paper.id, title: paper.title),
       ),
     );
   }
@@ -230,6 +163,9 @@ class PaperDetailScreen extends ConsumerWidget {
     final readablePath = offline.value ?? paper.filePath;
     final attachmentsAsync = ref.watch(attachmentListProvider(paper.id));
     final commentsAsync = ref.watch(paperCommentProvider(paper.id));
+    final approvalsAsync = paper.requiresApproval && access.canApprovePapers
+        ? ref.watch(approvalListProvider(paper.id))
+        : null;
 
     if (!access.canViewPapers) {
       return const Scaffold(
@@ -269,7 +205,7 @@ class PaperDetailScreen extends ConsumerWidget {
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add_comment_outlined),
               label: const Text('Comment'),
-              onPressed: () => _showAddCommentDialog(context, ref),
+              onPressed: () => _openComments(context),
             )
           : null,
       body: ListView(
@@ -299,6 +235,23 @@ class PaperDetailScreen extends ConsumerWidget {
                   )
                 : null,
           ),
+          if (approvalsAsync != null) ...[
+            const SizedBox(height: 16),
+            approvalsAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (error, _) => _PaperApprovalCard(
+                status: null,
+                onApprove: () => _openApprovals(context),
+              ),
+              data: (items) {
+                final mine = items.where((item) => item.ownedByCurrentUser);
+                return _PaperApprovalCard(
+                  status: mine.isEmpty ? null : mine.first.approvalStatus,
+                  onApprove: () => _openApprovals(context),
+                );
+              },
+            ),
+          ],
           const SizedBox(height: 16),
           _SectionHeader(
             title: 'Version history',
@@ -412,7 +365,7 @@ class PaperDetailScreen extends ConsumerWidget {
                 ? TextButton.icon(
                     icon: const Icon(Icons.add_comment_outlined),
                     label: const Text('Add'),
-                    onPressed: () => _showAddCommentDialog(context, ref),
+                    onPressed: () => _openComments(context),
                   )
                 : null,
           ),
@@ -423,19 +376,19 @@ class PaperDetailScreen extends ConsumerWidget {
               }
 
               return Column(
-                children: items
-                    .map(
-                      (comment) => CommentCard(
-                        comment: comment,
-                        onReply: (message) => ref
-                            .read(paperCommentProvider(paper.id).notifier)
-                            .reply(comment.id, message),
-                        onReact: (reaction) => ref
-                            .read(paperCommentProvider(paper.id).notifier)
-                            .react(comment.id, reaction),
-                      ),
-                    )
-                    .toList(),
+                children: [
+                  ...items.map(
+                    (comment) => CommentCard(
+                      comment: comment,
+                      onReply: (message) => ref
+                          .read(paperCommentProvider(paper.id).notifier)
+                          .reply(comment.id, message),
+                      onReact: (reaction) => ref
+                          .read(paperCommentProvider(paper.id).notifier)
+                          .react(comment.id, reaction),
+                    ),
+                  ),
+                ],
               );
             },
             error: (error, _) => Text('Failed to load comments: $error'),
@@ -446,7 +399,61 @@ class PaperDetailScreen extends ConsumerWidget {
       ),
     );
   }
+
+  void _openApprovals(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            ApprovalScreen(paperId: paper.id, paperTitle: paper.title),
+      ),
+    );
+  }
 }
+
+class _PaperApprovalCard extends StatelessWidget {
+  final String? status;
+  final VoidCallback onApprove;
+
+  const _PaperApprovalCard({required this.status, required this.onApprove});
+
+  @override
+  Widget build(BuildContext context) {
+    final approved = status == 'APPROVE';
+    return Card(
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: approved
+              ? Colors.green.withValues(alpha: .14)
+              : const Color(0xFFFFB52E).withValues(alpha: .16),
+          child: Icon(
+            approved ? Icons.verified_rounded : Icons.approval_outlined,
+            color: approved ? Colors.green : const Color(0xFFB87500),
+          ),
+        ),
+        title: Text(approved ? 'Paper approved' : 'Paper approval'),
+        subtitle: Text(
+          status == null
+              ? 'Your decision is pending.'
+              : 'Your current decision: ${_approvalStatusLabel(status!)}',
+        ),
+        trailing: FilledButton(
+          onPressed: onApprove,
+          child: Text(status == null ? 'Decide' : 'View decisions'),
+        ),
+      ),
+    );
+  }
+}
+
+String _approvalStatusLabel(String status) => switch (status) {
+  'APPROVE' => 'Approved',
+  'REJECT' => 'Rejected',
+  'ABSTAIN' => 'Abstained',
+  'INTEREST' => 'Interest declared',
+  'RPT' => 'Related-party transaction',
+  _ => status,
+};
 
 class _PaperHeaderCard extends StatelessWidget {
   final PaperModel paper;

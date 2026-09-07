@@ -24,13 +24,13 @@ class AgendaItemScreen extends ConsumerWidget {
 
   Future<void> _showCreateDialog(BuildContext context, WidgetRef ref) async {
     final titleController = TextEditingController();
-    final numberController = TextEditingController();
-    final orderController = TextEditingController();
     final descController = TextEditingController();
     String itemType = 'PAPER';
+    bool isCreating = false;
 
     await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (_) => StatefulBuilder(
         builder: (context, setLocalState) => AlertDialog(
           title: const Text('Create Agenda Item'),
@@ -50,27 +50,18 @@ class AgendaItemScreen extends ConsumerWidget {
                     DropdownMenuItem(value: 'AUDIO', child: Text('Audio')),
                     DropdownMenuItem(value: 'VIDEO', child: Text('Video')),
                   ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setLocalState(() => itemType = value);
-                    }
-                  },
+                  onChanged: isCreating
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setLocalState(() => itemType = value);
+                          }
+                        },
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: titleController,
                   decoration: const InputDecoration(labelText: 'Title'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: numberController,
-                  decoration: const InputDecoration(labelText: 'Number Label'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: orderController,
-                  decoration: const InputDecoration(labelText: 'Display Order'),
-                  keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -82,30 +73,50 @@ class AgendaItemScreen extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: isCreating ? null : () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () async {
-                await ref
-                    .read(agendaItemProvider(meetingId).notifier)
-                    .createItem(
-                      AgendaItemRequest(
-                        meetingId: meetingId,
-                        sectionId: sectionId,
-                        itemType: itemType,
-                        title: titleController.text.trim(),
-                        numberLabel: numberController.text.trim(),
-                        displayOrder: orderController.text.trim().isEmpty
-                            ? null
-                            : int.parse(orderController.text.trim()),
-                        description: descController.text.trim(),
-                        mediaPath: null,
-                      ),
-                    );
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('Create'),
+              onPressed: isCreating
+                  ? null
+                  : () async {
+                      if (titleController.text.trim().isEmpty) return;
+                      setLocalState(() => isCreating = true);
+                      try {
+                        await ref
+                            .read(agendaItemProvider(meetingId).notifier)
+                            .createItem(
+                              AgendaItemRequest(
+                                meetingId: meetingId,
+                                sectionId: sectionId,
+                                itemType: itemType,
+                                title: titleController.text.trim(),
+                                numberLabel: null,
+                                displayOrder: null,
+                                description: descController.text.trim(),
+                                mediaPath: null,
+                              ),
+                            );
+                        if (context.mounted) Navigator.pop(context);
+                      } catch (error) {
+                        if (context.mounted) {
+                          setLocalState(() => isCreating = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Could not create agenda item: $error',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: isCreating
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Create'),
             ),
           ],
         ),
@@ -173,7 +184,7 @@ class AgendaItemScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('Agenda Items - ${sectionTitle ?? meetingTitle}'),
       ),
-      floatingActionButton: access.canManageMeetings
+      floatingActionButton: access.isSecretary
           ? FloatingActionButton(
               onPressed: () => _showCreateDialog(context, ref),
               child: const Icon(Icons.add),
@@ -181,19 +192,38 @@ class AgendaItemScreen extends ConsumerWidget {
           : null,
       body: itemsAsync.when(
         data: (items) {
-          if (items.isEmpty) {
+          // Preserve the provider's optimistic drag order while it is saved.
+          final visibleItems = items
+              .where((item) => item.sectionId == sectionId)
+              .toList();
+          if (visibleItems.isEmpty) {
             return const AppEmptyState(message: 'No agenda items found');
           }
 
-          return ListView.builder(
+          return ReorderableListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: items.length,
+            buildDefaultDragHandles: access.isSecretary,
+            itemCount: visibleItems.length,
+            onReorder: (oldIndex, newIndex) {
+              if (!access.isSecretary) return;
+              if (newIndex > oldIndex) newIndex--;
+              final reordered = [...visibleItems];
+              final moved = reordered.removeAt(oldIndex);
+              reordered.insert(newIndex, moved);
+              ref
+                  .read(agendaItemProvider(meetingId).notifier)
+                  .reorder(reordered);
+            },
             itemBuilder: (context, index) {
-              final item = items[index];
+              final item = visibleItems[index];
               return Card(
+                key: ValueKey(item.id),
                 child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text(item.numberLabel ?? '${index + 1}'),
+                  ),
                   title: Text(item.title),
-                  trailing: access.canManageMeetings
+                  trailing: access.isSecretary
                       ? IconButton(
                           tooltip: 'Delete agenda item',
                           onPressed: () =>

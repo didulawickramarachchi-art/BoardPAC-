@@ -97,6 +97,23 @@ class DeviceNotificationService {
     );
   }
 
+  Future<void> showBoardNotification({
+    required int notificationId,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    await initialize();
+    if (!_initialized) return;
+    await _plugin.show(
+      id: (1000000 + notificationId) & 0x7fffffff,
+      title: title,
+      body: body,
+      notificationDetails: _boardNotificationDetails,
+      payload: payload,
+    );
+  }
+
   Future<void> scheduleMeetingReminder({
     required int meetingId,
     required String title,
@@ -140,6 +157,23 @@ class DeviceNotificationService {
       presentSound: true,
     ),
   );
+
+  static const NotificationDetails _boardNotificationDetails =
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'boardpac_activity_notifications',
+          'BoardPAC activity',
+          channelDescription:
+              'Comments, replies, approvals and BoardPAC activity',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
 
   int _createdNotificationId(int meetingId) => (meetingId * 2) & 0x7fffffff;
 

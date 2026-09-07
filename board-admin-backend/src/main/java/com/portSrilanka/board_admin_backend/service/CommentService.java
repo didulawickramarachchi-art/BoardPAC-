@@ -31,6 +31,7 @@ public class CommentService {
                 .commentText(r.getCommentText().trim()).annotated(r.isAnnotated()).visibility(visibility)
                 .pageNumber(r.getPageNumber()).recipients(recipients(r, visibility, meeting, owner)).build());
         auditService.logInfo("COMMENT", "CREATE_COMMENT", username, "Comment added", "DEVICE");
+        notificationService.notifyNewComment(saved);
         return map(saved, owner.getId());
     }
 
@@ -53,7 +54,7 @@ public class CommentService {
         if(old!=null&&old.getReactionType()==type) commentReactionRepository.delete(old); else if(old!=null){old.setReactionType(type);commentReactionRepository.save(old);} else commentReactionRepository.save(CommentReaction.builder().comment(c).user(u).reactionType(type).build());
         return map(c,u.getId());
     }
-    public CommentResponse reply(Long id,String message,String username){Comment c=findComment(id);User u=findUser(username);requireVisible(c,u);requireText(message);commentReplyRepository.save(CommentReply.builder().comment(c).createdBy(u).replyText(message.trim()).build());return map(c,u.getId());}
+    public CommentResponse reply(Long id,String message,String username){Comment c=findComment(id);User u=findUser(username);requireVisible(c,u);requireText(message);commentReplyRepository.save(CommentReply.builder().comment(c).createdBy(u).replyText(message.trim()).build());notificationService.notifyCommentReply(c,u,message.trim());return map(c,u.getId());}
     public String shareComment(ShareCommentRequest r){Comment c=findComment(r.getCommentId());User from=userRepository.findById(r.getSharedByUserId()).orElseThrow(()->new ResourceNotFoundException("Shared by user not found"));User to=userRepository.findById(r.getSharedToUserId()).orElseThrow(()->new ResourceNotFoundException("Shared to user not found"));commentShareRepository.save(CommentShare.builder().comment(c).sharedBy(from).sharedTo(to).build());notificationService.notifyCommentShared(to,from.getUsername(),c.getPaper()==null?null:c.getPaper().getId(),c.getId());auditService.logInfo("COMMENT","SHARE_COMMENT",from.getUsername(),"Comment shared to "+to.getUsername(),"DEVICE");return "Comment shared successfully";}
 
     private User findUser(String n){return userRepository.findByUsername(n).orElseThrow(()->new ResourceNotFoundException("User not found"));}
