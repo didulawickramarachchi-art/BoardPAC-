@@ -22,6 +22,7 @@ import '../../meetings/provider/meeting_provider.dart';
 import '../../notifications/model/notification_model.dart';
 import '../../notifications/model/notification_request.dart';
 import '../../notifications/provider/notification_provider.dart';
+import '../../news/presentation/news_feed_section.dart';
 import '../../papers/presentation/paper_list_screen.dart';
 import '../../privileges/presentation/privilege_list_screen.dart';
 import '../../subcategories/presentation/subcategory_list_screen.dart';
@@ -252,6 +253,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             currentUserId: currentUserId,
                             lightAngle: _glassLightAngle,
                           ),
+                          const SizedBox(height: 24),
+                          NewsFeedSection(canCreate: access.isSecretary),
                         ],
                       ),
                     ),
@@ -982,7 +985,10 @@ class _NotificationsSheet extends ConsumerWidget {
                   child: Center(child: CircularProgressIndicator()),
                 ),
                 error: (error, _) => _NotificationsError(
-                  message: error.toString(),
+                  message: ApiErrorMessage.from(
+                    error,
+                    fallback: 'Unable to load notifications.',
+                  ),
                   onRetry: userId == null
                       ? null
                       : () => ref

@@ -4,6 +4,7 @@ import com.portSrilanka.board_admin_backend.dto.dashboard.DashboardSummaryRespon
 import com.portSrilanka.board_admin_backend.entity.Meeting;
 import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.DeliveryStatus;
+import com.portSrilanka.board_admin_backend.enums.ApprovalStatus;
 import com.portSrilanka.board_admin_backend.enums.MeetingType;
 import com.portSrilanka.board_admin_backend.enums.MeetingStatus;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
@@ -24,6 +25,7 @@ public class DashboardService {
 
     private final MeetingRepository meetingRepository;
     private final PaperApprovalRepository paperApprovalRepository;
+    private final PaperRepository paperRepository;
     private final PackDeliveryRepository packDeliveryRepository;
     private final CommentShareRepository commentShareRepository;
     private final PaperShareRepository paperShareRepository;
@@ -57,10 +59,22 @@ public class DashboardService {
                 .min(Comparator.comparing(Meeting::getMeetingDateTime))
                 .orElse(null);
 
-        long pendingApprovals = paperApprovalRepository.findAll().stream()
-                .filter(a -> a.getUser().getId().equals(userId))
-                .filter(a -> a.getApprovalStatus().name().equals("PENDING"))
-                .count();
+        List<Long> visibleMeetingIds = visibleMeetings.stream()
+                .map(Meeting::getId)
+                .toList();
+        long pendingApprovals = visibleMeetingIds.isEmpty()
+                ? 0
+                : paperRepository.countPendingApprovalsForUser(
+                        userId,
+                        visibleMeetingIds,
+                        Set.of(
+                                ApprovalStatus.APPROVE,
+                                ApprovalStatus.REJECT,
+                                ApprovalStatus.ABSTAIN,
+                                ApprovalStatus.INTEREST,
+                                ApprovalStatus.RPT
+                        )
+                );
 
         long unreadPapers = packDeliveryRepository.findByUserId(userId).stream()
                 .filter(pd -> pd.getDeliveryStatus() == DeliveryStatus.NOT_READ)

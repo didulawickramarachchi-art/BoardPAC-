@@ -13,6 +13,7 @@ import '../../meetings/presentation/meeting_list_screen.dart';
 import '../../meetings/provider/meeting_provider.dart';
 import '../../notifications/model/notification_model.dart';
 import '../../notifications/provider/notification_provider.dart';
+import '../../news/presentation/news_feed_section.dart';
 import '../../papers/model/paper_model.dart';
 import '../../papers/presentation/paper_detail_screen.dart';
 import '../../papers/presentation/paper_list_screen.dart';
@@ -189,6 +190,8 @@ class _MemberDashboardHomeState extends ConsumerState<MemberDashboardHome> {
                             notifications: widget.notifications,
                             meetingIds: meetings.map((m) => m.id).toSet(),
                           ),
+                          const SizedBox(height: 22),
+                          const NewsFeedSection(canCreate: false),
                         ],
                       ),
                     );
@@ -338,6 +341,8 @@ class _MemberHeader extends ConsumerWidget {
                                 data: (bytes) => Image.memory(
                                   bytes,
                                   fit: BoxFit.cover,
+                                  cacheWidth: 132,
+                                  cacheHeight: 132,
                                   errorBuilder: (_, _, _) => _MemberInitials(
                                     initials: _memberInitials(userName),
                                   ),
@@ -442,9 +447,11 @@ class _MemberHeader extends ConsumerWidget {
                   border: Border.all(color: Colors.white24),
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
                       '${now.day}',
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: gold,
                         fontSize: 27,
@@ -452,15 +459,19 @@ class _MemberHeader extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      '${_monthName(now.month)} ${now.year}',
+                      '${_monthName(now.month)}\n${now.year}',
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
+                        height: 1.25,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       _memberWeekday(now.weekday),
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFFC5CDE2),
                         fontSize: 9,
@@ -708,6 +719,7 @@ class _WorkspaceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppGlassSurface(
+    enableBackdropBlur: false,
     borderRadius: BorderRadius.circular(20),
     padding: const EdgeInsets.all(14),
     tint: color,
@@ -974,6 +986,7 @@ class _MeetingStrip extends StatelessWidget {
           return SizedBox(
             width: 285,
             child: AppGlassSurface(
+              enableBackdropBlur: false,
               borderRadius: BorderRadius.circular(22),
               padding: const EdgeInsets.all(16),
               onTap: () => Navigator.push(
@@ -1106,6 +1119,7 @@ class _CalendarPanel extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final calendar = AppGlassSurface(
+              enableBackdropBlur: false,
               padding: const EdgeInsets.all(14),
               child: Column(
                 children: [
@@ -1225,6 +1239,7 @@ class _DaySchedule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppGlassSurface(
+    enableBackdropBlur: false,
     padding: const EdgeInsets.all(16),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1313,6 +1328,7 @@ class _RecentDocuments extends ConsumerWidget {
           )
         else
           AppGlassSurface(
+            enableBackdropBlur: false,
             padding: EdgeInsets.zero,
             child: Column(
               children: documents.take(5).map((entry) {
@@ -1416,6 +1432,7 @@ class _MemberWhatsNew extends StatelessWidget {
               );
             }
             return AppGlassSurface(
+              enableBackdropBlur: false,
               padding: EdgeInsets.zero,
               child: Column(
                 children: visible
@@ -1592,6 +1609,7 @@ void _showMemberNotifications(
                           itemBuilder: (context, index) {
                             final item = items[index];
                             return AppGlassSurface(
+                              enableBackdropBlur: false,
                               borderRadius: BorderRadius.circular(18),
                               padding: const EdgeInsets.all(12),
                               tint: item.read

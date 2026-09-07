@@ -62,7 +62,10 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   bool _fullScreen = false;
   bool _documentLoaded = false;
   bool _penMode = false;
+  bool _eraserMode = false;
   final Map<int, List<_InkStroke>> _inkStrokes = {};
+  final List<Map<int, List<_InkStroke>>> _inkUndoHistory = [];
+  final List<Map<int, List<_InkStroke>>> _inkRedoHistory = [];
   _InkStroke? _activeStroke;
   Set<int> _bookmarkedPages = <int>{};
 
@@ -344,6 +347,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   void _setMode(PdfAnnotationMode mode) {
     setState(() {
       _penMode = false;
+      _eraserMode = false;
       _mode = _mode == mode ? PdfAnnotationMode.none : mode;
       _controller.annotationMode = _mode;
     });
@@ -354,6 +358,44 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     setState(() {
       _mode = PdfAnnotationMode.none;
       _penMode = true;
+      _eraserMode = false;
+    });
+  }
+
+  void _setEraserMode() {
+    _controller.annotationMode = PdfAnnotationMode.none;
+    setState(() {
+      _mode = PdfAnnotationMode.none;
+      _penMode = false;
+      _eraserMode = true;
+    });
+  }
+
+  Map<int, List<_InkStroke>> _copyInk() => {
+    for (final entry in _inkStrokes.entries)
+      entry.key: entry.value.map((stroke) => stroke.copy()).toList(),
+  };
+
+  void _saveInkUndoPoint() {
+    _inkUndoHistory.add(_copyInk());
+    _inkRedoHistory.clear();
+  }
+
+  void _restoreInk(Map<int, List<_InkStroke>> snapshot) {
+    _inkStrokes
+      ..clear()
+      ..addAll({
+        for (final entry in snapshot.entries)
+          entry.key: entry.value.map((stroke) => stroke.copy()).toList(),
+      });
+  }
+
+  void _undoInk() {
+    if (_inkUndoHistory.isEmpty) return;
+    setState(() {
+      _inkRedoHistory.add(_copyInk());
+      _restoreInk(_inkUndoHistory.removeLast());
+      _changed = true;
     });
   }
 
@@ -363,7 +405,12 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
       event.localPosition.dy / size.height,
     );
     setState(() {
-      _activeStroke = _InkStroke(color: _highlightColor, points: [point]);
+      _saveInkUndoPoint();
+      _activeStroke = _InkStroke(
+        color: _highlightColor,
+        width: 3,
+        points: [point],
+      );
       (_inkStrokes[_currentPage] ??= []).add(_activeStroke!);
     });
   }
@@ -386,6 +433,98 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     _activeStroke = null;
   }
 
+  void _startErasing(PointerDownEvent event, Size size) {
+    final point = Offset(
+      event.localPosition.dx / size.width,
+      event.localPosition.dy / size.height,
+    );
+    setState(() {
+      _saveInkUndoPoint();
+      _activeStroke = _InkStroke(
+        color: Colors.white,
+        width: 22,
+        points: [point],
+      );
+      (_inkStrokes[_currentPage] ??= []).add(_activeStroke!);
+    });
+    _eraseAt(event.localPosition, size);
+  }
+
+  void _continueErasing(PointerMoveEvent event, Size size) {
+    final stroke = _activeStroke;
+    if (stroke != null) {
+      setState(
+        () => stroke.points.add(
+          Offset(
+            (event.localPosition.dx / size.width).clamp(0, 1),
+            (event.localPosition.dy / size.height).clamp(0, 1),
+          ),
+        ),
+      );
+    }
+    _eraseAt(event.localPosition, size);
+  }
+
+  void _eraseAt(Offset localPosition, Size size) {
+    final strokes = _inkStrokes[_currentPage];
+    if (strokes == null) return;
+    final hit = strokes.any(
+      (stroke) =>
+          !identical(stroke, _activeStroke) &&
+          _strokeIntersectsEraser(
+            stroke,
+            localPosition: localPosition,
+            canvasSize: size,
+          ),
+    );
+    if (!hit) return;
+    setState(() {
+      strokes.removeWhere(
+        (stroke) =>
+            !identical(stroke, _activeStroke) &&
+            _strokeIntersectsEraser(
+              stroke,
+              localPosition: localPosition,
+              canvasSize: size,
+            ),
+      );
+      if (strokes.isEmpty) _inkStrokes.remove(_currentPage);
+      _changed = true;
+    });
+  }
+
+  bool _strokeIntersectsEraser(
+    _InkStroke stroke, {
+    required Offset localPosition,
+    required Size canvasSize,
+  }) {
+    const eraserRadius = 22.0;
+    if (stroke.points.isEmpty) return false;
+
+    Offset toPixels(Offset point) =>
+        Offset(point.dx * canvasSize.width, point.dy * canvasSize.height);
+
+    if ((toPixels(stroke.points.first) - localPosition).distance <=
+        eraserRadius) {
+      return true;
+    }
+    for (var index = 1; index < stroke.points.length; index++) {
+      final start = toPixels(stroke.points[index - 1]);
+      final end = toPixels(stroke.points[index]);
+      final segment = end - start;
+      final lengthSquared = segment.dx * segment.dx + segment.dy * segment.dy;
+      if (lengthSquared == 0) continue;
+      final fromStart = localPosition - start;
+      final projection =
+          ((fromStart.dx * segment.dx + fromStart.dy * segment.dy) /
+                  lengthSquared)
+              .clamp(0.0, 1.0);
+      final closest = start + segment * projection;
+      if ((closest - localPosition).distance <= eraserRadius) return true;
+    }
+    return false;
+  }
+
   Uint8List _flattenInk(Uint8List bytes) {
     if (_inkStrokes.isEmpty) return bytes;
     final document = PdfDocument(inputBytes: bytes);
@@ -402,7 +541,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
             (color.g * 255).round(),
             (color.b * 255).round(),
           ),
-          width: 2.2,
+          width: stroke.width * 0.74,
         );
         for (var index = 1; index < stroke.points.length; index++) {
           final from = stroke.points[index - 1];
@@ -753,10 +892,14 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
                 _AnnotationToolbar(
                   mode: _mode,
                   penMode: _penMode,
+                  eraserMode: _eraserMode,
+                  canUndoPen: _inkUndoHistory.isNotEmpty,
                   selectedColor: _highlightColor,
                   colors: _colors,
                   onPan: () => _setMode(PdfAnnotationMode.none),
                   onPen: _setPenMode,
+                  onEraser: _setEraserMode,
+                  onUndoPen: _undoInk,
                   onHighlight: () => _setMode(PdfAnnotationMode.highlight),
                   onUnderline: () => _setMode(PdfAnnotationMode.underline),
                   onStrikeout: () => _setMode(PdfAnnotationMode.strikethrough),
@@ -841,15 +984,17 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
                         },
                       ),
                     ),
-                    if (_penMode)
+                    if (_penMode || _eraserMode)
                       Positioned.fill(
                         child: LayoutBuilder(
                           builder: (context, constraints) => Listener(
                             behavior: HitTestBehavior.opaque,
-                            onPointerDown: (event) =>
-                                _startInk(event, constraints.biggest),
-                            onPointerMove: (event) =>
-                                _updateInk(event, constraints.biggest),
+                            onPointerDown: (event) => _eraserMode
+                                ? _startErasing(event, constraints.biggest)
+                                : _startInk(event, constraints.biggest),
+                            onPointerMove: (event) => _eraserMode
+                                ? _continueErasing(event, constraints.biggest)
+                                : _updateInk(event, constraints.biggest),
                             onPointerUp: _finishInk,
                             onPointerCancel: _finishInk,
                             child: CustomPaint(
@@ -1553,10 +1698,14 @@ class _VoiceNoteRecorderState extends State<_VoiceNoteRecorder> {
 class _AnnotationToolbar extends StatelessWidget {
   final PdfAnnotationMode mode;
   final bool penMode;
+  final bool eraserMode;
+  final bool canUndoPen;
   final Color selectedColor;
   final List<Color> colors;
   final VoidCallback onPan;
   final VoidCallback onPen;
+  final VoidCallback onEraser;
+  final VoidCallback onUndoPen;
   final VoidCallback onHighlight;
   final VoidCallback onUnderline;
   final VoidCallback onStrikeout;
@@ -1569,10 +1718,14 @@ class _AnnotationToolbar extends StatelessWidget {
   const _AnnotationToolbar({
     required this.mode,
     required this.penMode,
+    required this.eraserMode,
+    required this.canUndoPen,
     required this.selectedColor,
     required this.colors,
     required this.onPan,
     required this.onPen,
+    required this.onEraser,
+    required this.onUndoPen,
     required this.onHighlight,
     required this.onUnderline,
     required this.onStrikeout,
@@ -1585,7 +1738,9 @@ class _AnnotationToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeLabel = penMode
+    final activeLabel = eraserMode
+        ? 'Eraser'
+        : penMode
         ? 'Pen'
         : switch (mode) {
             PdfAnnotationMode.highlight => 'Highlight',
@@ -1613,7 +1768,10 @@ class _AnnotationToolbar extends StatelessWidget {
                   width: 9,
                   height: 9,
                   decoration: BoxDecoration(
-                    color: mode == PdfAnnotationMode.none && !penMode
+                    color:
+                        mode == PdfAnnotationMode.none &&
+                            !penMode &&
+                            !eraserMode
                         ? Colors.green
                         : Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
@@ -1629,7 +1787,9 @@ class _AnnotationToolbar extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  penMode
+                  eraserMode
+                      ? 'Drag over a pen stroke to erase it'
+                      : penMode
                       ? 'Write with Pencil or finger'
                       : mode == PdfAnnotationMode.none
                       ? 'Drag to navigate'
@@ -1647,7 +1807,8 @@ class _AnnotationToolbar extends StatelessWidget {
                 _AnnotationToolButton(
                   icon: Icons.pan_tool_alt_outlined,
                   label: 'Pan',
-                  selected: mode == PdfAnnotationMode.none && !penMode,
+                  selected:
+                      mode == PdfAnnotationMode.none && !penMode && !eraserMode,
                   onTap: onPan,
                 ),
                 _AnnotationToolButton(
@@ -1655,6 +1816,18 @@ class _AnnotationToolbar extends StatelessWidget {
                   label: 'Pen',
                   selected: penMode,
                   onTap: onPen,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.auto_fix_off_rounded,
+                  label: 'Eraser',
+                  selected: eraserMode,
+                  onTap: onEraser,
+                ),
+                _AnnotationToolButton(
+                  icon: Icons.undo_rounded,
+                  label: 'Undo pen',
+                  selected: false,
+                  onTap: canUndoPen ? onUndoPen : null,
                 ),
                 _AnnotationToolButton(
                   icon: Icons.highlight_alt,
@@ -1882,8 +2055,12 @@ class _ColorWheelPainter extends CustomPainter {
 
 class _InkStroke {
   final Color color;
+  final double width;
   final List<Offset> points;
-  _InkStroke({required this.color, required this.points});
+  _InkStroke({required this.color, required this.width, required this.points});
+
+  _InkStroke copy() =>
+      _InkStroke(color: color, width: width, points: List.of(points));
 }
 
 class _InkPainter extends CustomPainter {
@@ -1896,7 +2073,7 @@ class _InkPainter extends CustomPainter {
       if (stroke.points.length < 2) continue;
       final paint = Paint()
         ..color = stroke.color
-        ..strokeWidth = 3
+        ..strokeWidth = stroke.width
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke;

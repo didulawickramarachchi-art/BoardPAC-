@@ -13,6 +13,7 @@ class AppGlassSurface extends StatelessWidget {
   final VoidCallback? onTap;
   final Color tint;
   final double blurSigma;
+  final bool enableBackdropBlur;
 
   const AppGlassSurface({
     super.key,
@@ -22,23 +23,27 @@ class AppGlassSurface extends StatelessWidget {
     this.onTap,
     this.tint = Colors.white,
     this.blurSigma = 10,
+    this.enableBackdropBlur = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final surface = Container(
+      padding: padding,
+      decoration: AppGlassDecoration.surface(
+        borderRadius: borderRadius,
+        tint: tint,
+      ),
+      child: child,
+    );
     final content = ClipRRect(
       borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: Container(
-          padding: padding,
-          decoration: AppGlassDecoration.surface(
-            borderRadius: borderRadius,
-            tint: tint,
-          ),
-          child: child,
-        ),
-      ),
+      child: enableBackdropBlur
+          ? BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+              child: surface,
+            )
+          : surface,
     );
     if (onTap == null) return content;
     return Material(

@@ -37,6 +37,7 @@ class NotificationNotifier
   Future<void> load() async {
     try {
       final notifications = await repository.getForUser(userId);
+      if (!mounted) return;
       if (_hasLoaded) {
         for (final notification in notifications.where(
           (item) =>
@@ -59,12 +60,14 @@ class NotificationNotifier
       _hasLoaded = true;
       state = AsyncData(notifications);
     } catch (e) {
+      if (!mounted) return;
       state = AsyncError(e, StackTrace.current);
     }
   }
 
   Future<void> createAnnouncement(NotificationRequest request) async {
     await repository.createAnnouncement(request);
+    if (!mounted) return;
     await load();
   }
 
@@ -101,22 +104,26 @@ class NotificationNotifier
     try {
       await repository.markAllRead(userId);
     } catch (_) {
+      if (!mounted) return;
       await load();
     }
   }
 
   Future<void> clear() async {
     await repository.clearForUser(userId);
+    if (!mounted) return;
     state = const AsyncData([]);
   }
 
   Future<void> reply(int notificationId, String message) async {
     final updated = await repository.reply(notificationId, message);
+    if (!mounted) return;
     _replace(updated);
   }
 
   Future<void> react(int notificationId, String reactionType) async {
     final updated = await repository.react(notificationId, reactionType);
+    if (!mounted) return;
     _replace(updated);
   }
 

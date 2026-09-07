@@ -46,11 +46,35 @@ public class NotificationService {
     private final NotificationReactionRepository reactionRepository;
     private final UserRepository userRepository;
 
+    @Transactional(readOnly = true)
     public List<NotificationResponse> getForUser(Long userId, String username, boolean admin) {
         requireUserAccess(userId, username, admin);
-        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId)
+        List<BoardNotification> notifications = notificationRepository
+                .findByRecipientIdOrderByCreatedAtDesc(userId);
+        if (notifications.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> notificationIds = notifications.stream()
+                .map(BoardNotification::getId)
+                .toList();
+        Map<Long, List<NotificationReaction>> reactionsByNotification = reactionRepository
+                .findByNotificationIdIn(notificationIds)
                 .stream()
-                .map(notification -> map(notification, userId))
+                .collect(Collectors.groupingBy(reaction -> reaction.getNotification().getId()));
+        Map<Long, List<NotificationReply>> repliesByNotification = replyRepository
+                .findByNotificationIdInOrderByCreatedAtAsc(notificationIds)
+                .stream()
+                .collect(Collectors.groupingBy(reply -> reply.getNotification().getId()));
+
+        return notifications
+                .stream()
+                .map(notification -> map(
+                        notification,
+                        userId,
+                        reactionsByNotification.getOrDefault(notification.getId(), List.of()),
+                        repliesByNotification.getOrDefault(notification.getId(), List.of())
+                ))
                 .toList();
     }
 
@@ -581,6 +605,17 @@ public class NotificationService {
 
     private NotificationResponse map(BoardNotification notification, Long currentUserId) {
         List<NotificationReaction> reactions = reactionRepository.findByNotificationId(notification.getId());
+        List<NotificationReply> replies = replyRepository
+                .findByNotificationIdOrderByCreatedAtAsc(notification.getId());
+        return map(notification, currentUserId, reactions, replies);
+    }
+
+    private NotificationResponse map(
+            BoardNotification notification,
+            Long currentUserId,
+            List<NotificationReaction> reactions,
+            List<NotificationReply> replies
+    ) {
         Map<String, Long> reactionCounts = reactions.stream()
                 .collect(Collectors.groupingBy(NotificationReaction::getReactionType, Collectors.counting()));
         String currentReaction = reactions.stream()
@@ -588,9 +623,7 @@ public class NotificationService {
                 .map(NotificationReaction::getReactionType)
                 .findFirst()
                 .orElse(null);
-        List<NotificationResponse.Reply> replies = replyRepository
-                .findByNotificationIdOrderByCreatedAtAsc(notification.getId())
-                .stream()
+        List<NotificationResponse.Reply> replyResponses = replies.stream()
                 .map(reply -> NotificationResponse.Reply.builder()
                         .id(reply.getId())
                         .userId(reply.getUser().getId())
@@ -615,7 +648,7 @@ public class NotificationService {
                 .relatedPaperId(notification.getRelatedPaperId())
                 .relatedCommentId(notification.getRelatedCommentId())
                 .relatedAttachmentId(notification.getRelatedAttachmentId())
-                .replies(replies)
+                .replies(replyResponses)
                 .reactionCounts(reactionCounts)
                 .currentReaction(currentReaction)
                 .createdAt(notification.getCreatedAt())
