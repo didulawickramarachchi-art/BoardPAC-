@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState } from 'react'
 import { api } from '../api/client'
+import { normalizeRole } from '../auth/permissions'
 
 const AuthContext = createContext(null)
 const DEVICE_ID_KEY = 'deviceInstallationId'
@@ -17,18 +18,13 @@ const deviceIdentity = () => {
     description: 'BoardPAC web installation',
   }
 }
-export const normalizeRole = (role) => {
-  const value = String(role || 'MEMBER').trim().toUpperCase().replace(/[\s-]+/g, '_')
-  if (value === 'ADMIN') return 'ADMIN'
-  if (value === 'SECRETARY') return 'SECRETARY'
-  return 'MEMBER'
-}
+export { normalizeRole } from '../auth/permissions'
 const stored = () => { try { return JSON.parse(localStorage.getItem('currentUser')) } catch { return null } }
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(stored)
   const [challenge, setChallenge] = useState(null)
   const save = (data) => {
-    const next = { id: data.userId || data.id, username: data.username, displayName: data.displayName || data.username, role: normalizeRole(data.role) }
+    const next = { id: data.userId || data.id, username: data.username, displayName: data.displayName || data.username, role: normalizeRole(data.role), accessProfile: data.accessProfile }
     localStorage.setItem('accessToken', data.accessToken || data.token || '')
     if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken)
     localStorage.setItem('currentUser', JSON.stringify(next)); setUser(next)

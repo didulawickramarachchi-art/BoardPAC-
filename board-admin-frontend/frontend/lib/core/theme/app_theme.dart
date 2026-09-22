@@ -57,10 +57,42 @@ class AppTheme {
       ),
       // Use the bundled platform font. Runtime font downloads can stall app
       // startup and rebuilds on restricted or offline Android devices.
-      textTheme: base.textTheme.apply(
-        bodyColor: AppColors.text,
-        displayColor: AppColors.text,
-      ),
+      textTheme: base.textTheme
+          .apply(bodyColor: AppColors.text, displayColor: AppColors.text)
+          .copyWith(
+            headlineSmall: const TextStyle(
+              color: AppColors.navyDark,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+            titleLarge: const TextStyle(
+              color: AppColors.navyDark,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+            titleMedium: const TextStyle(
+              color: AppColors.navyDark,
+              fontSize: 15,
+              height: 1.3,
+              fontWeight: FontWeight.w800,
+            ),
+            bodyMedium: const TextStyle(
+              color: AppColors.text,
+              fontSize: 14,
+              height: 1.45,
+            ),
+            bodySmall: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
+            labelMedium: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.navy,
         foregroundColor: Colors.white,
@@ -265,6 +297,111 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    final base = lightTheme;
+    final scheme = ColorScheme.fromSeed(
+      seedColor: AppColors.gold,
+      brightness: Brightness.dark,
+      primary: AppColors.gold,
+      onPrimary: AppColors.navyDark,
+      secondary: const Color(0xFF91AFFF),
+      surface: const Color(0xFF17213A),
+      onSurface: const Color(0xFFF1F4FC),
+      error: const Color(0xFFFFB4AB),
+      outline: const Color(0xFF3D4963),
+    );
+    return base.copyWith(
+      brightness: Brightness.dark,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: const Color(0xFF0C1426),
+      textTheme: base.textTheme.apply(
+        bodyColor: scheme.onSurface,
+        displayColor: scheme.onSurface,
+      ),
+      cardTheme: base.cardTheme.copyWith(
+        color: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: scheme.outline),
+        ),
+      ),
+      inputDecorationTheme: base.inputDecorationTheme.copyWith(
+        fillColor: const Color(0xFF202B44),
+        hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+        labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: scheme.outline),
+        ),
+      ),
+      dividerTheme: DividerThemeData(color: scheme.outline),
+      dialogTheme: base.dialogTheme.copyWith(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: base.bottomSheetTheme.copyWith(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        dragHandleColor: scheme.outline,
+      ),
+      popupMenuTheme: base.popupMenuTheme.copyWith(
+        color: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      listTileTheme: base.listTileTheme.copyWith(
+        iconColor: scheme.onSurfaceVariant,
+        textColor: scheme.onSurface,
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(foregroundColor: scheme.onSurface),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.primary,
+          side: BorderSide(color: scheme.outline),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+      navigationBarTheme: base.navigationBarTheme.copyWith(
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.primary.withValues(alpha: 0.20),
+        labelTextStyle: WidgetStateProperty.all(
+          TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w700),
+        ),
+      ),
+      navigationRailTheme: base.navigationRailTheme.copyWith(
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.primary.withValues(alpha: 0.20),
+        selectedIconTheme: IconThemeData(color: scheme.primary),
+        unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
+        selectedLabelTextStyle: TextStyle(
+          color: scheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelTextStyle: TextStyle(color: scheme.onSurfaceVariant),
+      ),
+      tabBarTheme: base.tabBarTheme.copyWith(
+        labelColor: scheme.primary,
+        unselectedLabelColor: scheme.onSurfaceVariant,
+        indicatorColor: scheme.primary,
+        dividerColor: scheme.outline,
+      ),
+      searchBarTheme: base.searchBarTheme.copyWith(
+        backgroundColor: WidgetStateProperty.all(scheme.surface),
+        side: WidgetStateProperty.all(BorderSide(color: scheme.outline)),
+        hintStyle: WidgetStateProperty.all(
+          TextStyle(color: scheme.onSurfaceVariant),
+        ),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: scheme.primary,
+        linearTrackColor: scheme.outline,
       ),
     );
   }

@@ -1,5 +1,9 @@
 class DashboardSummaryModel {
   final int totalUsers;
+  final int totalMembers;
+  final int totalSecretaries;
+  final int totalAdmins;
+  final int pendingDevices;
   final int totalMeetings;
   final int totalCirculars;
   final int pendingApprovals;
@@ -14,6 +18,10 @@ class DashboardSummaryModel {
 
   DashboardSummaryModel({
     required this.totalUsers,
+    required this.totalMembers,
+    required this.totalSecretaries,
+    required this.totalAdmins,
+    required this.pendingDevices,
     required this.totalMeetings,
     required this.totalCirculars,
     required this.pendingApprovals,
@@ -29,6 +37,10 @@ class DashboardSummaryModel {
   factory DashboardSummaryModel.fromJson(Map<String, dynamic> json) {
     return DashboardSummaryModel(
       totalUsers: json['totalUsers'] ?? 0,
+      totalMembers: json['totalMembers'] ?? 0,
+      totalSecretaries: json['totalSecretaries'] ?? 0,
+      totalAdmins: json['totalAdmins'] ?? 0,
+      pendingDevices: json['pendingDevices'] ?? 0,
       totalMeetings: json['totalMeetings'] ?? 0,
       totalCirculars: json['totalCirculars'] ?? 0,
       pendingApprovals: json['pendingApprovals'] ?? 0,

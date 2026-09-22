@@ -22,13 +22,12 @@ class DeviceListScreen extends ConsumerWidget {
 
     if (!access.isAdmin) {
       return const Scaffold(
-        backgroundColor: bgColor,
         body: Center(child: Text('You do not have access to devices.')),
       );
     }
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

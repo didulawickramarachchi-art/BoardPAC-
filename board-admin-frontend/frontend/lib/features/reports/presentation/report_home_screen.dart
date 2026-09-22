@@ -23,36 +23,37 @@ class ReportHomeScreen extends ConsumerWidget {
 
     if (!access.canViewReports) {
       return const Scaffold(
-        backgroundColor: bgColor,
         body: Center(child: Text('You do not have access to reports.')),
       );
     }
 
     final items = [
-      _ReportItem(
-        title: 'Login History',
-        subtitle: 'View user login activity',
-        icon: Icons.login_rounded,
-        screen: const LoginHistoryScreen(),
-      ),
-      _ReportItem(
-        title: 'Audit Logs',
-        subtitle: 'Track system actions',
-        icon: Icons.history_edu_rounded,
-        screen: const AuditLogScreen(),
-      ),
-      _ReportItem(
-        title: 'User Category Report',
-        subtitle: 'View assigned categories and roles',
-        icon: Icons.manage_accounts_outlined,
-        screen: const UserCategoryReportScreen(),
-      ),
-      _ReportItem(
-        title: 'License Utilization',
-        subtitle: 'Monitor user license usage',
-        icon: Icons.analytics_outlined,
-        screen: const LicenseUtilizationScreen(),
-      ),
+      if (access.isAdmin) ...[
+        _ReportItem(
+          title: 'Login History',
+          subtitle: 'View user login activity',
+          icon: Icons.login_rounded,
+          screen: const LoginHistoryScreen(),
+        ),
+        _ReportItem(
+          title: 'Audit Logs',
+          subtitle: 'Track system actions',
+          icon: Icons.history_edu_rounded,
+          screen: const AuditLogScreen(),
+        ),
+        _ReportItem(
+          title: 'User Category Report',
+          subtitle: 'View assigned categories and roles',
+          icon: Icons.manage_accounts_outlined,
+          screen: const UserCategoryReportScreen(),
+        ),
+        _ReportItem(
+          title: 'License Utilization',
+          subtitle: 'Monitor user license usage',
+          icon: Icons.analytics_outlined,
+          screen: const LicenseUtilizationScreen(),
+        ),
+      ],
       _ReportItem(
         title: 'Pending Approvals',
         subtitle: 'Review pending paper approvals',
@@ -62,7 +63,7 @@ class ReportHomeScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
@@ -73,103 +74,110 @@ class ReportHomeScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 14),
-        itemBuilder: (context, index) {
-          final item = items[index];
+      body: LayoutBuilder(
+        builder: (context, constraints) => GridView.builder(
+          padding: EdgeInsets.all(constraints.maxWidth >= 600 ? 24 : 16),
+          itemCount: items.length,
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 460,
+            mainAxisExtent: 104,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+          ),
+          itemBuilder: (context, index) {
+            final item = items[index];
 
-          return Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            child: InkWell(
+            return Material(
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(22),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => item.screen),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: primaryBlue.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => item.screen),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
                       ),
-                      child: Icon(item.icon, color: primaryBlue, size: 27),
-                    ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(item.icon, color: primaryBlue, size: 27),
+                      ),
 
-                    const SizedBox(width: 14),
+                      const SizedBox(width: 14),
 
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: darkBlue,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: darkBlue,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
-                          ),
 
-                          const SizedBox(height: 5),
+                            const SizedBox(height: 5),
 
-                          Text(
-                            item.subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF7D8CB2),
-                              fontSize: 12,
-                              height: 1.3,
-                              fontWeight: FontWeight.w600,
+                            Text(
+                              item.subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF7D8CB2),
+                                fontSize: 12,
+                                height: 1.3,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 8),
 
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: gold.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(12),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: gold.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: darkBlue,
+                          size: 16,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: darkBlue,
-                        size: 16,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

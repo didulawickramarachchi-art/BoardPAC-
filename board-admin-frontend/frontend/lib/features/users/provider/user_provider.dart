@@ -33,10 +33,7 @@ final profilePictureProvider =
     });
 
 final userListProvider =
-    StateNotifierProvider.autoDispose<
-      UserNotifier,
-      AsyncValue<List<UserModel>>
-    >((ref) {
+    StateNotifierProvider<UserNotifier, AsyncValue<List<UserModel>>>((ref) {
       return UserNotifier(ref.read(userRepositoryProvider))..loadUsers();
     });
 

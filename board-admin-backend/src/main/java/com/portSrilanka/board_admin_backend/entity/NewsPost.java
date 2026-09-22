@@ -8,6 +8,7 @@ import lombok.*;
 public class NewsPost extends BaseEntity {
     @Column(nullable = false, length = 300) private String title;
     @Column(nullable = false, columnDefinition = "TEXT") private String content;
+    @Column(nullable = false, length = 30) @Builder.Default private String badgeLabel = "BOARD NEWS";
     @Column(length = 2048) private String imageUrl;
     @ElementCollection
     @CollectionTable(name = "news_post_images", joinColumns = @JoinColumn(name = "post_id"))

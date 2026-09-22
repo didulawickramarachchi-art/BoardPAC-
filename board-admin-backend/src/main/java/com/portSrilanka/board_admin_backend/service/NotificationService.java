@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.HashSet;
 import java.util.List;
@@ -47,10 +48,10 @@ public class NotificationService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<NotificationResponse> getForUser(Long userId, String username, boolean admin) {
+    public List<NotificationResponse> getForUser(Long userId, String username, boolean admin, int limit) {
         requireUserAccess(userId, username, admin);
         List<BoardNotification> notifications = notificationRepository
-                .findByRecipientIdOrderByCreatedAtDesc(userId);
+                .findByRecipientIdOrderByCreatedAtDesc(userId, PageRequest.of(0, Math.min(Math.max(limit, 1), 100)));
         if (notifications.isEmpty()) {
             return List.of();
         }

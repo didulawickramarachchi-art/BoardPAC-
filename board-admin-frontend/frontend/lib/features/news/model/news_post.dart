@@ -2,6 +2,7 @@ class NewsPost {
   final int id;
   final String title;
   final String content;
+  final String badgeLabel;
   final String author;
   final String? imageUrl;
   final List<String> imageUrls;
@@ -13,6 +14,7 @@ class NewsPost {
     required this.id,
     required this.title,
     required this.content,
+    this.badgeLabel = 'BOARD NEWS',
     required this.author,
     this.imageUrl,
     this.imageUrls = const [],
@@ -25,6 +27,9 @@ class NewsPost {
     id: (j['id'] as num).toInt(),
     title: j['title'] ?? '',
     content: j['content'] ?? '',
+    badgeLabel: (j['badgeLabel']?.toString().trim().isNotEmpty ?? false)
+        ? j['badgeLabel'].toString().trim()
+        : 'BOARD NEWS',
     author: j['createdByName'] ?? 'Board Secretary',
     imageUrl: _images(j).isEmpty ? null : _images(j).first,
     imageUrls: _images(j),
@@ -37,6 +42,23 @@ class NewsPost {
       (k, v) => MapEntry('$k', (v as num).toInt()),
     ),
     currentReaction: j['currentReaction']?.toString(),
+  );
+
+  NewsPost copyWithReaction({
+    required Map<String, int> reactions,
+    required String? currentReaction,
+  }) => NewsPost(
+    id: id,
+    title: title,
+    content: content,
+    badgeLabel: badgeLabel,
+    author: author,
+    imageUrl: imageUrl,
+    imageUrls: imageUrls,
+    createdAt: createdAt,
+    comments: comments,
+    reactions: reactions,
+    currentReaction: currentReaction,
   );
 
   static List<String> _images(Map<String, dynamic> json) {

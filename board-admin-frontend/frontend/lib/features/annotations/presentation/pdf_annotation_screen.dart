@@ -10,6 +10,7 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../../../core/storage/secure_storage_service.dart';
+import '../../../core/security/secure_screen.dart';
 import '../../../core/widgets/app_glass_surface.dart';
 import '../../approvals/provider/approval_provider.dart';
 import '../../papers/provider/paper_provider.dart';
@@ -67,6 +68,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   final List<Map<int, List<_InkStroke>>> _inkUndoHistory = [];
   final List<Map<int, List<_InkStroke>>> _inkRedoHistory = [];
   _InkStroke? _activeStroke;
+  bool _eraserUndoPending = false;
   Set<int> _bookmarkedPages = <int>{};
 
   static const _colors = <Color>[
@@ -81,6 +83,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   @override
   void initState() {
     super.initState();
+    SecureScreen.enable();
     _documentUrl = _findLatestDocument();
     _localDocumentBytes = _documentUrl.then(OfflineFileStore().read);
     _applyHighlightColor();
@@ -90,6 +93,14 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
 
   String get _bookmarkKey =>
       'paper_bookmarks_${widget.userId}_${widget.paperId}';
+
+  String get _localAnnotationKey {
+    final document = widget.documentKey.replaceAll(
+      RegExp(r'[^A-Za-z0-9._-]+'),
+      '_',
+    );
+    return 'local_pdf_annotation_${widget.userId}_${widget.paperId}_$document';
+  }
 
   Future<void> _loadBookmarks() async {
     final stored = await SecureStorageService().read(_bookmarkKey);
@@ -305,38 +316,8 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   }
 
   Future<String> _findLatestDocument() async {
-    try {
-      final records = await ref
-          .read(annotationRepositoryProvider)
-          .getByPaperAndUser(widget.paperId, widget.userId);
-      String? latestPath;
-      DateTime? latestSavedAt;
-      for (final record in records) {
-        try {
-          final data = jsonDecode(record.annotationDataJson);
-          if (data is Map &&
-              data['kind'] == 'pdf_snapshot' &&
-              data['documentKey'] == widget.documentKey) {
-            final path = data['annotatedFilePath']?.toString().trim();
-            final savedAt = DateTime.tryParse(
-              data['savedAt']?.toString() ?? '',
-            );
-            if (path != null &&
-                path.isNotEmpty &&
-                (latestSavedAt == null ||
-                    (savedAt != null && savedAt.isAfter(latestSavedAt)))) {
-              latestPath = path;
-              latestSavedAt = savedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            }
-          }
-        } catch (_) {
-          // Older free-form annotation records are intentionally ignored.
-        }
-      }
-      if (latestPath != null) return latestPath;
-    } catch (_) {
-      // The original PDF can still be edited if annotation history is offline.
-    }
+    final localPath = await SecureStorageService().read(_localAnnotationKey);
+    if (await OfflineFileStore().exists(localPath)) return localPath!;
     return widget.filePath;
   }
 
@@ -431,37 +412,16 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   void _finishInk(PointerEvent _) {
     if (_activeStroke != null) _changed = true;
     _activeStroke = null;
+    _eraserUndoPending = false;
   }
 
   void _startErasing(PointerDownEvent event, Size size) {
-    final point = Offset(
-      event.localPosition.dx / size.width,
-      event.localPosition.dy / size.height,
-    );
-    setState(() {
-      _saveInkUndoPoint();
-      _activeStroke = _InkStroke(
-        color: Colors.white,
-        width: 22,
-        points: [point],
-      );
-      (_inkStrokes[_currentPage] ??= []).add(_activeStroke!);
-    });
+    _activeStroke = null;
+    _eraserUndoPending = true;
     _eraseAt(event.localPosition, size);
   }
 
   void _continueErasing(PointerMoveEvent event, Size size) {
-    final stroke = _activeStroke;
-    if (stroke != null) {
-      setState(
-        () => stroke.points.add(
-          Offset(
-            (event.localPosition.dx / size.width).clamp(0, 1),
-            (event.localPosition.dy / size.height).clamp(0, 1),
-          ),
-        ),
-      );
-    }
     _eraseAt(event.localPosition, size);
   }
 
@@ -469,24 +429,24 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     final strokes = _inkStrokes[_currentPage];
     if (strokes == null) return;
     final hit = strokes.any(
-      (stroke) =>
-          !identical(stroke, _activeStroke) &&
-          _strokeIntersectsEraser(
-            stroke,
-            localPosition: localPosition,
-            canvasSize: size,
-          ),
+      (stroke) => _strokeIntersectsEraser(
+        stroke,
+        localPosition: localPosition,
+        canvasSize: size,
+      ),
     );
     if (!hit) return;
     setState(() {
+      if (_eraserUndoPending) {
+        _saveInkUndoPoint();
+        _eraserUndoPending = false;
+      }
       strokes.removeWhere(
-        (stroke) =>
-            !identical(stroke, _activeStroke) &&
-            _strokeIntersectsEraser(
-              stroke,
-              localPosition: localPosition,
-              canvasSize: size,
-            ),
+        (stroke) => _strokeIntersectsEraser(
+          stroke,
+          localPosition: localPosition,
+          canvasSize: size,
+        ),
       );
       if (strokes.isEmpty) _inkStrokes.remove(_currentPage);
       _changed = true;
@@ -700,13 +660,6 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
-    final paperRepository = ref.read(paperRepositoryProvider);
-    final annotationNotifier = ref.read(
-      annotationListProvider((
-        paperId: widget.paperId,
-        userId: widget.userId,
-      )).notifier,
-    );
 
     try {
       final viewerBytes = Uint8List.fromList(await _controller.saveDocument());
@@ -714,35 +667,30 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
       final safeName = widget.documentTitle
           .replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_')
           .replaceAll(RegExp(r'_+'), '_');
+      final safeDocumentKey = widget.documentKey.replaceAll(
+        RegExp(r'[^A-Za-z0-9._-]+'),
+        '_',
+      );
       final fileName =
-          '${safeName.isEmpty ? 'document' : safeName}_annotated_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final uploadedPath = await paperRepository.uploadAttachment(
-        fileName: fileName,
-        paperId: widget.paperId,
-        fileBytes: bytes,
+          'user_${widget.userId}_${safeDocumentKey}_${safeName.isEmpty ? 'document' : safeName}_annotated.pdf';
+      final localPath = await OfflineFileStore().save(
+        widget.paperId,
+        fileName,
+        bytes,
       );
-
-      await annotationNotifier.create(
-        AnnotationRequest(
-          paperId: widget.paperId,
-          userId: widget.userId,
-          annotationType: 'HIGHLIGHT',
-          pageNumber: _controller.pageNumber,
-          annotationDataJson: jsonEncode({
-            'kind': 'pdf_snapshot',
-            'documentKey': widget.documentKey,
-            'sourceFilePath': widget.filePath,
-            'annotatedFilePath': uploadedPath,
-            'fileName': fileName,
-            'savedAt': DateTime.now().toUtc().toIso8601String(),
-          }),
-        ),
-      );
+      if (localPath == null) {
+        throw UnsupportedError(
+          'Local annotation storage is unavailable on this device.',
+        );
+      }
+      await SecureStorageService().write(_localAnnotationKey, localPath);
 
       _changed = false;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Annotated PDF saved successfully.')),
+          const SnackBar(
+            content: Text('Annotations saved privately on this device.'),
+          ),
         );
       }
     } catch (error) {
@@ -782,6 +730,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
 
   @override
   void dispose() {
+    SecureScreen.disable();
     _readStateDebounce?.cancel();
     _searchResult?.removeListener(_onSearchChanged);
     _searchResult?.clear();
@@ -885,7 +834,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
                 ],
               ),
         body: Container(
-          decoration: AppGlassDecoration.background,
+          decoration: AppGlassDecoration.backgroundFor(context),
           child: Column(
             children: [
               if (widget.editable)
@@ -1168,6 +1117,7 @@ class _ReaderControls extends StatelessWidget {
     decoration: AppGlassDecoration.surface(
       borderRadius: BorderRadius.zero,
       tint: const Color(0xFF8EA7E0),
+      darkMode: Theme.of(context).brightness == Brightness.dark,
     ),
     child: SafeArea(
       top: false,
@@ -1754,6 +1704,7 @@ class _AnnotationToolbar extends StatelessWidget {
       decoration: AppGlassDecoration.surface(
         borderRadius: BorderRadius.zero,
         tint: const Color(0xFF8EA7E0),
+        darkMode: Theme.of(context).brightness == Brightness.dark,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

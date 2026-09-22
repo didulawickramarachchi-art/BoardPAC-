@@ -126,13 +126,12 @@ class CategoryListScreen extends ConsumerWidget {
 
     if (!access.canViewCategories) {
       return const Scaffold(
-        backgroundColor: bgColor,
         body: Center(child: Text('You do not have access to categories.')),
       );
     }
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
@@ -171,6 +170,7 @@ class CategoryListScreen extends ConsumerWidget {
                 decoration: AppGlassDecoration.surface(
                   borderRadius: BorderRadius.circular(26),
                   tint: const Color(0xFFBFC9E2),
+                  darkMode: Theme.of(context).brightness == Brightness.dark,
                 ),
                 child: Material(
                   color: Colors.transparent,

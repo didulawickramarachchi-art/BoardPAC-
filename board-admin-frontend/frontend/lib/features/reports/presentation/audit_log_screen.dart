@@ -16,7 +16,7 @@ class AuditLogScreen extends ConsumerWidget {
     final asyncData = ref.watch(auditLogProvider);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

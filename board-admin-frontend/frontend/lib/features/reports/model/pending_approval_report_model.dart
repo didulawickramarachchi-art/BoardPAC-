@@ -4,6 +4,8 @@ class PendingApprovalReportModel {
   final int userId;
   final String username;
   final String meetingTitle;
+  final DateTime? submittedAt;
+  final int approvalAgeDays;
 
   PendingApprovalReportModel({
     required this.paperId,
@@ -11,6 +13,8 @@ class PendingApprovalReportModel {
     required this.userId,
     required this.username,
     required this.meetingTitle,
+    this.submittedAt,
+    this.approvalAgeDays = 0,
   });
 
   factory PendingApprovalReportModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +24,8 @@ class PendingApprovalReportModel {
       userId: json['userId'],
       username: json['username'] ?? '',
       meetingTitle: json['meetingTitle'] ?? '',
+      submittedAt: DateTime.tryParse(json['submittedAt']?.toString() ?? ''),
+      approvalAgeDays: (json['approvalAgeDays'] as num?)?.toInt() ?? 0,
     );
   }
 }

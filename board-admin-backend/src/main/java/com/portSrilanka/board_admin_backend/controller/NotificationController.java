@@ -22,8 +22,12 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER') or hasRole('ADMIN')")
-    public ResponseEntity<List<NotificationResponse>> getForUser(@PathVariable Long userId, Authentication authentication) {
-        return ResponseEntity.ok(notificationService.getForUser(userId, authentication.getName(), isAdmin(authentication)));
+    public ResponseEntity<List<NotificationResponse>> getForUser(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "20") int limit,
+            Authentication authentication) {
+        return ResponseEntity.ok(notificationService.getForUser(
+                userId, authentication.getName(), isAdmin(authentication), limit));
     }
 
     @PostMapping("/announcement")

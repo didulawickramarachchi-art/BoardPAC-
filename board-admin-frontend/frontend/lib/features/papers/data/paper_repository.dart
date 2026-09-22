@@ -19,6 +19,11 @@ class PaperRepository {
     return (response.data as List).map((e) => PaperModel.fromJson(e)).toList();
   }
 
+  Future<PaperModel> getPaper(int paperId) async {
+    final response = await dio.get('/papers/$paperId');
+    return PaperModel.fromJson(Map<String, dynamic>.from(response.data));
+  }
+
   Future<List<PaperModel>> getPapersByMeeting(int meetingId) async {
     final response = await dio.get('/papers/meeting/$meetingId');
     return (response.data as List).map((e) => PaperModel.fromJson(e)).toList();

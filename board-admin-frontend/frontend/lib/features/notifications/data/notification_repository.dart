@@ -9,7 +9,10 @@ class NotificationRepository {
   const NotificationRepository(this.dio);
 
   Future<List<NotificationModel>> getForUser(int userId) async {
-    final response = await dio.get('/notifications/user/$userId');
+    final response = await dio.get(
+      '/notifications/user/$userId',
+      queryParameters: const {'limit': 20},
+    );
     final data = response.data;
     final items = data is List
         ? data

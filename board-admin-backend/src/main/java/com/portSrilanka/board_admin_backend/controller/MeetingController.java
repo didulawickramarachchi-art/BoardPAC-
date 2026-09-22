@@ -32,6 +32,12 @@ public class MeetingController {
         return ResponseEntity.ok(meetingService.getAllForUser(authentication.getName()));
     }
 
+    @GetMapping("/member")
+    @PreAuthorize("hasRole('MEMBER')")
+    public ResponseEntity<List<MeetingResponse>> getForMember(Authentication authentication) {
+        return ResponseEntity.ok(meetingService.getVisibleForMember(authentication.getName()));
+    }
+
     @GetMapping("/subcategory/{subcategoryId}")
     @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<MeetingResponse>> getBySubcategory(

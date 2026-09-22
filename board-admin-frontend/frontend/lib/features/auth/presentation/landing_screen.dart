@@ -79,7 +79,7 @@ class _LandingScreenState extends State<LandingScreen>
         _backgroundController.forward();
       }
     });
-    _navigationTimer = Timer(const Duration(seconds: 2), () {
+    _navigationTimer = Timer(const Duration(milliseconds: 900), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }

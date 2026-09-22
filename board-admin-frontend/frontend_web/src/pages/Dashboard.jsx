@@ -3,6 +3,7 @@ import { CalendarDays, FileText, Users, ClipboardCheck, ArrowUpRight, MapPin, Cl
 import { Link } from 'react-router-dom'
 import { api, errorMessage } from '../api/client'
 import { useAuth } from '../state/AuthContext'
+import NewsFeed from '../features/news/NewsFeed'
 
 const rowsFrom = response => Array.isArray(response) ? response : response.content || response.items || []
 
@@ -100,5 +101,6 @@ export default function Dashboard() {
         <div className="quick-grid">{quickActions.map(([Icon, label, path]) => <Link to={path} key={path}><Icon />{label}</Link>)}</div>
       </section>
     </div>
+    {role !== 'ADMIN' && <NewsFeed canManage={role === 'SECRETARY'} />}
   </div>
 }

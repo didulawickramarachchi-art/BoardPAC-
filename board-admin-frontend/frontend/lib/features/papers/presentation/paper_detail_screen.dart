@@ -18,6 +18,7 @@ import '../../comments/provider/comment_provider.dart';
 import '../../comments/presentation/comment_card.dart';
 import '../../comments/presentation/comment_screen.dart';
 import '../../favorites/presentation/favorite_button.dart';
+import '../../users/provider/user_provider.dart';
 import '../model/attachment_model.dart';
 import '../model/paper_model.dart';
 import '../provider/paper_provider.dart';
@@ -155,9 +156,15 @@ class PaperDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
+    final currentUser = ref.watch(currentUserProvider).valueOrNull;
     final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
     final fileName = paper.fileName ?? '${paper.title}.pdf';
-    ref.read(offlinePaperProvider(paper.id).notifier).initialize(fileName);
+    final offlineFileName = fileName.toLowerCase().endsWith('.pdf')
+        ? '${fileName.substring(0, fileName.length - 4)}_watermarked.pdf'
+        : '${fileName}_watermarked.pdf';
+    ref
+        .read(offlinePaperProvider(paper.id).notifier)
+        .initialize(offlineFileName);
     final offline = ref.watch(offlinePaperProvider(paper.id));
     final versions = ref.watch(paperVersionHistoryProvider(paper.id));
     final readablePath = offline.value ?? paper.filePath;
@@ -174,7 +181,7 @@ class PaperDetailScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
@@ -214,10 +221,19 @@ class PaperDetailScreen extends ConsumerWidget {
           _PaperHeaderCard(
             paper: paper,
             offlineState: offline,
-            onDownload: paper.filePath?.trim().isNotEmpty == true
+            onDownload:
+                paper.filePath?.trim().isNotEmpty == true && auth.userId != null
                 ? () => ref
                       .read(offlinePaperProvider(paper.id).notifier)
-                      .download(paper.filePath!, fileName)
+                      .download(
+                        paper.filePath!,
+                        offlineFileName,
+                        userName:
+                            currentUser?.displayName?.trim().isNotEmpty == true
+                            ? currentUser!.displayName!.trim()
+                            : auth.username ?? 'Board Member',
+                        userId: auth.userId!,
+                      )
                 : null,
             onRemoveDownload: () =>
                 ref.read(offlinePaperProvider(paper.id).notifier).remove(),
@@ -266,7 +282,8 @@ class PaperDetailScreen extends ConsumerWidget {
           ),
           versions.when(
             loading: () => const LinearProgressIndicator(),
-            error: (error, _) => Text('Could not load version history: $error'),
+            error: (error, _) =>
+                _SectionLoadError(message: ApiErrorMessage.from(error)),
             data: (items) => Card(
               child: Column(
                 children: items
@@ -354,7 +371,8 @@ class PaperDetailScreen extends ConsumerWidget {
                     .toList(),
               );
             },
-            error: (error, _) => Text('Failed to load attachments: $error'),
+            error: (error, _) =>
+                _SectionLoadError(message: ApiErrorMessage.from(error)),
             loading: () => const AppLoading(),
           ),
           const SizedBox(height: 16),
@@ -391,7 +409,8 @@ class PaperDetailScreen extends ConsumerWidget {
                 ],
               );
             },
-            error: (error, _) => Text('Failed to load comments: $error'),
+            error: (error, _) =>
+                _SectionLoadError(message: ApiErrorMessage.from(error)),
             loading: () => const AppLoading(),
           ),
           const SizedBox(height: 80),
@@ -409,6 +428,31 @@ class PaperDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _SectionLoadError extends StatelessWidget {
+  final String message;
+
+  const _SectionLoadError({required this.message});
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Icon(
+            Icons.cloud_off_rounded,
+            color: Theme.of(context).colorScheme.error,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _PaperApprovalCard extends StatelessWidget {

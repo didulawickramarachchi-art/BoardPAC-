@@ -2,6 +2,7 @@ package com.portSrilanka.board_admin_backend.dto.report;
 
 import lombok.Builder;
 import lombok.Data;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -11,4 +12,6 @@ public class PendingApprovalReportResponse {
     private Long userId;
     private String username;
     private String meetingTitle;
+    private LocalDateTime submittedAt;
+    private Long approvalAgeDays;
 }

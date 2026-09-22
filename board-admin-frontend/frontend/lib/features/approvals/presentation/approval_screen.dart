@@ -16,9 +16,14 @@ class ApprovalScreen extends ConsumerWidget {
   });
 
   Future<void> _showApprovalDialog(BuildContext context, WidgetRef ref) async {
-    final current = ref.read(approvalListProvider(paperId)).value
-        ?.where((item) => item.ownedByCurrentUser).firstOrNull;
-    final commentController = TextEditingController(text: current?.approvalComment ?? '');
+    final current = ref
+        .read(approvalListProvider(paperId))
+        .value
+        ?.where((item) => item.ownedByCurrentUser)
+        .firstOrNull;
+    final commentController = TextEditingController(
+      text: current?.approvalComment ?? '',
+    );
     String selectedStatus = current?.approvalStatus ?? 'APPROVE';
     String? errorMessage;
 
@@ -62,7 +67,10 @@ class ApprovalScreen extends ConsumerWidget {
                 ),
                 if (errorMessage != null) ...[
                   const SizedBox(height: 10),
-                  Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+                  Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ],
               ],
             ),
@@ -74,23 +82,41 @@ class ApprovalScreen extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
-                final confirmed = await showDialog<bool>(context: context, builder: (confirmContext) => AlertDialog(
-                  title: const Text('Confirm decision'),
-                  content: Text('Record “${_statusLabel(selectedStatus)}” for this paper?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(confirmContext, false), child: const Text('Back')),
-                    FilledButton(onPressed: () => Navigator.pop(confirmContext, true), child: const Text('Confirm')),
-                  ],
-                ));
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (confirmContext) => AlertDialog(
+                    title: const Text('Confirm decision'),
+                    content: Text(
+                      'Record “${_statusLabel(selectedStatus)}” for this paper?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(confirmContext, false),
+                        child: const Text('Back'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(confirmContext, true),
+                        child: const Text('Confirm'),
+                      ),
+                    ],
+                  ),
+                );
                 if (confirmed != true) return;
                 try {
-                  await ref.read(approvalListProvider(paperId).notifier).submit(ApprovalRequest(
-                    paperId: paperId, approvalStatus: selectedStatus,
-                    approvalComment: commentController.text.trim(),
-                  ));
+                  await ref
+                      .read(approvalListProvider(paperId).notifier)
+                      .submit(
+                        ApprovalRequest(
+                          paperId: paperId,
+                          approvalStatus: selectedStatus,
+                          approvalComment: commentController.text.trim(),
+                        ),
+                      );
                   if (context.mounted) Navigator.pop(context);
                 } catch (error) {
-                  setLocalState(() => errorMessage = 'Could not record decision: $error');
+                  setLocalState(
+                    () => errorMessage = 'Could not record decision: $error',
+                  );
                 }
               },
               child: Text(current == null ? 'Submit' : 'Update'),
@@ -126,8 +152,13 @@ class ApprovalScreen extends ConsumerWidget {
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: _statusColor(approval.approvalStatus).withValues(alpha: .14),
-                    child: Icon(_statusIcon(approval.approvalStatus), color: _statusColor(approval.approvalStatus)),
+                    backgroundColor: _statusColor(
+                      approval.approvalStatus,
+                    ).withValues(alpha: .14),
+                    child: Icon(
+                      _statusIcon(approval.approvalStatus),
+                      color: _statusColor(approval.approvalStatus),
+                    ),
                   ),
                   title: Text(approval.username),
                   subtitle: Text(
@@ -148,16 +179,24 @@ class ApprovalScreen extends ConsumerWidget {
   }
 
   static String _statusLabel(String value) => switch (value) {
-    'APPROVE' => 'Approved', 'REJECT' => 'Rejected', 'ABSTAIN' => 'Abstained',
-    'INTEREST' => 'Interest declared', 'RPT' => 'Related-party transaction', _ => value,
+    'APPROVE' => 'Approved',
+    'REJECT' => 'Rejected',
+    'ABSTAIN' => 'Abstained',
+    'INTEREST' => 'Interest declared',
+    'RPT' => 'Related-party transaction',
+    _ => value,
   };
   static IconData _statusIcon(String value) => switch (value) {
-    'APPROVE' => Icons.check_circle_outline, 'REJECT' => Icons.cancel_outlined,
-    'ABSTAIN' => Icons.remove_circle_outline, 'INTEREST' => Icons.info_outline,
+    'APPROVE' => Icons.check_circle_outline,
+    'REJECT' => Icons.cancel_outlined,
+    'ABSTAIN' => Icons.remove_circle_outline,
+    'INTEREST' => Icons.info_outline,
     _ => Icons.gavel_outlined,
   };
   static Color _statusColor(String value) => switch (value) {
-    'APPROVE' => Colors.green, 'REJECT' => Colors.red, 'ABSTAIN' => Colors.orange,
+    'APPROVE' => Colors.green,
+    'REJECT' => Colors.red,
+    'ABSTAIN' => Colors.orange,
     _ => Colors.indigo,
   };
 }

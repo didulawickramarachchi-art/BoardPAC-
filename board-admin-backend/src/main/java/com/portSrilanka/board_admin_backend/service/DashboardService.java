@@ -7,6 +7,8 @@ import com.portSrilanka.board_admin_backend.enums.DeliveryStatus;
 import com.portSrilanka.board_admin_backend.enums.ApprovalStatus;
 import com.portSrilanka.board_admin_backend.enums.MeetingType;
 import com.portSrilanka.board_admin_backend.enums.MeetingStatus;
+import com.portSrilanka.board_admin_backend.enums.SystemRole;
+import com.portSrilanka.board_admin_backend.enums.DeviceStatus;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +32,8 @@ public class DashboardService {
     private final CommentShareRepository commentShareRepository;
     private final PaperShareRepository paperShareRepository;
     private final UserRepository userRepository;
-    private final MeetingParticipantRepository meetingParticipantRepository;
     private final UserSubcategoryAccessRepository accessRepository;
+    private final DeviceRepository deviceRepository;
 
     public DashboardSummaryResponse getSummaryForUser(Long userId, String username) {
         User user = userRepository.findById(userId)
@@ -41,16 +43,25 @@ public class DashboardService {
             throw new AccessDeniedException("Cannot view another user's dashboard");
         }
 
-        List<Meeting> visibleMeetings = getVisibleMeetings(user);
-        long totalMeetings = visibleMeetings.stream()
-                .filter(meeting -> meeting.getType() == MeetingType.MEETING)
-                .count();
-        long totalCirculars = visibleMeetings.stream()
-                .filter(meeting -> meeting.getType() == MeetingType.CIRCULAR)
-                .count();
+        boolean isSecretary = hasRole(user, "SECRETARY");
+        boolean isMember = hasRole(user, "MEMBER");
+        boolean isAdmin = hasRole(user, "ADMIN");
+        boolean seesAllMeetings = isSecretary || !isMember;
+        List<Meeting> visibleMeetings = seesAllMeetings ? List.of() : getVisibleMeetings(user);
+        long totalMeetings = seesAllMeetings
+                ? meetingRepository.countByType(MeetingType.MEETING)
+                : countType(visibleMeetings, MeetingType.MEETING);
+        long totalCirculars = seesAllMeetings
+                ? meetingRepository.countByType(MeetingType.CIRCULAR)
+                : countType(visibleMeetings, MeetingType.CIRCULAR);
 
         LocalDateTime now = LocalDateTime.now();
-        Meeting upcomingMeeting = getUpcomingMeetingCandidates(user).stream()
+        // Admin does not render upcoming-meeting data. Avoid the former
+        // participant lookup per meeting (an expensive N+1 query) entirely.
+        List<Meeting> upcomingCandidates = isAdmin
+                ? List.of()
+                : isSecretary ? meetingRepository.findAll() : visibleMeetings;
+        Meeting upcomingMeeting = upcomingCandidates.stream()
                 .filter(meeting -> meeting.getType() == MeetingType.MEETING)
                 .filter(meeting -> meeting.getStatus() != MeetingStatus.CANCELLED)
                 .filter(meeting -> meeting.getStatus() != MeetingStatus.CLOSED)
@@ -62,7 +73,7 @@ public class DashboardService {
         List<Long> visibleMeetingIds = visibleMeetings.stream()
                 .map(Meeting::getId)
                 .toList();
-        long pendingApprovals = visibleMeetingIds.isEmpty()
+        long pendingApprovals = !isMember || visibleMeetingIds.isEmpty()
                 ? 0
                 : paperRepository.countPendingApprovalsForUser(
                         userId,
@@ -76,15 +87,18 @@ public class DashboardService {
                         )
                 );
 
-        long unreadPapers = packDeliveryRepository.findByUserId(userId).stream()
-                .filter(pd -> pd.getDeliveryStatus() == DeliveryStatus.NOT_READ)
-                .count();
-
-        long sharedComments = commentShareRepository.findBySharedToId(userId).size();
-        long sharedDocuments = paperShareRepository.findBySharedToId(userId).size();
+        // Let PostgreSQL count these rows instead of loading whole entity graphs.
+        long unreadPapers = packDeliveryRepository
+                .countByUserIdAndDeliveryStatus(userId, DeliveryStatus.NOT_READ);
+        long sharedComments = commentShareRepository.countBySharedToId(userId);
+        long sharedDocuments = paperShareRepository.countBySharedToId(userId);
 
         return DashboardSummaryResponse.builder()
                 .totalUsers(userRepository.count())
+                .totalMembers(userRepository.countDistinctByRolesName(SystemRole.MEMBER))
+                .totalSecretaries(userRepository.countDistinctByRolesName(SystemRole.SECRETARY))
+                .totalAdmins(userRepository.countDistinctByRolesName(SystemRole.ADMIN))
+                .pendingDevices(deviceRepository.countByStatus(DeviceStatus.PENDING))
                 .totalMeetings(totalMeetings)
                 .totalCirculars(totalCirculars)
                 .pendingApprovals(pendingApprovals)
@@ -104,6 +118,15 @@ public class DashboardService {
                 .build();
     }
 
+    private boolean hasRole(User user, String role) {
+        return user.getRoles().stream()
+                .anyMatch(value -> role.equals(value.getName().authorityName()));
+    }
+
+    private long countType(List<Meeting> meetings, MeetingType type) {
+        return meetings.stream().filter(meeting -> meeting.getType() == type).count();
+    }
+
     private List<Meeting> getVisibleMeetings(User user) {
         boolean isSecretary = user.getRoles().stream()
                 .anyMatch(role -> "SECRETARY".equals(role.getName().authorityName()));
@@ -118,27 +141,11 @@ public class DashboardService {
                 .stream()
                 .map(access -> access.getSubcategory().getId())
                 .collect(java.util.stream.Collectors.toSet());
-
-        return meetingRepository.findAll().stream()
-                .filter(meeting -> privilegedSubcategoryIds.contains(meeting.getSubcategory().getId()))
-                .filter(meeting -> meetingParticipantRepository
-                        .findByMeetingIdAndUserId(meeting.getId(), user.getId())
-                        .isPresent())
-                .toList();
-    }
-
-    private List<Meeting> getUpcomingMeetingCandidates(User user) {
-        boolean isSecretary = user.getRoles().stream()
-                .anyMatch(role -> "SECRETARY".equals(role.getName().authorityName()));
-        if (isSecretary) {
-            return meetingRepository.findAll();
+        if (privilegedSubcategoryIds.isEmpty()) {
+            return List.of();
         }
 
-        return meetingRepository.findAll().stream()
-                .filter(meeting -> meetingParticipantRepository
-                        .findByMeetingIdAndUserId(meeting.getId(), user.getId())
-                        .isPresent())
-                .toList();
+        return meetingRepository.findVisibleForMember(user.getId(), privilegedSubcategoryIds);
     }
 
     private String getUpcomingDaysText(Meeting meeting, LocalDateTime now) {

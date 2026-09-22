@@ -11,7 +11,7 @@ class AppGlassSurface extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final BorderRadius borderRadius;
   final VoidCallback? onTap;
-  final Color tint;
+  final Color? tint;
   final double blurSigma;
   final bool enableBackdropBlur;
 
@@ -21,18 +21,20 @@ class AppGlassSurface extends StatelessWidget {
     this.padding,
     this.borderRadius = const BorderRadius.all(Radius.circular(24)),
     this.onTap,
-    this.tint = Colors.white,
+    this.tint,
     this.blurSigma = 10,
     this.enableBackdropBlur = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = Container(
       padding: padding,
       decoration: AppGlassDecoration.surface(
         borderRadius: borderRadius,
-        tint: tint,
+        tint: tint ?? Theme.of(context).colorScheme.surface,
+        darkMode: isDark,
       ),
       child: child,
     );
@@ -57,7 +59,42 @@ abstract final class AppGlassDecoration {
   static BoxDecoration surface({
     BorderRadius borderRadius = const BorderRadius.all(Radius.circular(24)),
     Color tint = Colors.white,
+    bool darkMode = false,
   }) {
+    if (darkMode) {
+      return BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0, 0.46, 1],
+          colors: [
+            Color.alphaBlend(
+              tint.withValues(alpha: 0.16),
+              const Color(0xD9273552),
+            ),
+            const Color(0xD91A2741),
+            const Color(0xE611192B),
+          ],
+        ),
+        borderRadius: borderRadius,
+        border: Border.all(
+          color: const Color(0xFFB8CCFF).withValues(alpha: 0.16),
+          width: 1.1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.38),
+            blurRadius: 32,
+            offset: const Offset(0, 14),
+          ),
+          BoxShadow(
+            color: const Color(0xFF7395E8).withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(-2, -2),
+          ),
+        ],
+      );
+    }
     return BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -121,4 +158,16 @@ abstract final class AppGlassDecoration {
       stops: [0, 0.62, 1],
     ),
   );
+
+  static BoxDecoration backgroundFor(BuildContext context) {
+    if (Theme.of(context).brightness != Brightness.dark) return background;
+    return const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF080E1C), Color(0xFF101A30), Color(0xFF181525)],
+        stops: [0, 0.62, 1],
+      ),
+    );
+  }
 }

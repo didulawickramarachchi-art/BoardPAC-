@@ -6,7 +6,7 @@ class NewsRepository {
   final Dio dio;
   NewsRepository(this.dio);
   Future<List<NewsPost>> getAll() async {
-    final r = await dio.get('/news');
+    final r = await dio.get('/news', queryParameters: const {'limit': 15});
     return (r.data as List)
         .whereType<Map<String, dynamic>>()
         .map(NewsPost.fromJson)
@@ -19,21 +19,37 @@ class NewsRepository {
       data: FormData.fromMap({
         'file': MultipartFile.fromBytes(bytes, filename: fileName),
       }),
-      options: Options(contentType: 'multipart/form-data'),
+      options: Options(
+        contentType: 'multipart/form-data',
+        sendTimeout: const Duration(seconds: 45),
+        receiveTimeout: const Duration(seconds: 45),
+      ),
     );
     final data = response.data;
-    return data is Map ? (data['filePath'] ?? '').toString() : '';
+    final filePath = data is Map
+        ? (data['filePath'] ?? '').toString().trim()
+        : '';
+    if (filePath.isEmpty) {
+      throw const FormatException('The image upload returned no file URL.');
+    }
+    return filePath;
   }
 
   Future<NewsPost> create(
     String title,
     String content,
+    String badgeLabel,
     List<String> imageUrls,
   ) async => NewsPost.fromJson(
     Map<String, dynamic>.from(
       (await dio.post(
         '/news',
-        data: {'title': title, 'content': content, 'imageUrls': imageUrls},
+        data: {
+          'title': title,
+          'content': content,
+          'badgeLabel': badgeLabel,
+          'imageUrls': imageUrls,
+        },
       )).data,
     ),
   );
@@ -41,12 +57,18 @@ class NewsRepository {
     int id,
     String title,
     String content,
+    String badgeLabel,
     List<String> imageUrls,
   ) async => NewsPost.fromJson(
     Map<String, dynamic>.from(
       (await dio.put(
         '/news/$id',
-        data: {'title': title, 'content': content, 'imageUrls': imageUrls},
+        data: {
+          'title': title,
+          'content': content,
+          'badgeLabel': badgeLabel,
+          'imageUrls': imageUrls,
+        },
       )).data,
     ),
   );

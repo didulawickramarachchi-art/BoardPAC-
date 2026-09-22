@@ -103,13 +103,12 @@ class SubcategoryListScreen extends ConsumerWidget {
 
     if (!access.canViewSubcategories) {
       return const Scaffold(
-        backgroundColor: bgColor,
         body: Center(child: Text('You do not have access to subcategories.')),
       );
     }
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

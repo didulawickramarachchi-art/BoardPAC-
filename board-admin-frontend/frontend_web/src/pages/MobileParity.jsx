@@ -4,6 +4,7 @@ import { Activity, ArrowRight, CalendarDays, CheckCircle2, FileText, History, Ke
 import ResourcePage from './ResourcePage'
 import { api, errorMessage } from '../api/client'
 import { useAuth } from '../state/AuthContext'
+import { permissionsFor } from '../auth/permissions'
 
 const reportItems = [
   ['Login History', 'View user login activity', '/reports/login-history', History],
@@ -39,8 +40,8 @@ function TileHub({ title, subtitle, items }) {
 }
 
 export function ReportsHome() {
-  const { role } = useAuth()
-  if (role !== 'ADMIN') return <Navigate to="/dashboard" />
+  const { user } = useAuth()
+  if (!permissionsFor(user).canViewReports) return <Navigate to="/dashboard" />
   return <TileHub title="Reports" subtitle="System activity, governance, and utilization reports." items={reportItems} />
 }
 

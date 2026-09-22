@@ -116,7 +116,7 @@ class _MeetingHistoryReportScreenState
         .toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: _blue,
         foregroundColor: Colors.white,

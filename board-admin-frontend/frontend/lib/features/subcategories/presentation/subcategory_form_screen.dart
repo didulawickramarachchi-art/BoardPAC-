@@ -99,7 +99,7 @@ class _SubcategoryFormScreenState extends ConsumerState<SubcategoryFormScreen> {
     final categoriesAsync = ref.watch(categoryListProvider);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

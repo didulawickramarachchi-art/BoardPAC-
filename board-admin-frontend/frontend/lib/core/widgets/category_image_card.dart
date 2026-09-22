@@ -23,6 +23,7 @@ class CategoryImageCard extends StatelessWidget {
       decoration: AppGlassDecoration.surface(
         borderRadius: BorderRadius.circular(26),
         tint: const Color(0xFFBFC9E2),
+        darkMode: Theme.of(context).brightness == Brightness.dark,
       ),
       child: Material(
         color: Colors.transparent,

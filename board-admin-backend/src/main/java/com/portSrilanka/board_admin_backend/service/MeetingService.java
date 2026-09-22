@@ -355,6 +355,23 @@ public class MeetingService {
         return mapParticipant(participant);
     }
 
+    @Transactional(readOnly = true)
+    public List<MeetingResponse> getVisibleForMember(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        Set<Long> allowedSubcategoryIds = accessRepository.findByUserId(user.getId())
+                .stream()
+                .map(access -> access.getSubcategory().getId())
+                .collect(java.util.stream.Collectors.toSet());
+        if (allowedSubcategoryIds.isEmpty()) {
+            return List.of();
+        }
+        return meetingRepository.findVisibleForMember(user.getId(), allowedSubcategoryIds)
+                .stream()
+                .map(this::mapMeeting)
+                .toList();
+    }
+
     @Transactional
     public MeetingParticipantResponse rsvp(Long meetingId, ParticipantStatusUpdateRequest request, String username) {
         if (request.getParticipantStatus() == null) throw new BadRequestException("Participant status is required");

@@ -43,7 +43,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
             horizontal: 24,
             vertical: 24,
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(dialogContext).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -275,7 +275,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setLocalState) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -366,7 +366,7 @@ class _ParticipantListScreenState extends ConsumerState<ParticipantListScreen> {
     );
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

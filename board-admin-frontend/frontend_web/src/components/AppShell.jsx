@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Bell, CalendarDays, ChevronLeft, ClipboardCheck, FileText, Heart, Layers, LayoutDashboard, LogOut, MailCheck, Megaphone, Menu, MonitorSmartphone, Search, Send, Settings, ShieldCheck, Tags, ThumbsUp, Truck, Users, X } from 'lucide-react'
+import { BarChart3, Bell, CalendarDays, ChevronLeft, ClipboardCheck, FileText, Heart, Layers, LayoutDashboard, LogOut, MailCheck, Megaphone, Menu, MessageSquare, MonitorSmartphone, Search, Send, Settings, ShieldCheck, Tags, ThumbsUp, Truck, Users, X } from 'lucide-react'
 import { api, errorMessage } from '../api/client'
 import { useAuth } from '../state/AuthContext'
 
 const groups = [
   ['Overview', [['Dashboard', '/dashboard', LayoutDashboard, ['ADMIN', 'SECRETARY', 'MEMBER']]]],
-  ['Board operations', [['Meetings', '/meetings', CalendarDays, ['SECRETARY', 'MEMBER']], ['Board papers', '/papers', FileText, ['SECRETARY', 'MEMBER']], ['Approvals', '/approvals', ClipboardCheck, ['MEMBER']], ['Pack delivery', '/pack-delivery', Truck, ['MEMBER']]]],
+  ['Board operations', [['Meetings', '/meetings', CalendarDays, ['SECRETARY', 'MEMBER']], ['Board papers', '/papers', FileText, ['SECRETARY', 'MEMBER']], ['Approvals', '/approvals', ClipboardCheck, ['ADMIN', 'SECRETARY', 'MEMBER']], ['Member library', '/favorites', Heart, ['ADMIN', 'SECRETARY', 'MEMBER']], ['Pack delivery', '/pack-delivery', Truck, ['MEMBER']]]],
   ['Organization', [['Users', '/users', Users, ['ADMIN']], ['Categories', '/categories', Tags, ['SECRETARY', 'MEMBER']], ['Subcategories', '/subcategories', Layers, ['SECRETARY', 'MEMBER']], ['Privileges', '/privileges', ShieldCheck, ['SECRETARY']], ['Devices', '/devices', MonitorSmartphone, ['ADMIN']], ['Access Control', '/access-control', ShieldCheck, ['ADMIN']]]],
   ['Insights', [['Reports', '/reports', BarChart3, ['ADMIN']], ['Settings', '/settings', Settings, ['ADMIN']]]],
 ]
@@ -120,6 +120,14 @@ function NotificationPanel({ user, role, onClose, onUnreadChange }) {
       setSaving('')
     }
   }
+  const reply = async notificationId => {
+    const message = window.prompt('Write a reply')?.trim()
+    if (!message) return
+    setSaving(`reply-${notificationId}`); setError('')
+    try { updateNotification((await api.post(`/notifications/${notificationId}/reply`, { message })).data) }
+    catch (err) { setError(errorMessage(err)) }
+    finally { setSaving('') }
+  }
 
   return <div className="notification-layer" role="dialog" aria-modal="true" aria-label="Notifications">
     <button className="notification-backdrop" aria-label="Close notifications" onClick={onClose} />
@@ -146,13 +154,13 @@ function NotificationPanel({ user, role, onClose, onUnreadChange }) {
 
       {error && <div className="alert error">{error}</div>}
       <div className="notification-list">
-        {loading ? <div className="state compact"><div className="spinner" /><h3>Loading notifications...</h3></div> : items.length === 0 ? <div className="notification-empty"><MailCheck /><h3>No notifications yet</h3></div> : items.map(item => <NotificationItem key={item.id} item={item} saving={saving} onReact={type => react(item.id, type)} />)}
+        {loading ? <div className="state compact"><div className="spinner" /><h3>Loading notifications...</h3></div> : items.length === 0 ? <div className="notification-empty"><MailCheck /><h3>No notifications yet</h3></div> : items.map(item => <NotificationItem key={item.id} item={item} saving={saving} onReact={type => react(item.id, type)} onReply={() => reply(item.id)} />)}
       </div>
     </section>
   </div>
 }
 
-function NotificationItem({ item, saving, onReact }) {
+function NotificationItem({ item, saving, onReact, onReply }) {
   const tone = notificationTone(item.type || item.notificationType)
   const reactions = [['LIKE', ThumbsUp], ['LOVE', Heart], ['OK', ClipboardCheck]]
   const replies = Array.isArray(item.replies) ? item.replies : []
@@ -168,7 +176,7 @@ function NotificationItem({ item, saving, onReact }) {
       <div className="notification-reactions">{reactions.map(([type, Icon]) => {
         const selected = item.currentReaction === type
         return <button type="button" className={selected ? 'selected' : ''} disabled={saving === `react-${item.id}-${type}`} onClick={() => onReact(type)} key={type}><Icon />{item.reactionCounts?.[type] || 0}</button>
-      })}</div>
+      })}<button type="button" disabled={saving === `reply-${item.id}`} onClick={onReply}><MessageSquare />Reply</button></div>
       {replies.length > 0 && <div className="notification-replies">{replies.slice(-2).map(reply => <p key={reply.id}><b>{reply.userName || 'User'}:</b> {reply.message}</p>)}</div>}
     </div>
   </article>
@@ -182,6 +190,7 @@ export default function AppShell() {
   const { user, role, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchText, setSearchText] = useState('')
   const title = useMemo(() => [...groups.flatMap(g => g[1])].find(i => location.pathname.startsWith(i[1]))?.[0] || 'Board Management', [location.pathname])
 
   useEffect(() => {
@@ -215,7 +224,7 @@ export default function AppShell() {
       <header className="topbar">
         <button className="menu-button" aria-label="Open menu" onClick={() => setOpen(true)}><Menu /></button>
         <div><p>SLPA Board</p><h1>{title}</h1></div>
-        <label className="global-search"><Search /><input placeholder="Search anything..." /></label>
+        <form className="global-search" onSubmit={event => { event.preventDefault(); const value = searchText.trim(); if (value) navigate(`/search?q=${encodeURIComponent(value)}`) }}><Search /><input aria-label="Search BoardPAC" value={searchText} onChange={event => setSearchText(event.target.value)} placeholder="Search anything..." /></form>
         <button className="icon-button notification-trigger" aria-label="Notifications" onClick={openNotifications}><Bell />{unreadCount > 0 && <span>{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
         <NavLink to="/profile" className="user" title="Open profile"><div className="avatar">{initials(user?.displayName || user?.username || 'U')}</div><div><b>{user?.displayName || user?.username}</b><span>{role}</span></div></NavLink>
         <button className="icon-button" title="Sign out" onClick={() => { logout(); navigate('/login') }}><LogOut /></button>

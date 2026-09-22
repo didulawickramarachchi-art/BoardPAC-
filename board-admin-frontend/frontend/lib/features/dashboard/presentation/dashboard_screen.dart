@@ -13,7 +13,7 @@ import '../../../core/responsive/responsive_layout.dart';
 import '../../../core/widgets/app_glass_surface.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../categories/presentation/category_list_screen.dart';
-import '../../devices/model/device_model.dart';
+import '../../categories/provider/category_provider.dart';
 import '../../devices/presentation/device_list_screen.dart';
 import '../../devices/provider/device_provider.dart';
 import '../../meetings/presentation/meeting_list_screen.dart';
@@ -25,11 +25,12 @@ import '../../notifications/provider/notification_provider.dart';
 import '../../news/presentation/news_feed_section.dart';
 import '../../papers/presentation/paper_list_screen.dart';
 import '../../privileges/presentation/privilege_list_screen.dart';
+import '../../privileges/provider/privilege_provider.dart';
 import '../../subcategories/presentation/subcategory_list_screen.dart';
+import '../../subcategories/provider/subcategory_provider.dart';
 import '../../users/presentation/user_list_screen.dart';
 import '../../users/presentation/profile_picture_screen.dart';
 import '../../users/provider/user_provider.dart';
-import '../../users/model/user_model.dart';
 import '../model/dashboard_summary_model.dart';
 import '../provider/dashboard_provider.dart';
 import 'member_dashboard_home.dart';
@@ -50,6 +51,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final ValueNotifier<double> _glassLightAngle = ValueNotifier<double>(0);
   Timer? _notificationPoller;
+  Timer? _screenWarmupTimer;
+  int? _warmedUpForUserId;
 
   @override
   void initState() {
@@ -66,8 +69,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void dispose() {
     _notificationPoller?.cancel();
+    _screenWarmupTimer?.cancel();
     _glassLightAngle.dispose();
     super.dispose();
+  }
+
+  void _scheduleScreenWarmup(int userId, RoleAccess access) {
+    if (_warmedUpForUserId == userId) return;
+    _warmedUpForUserId = userId;
+    _screenWarmupTimer?.cancel();
+    _screenWarmupTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+
+      // Reading providers starts their requests in the background and retains
+      // the results for the destination screens. Keep this role-aware so the
+      // warm-up never issues requests the signed-in user cannot access.
+      ref.read(categoryListProvider);
+      ref.read(subcategoryListProvider);
+      if (access.canViewMeetings) ref.read(meetingListProvider);
+      if (access.canViewUsers) ref.read(userListProvider);
+      if (access.canManageDevices) ref.read(deviceListProvider);
+      if (access.canManagePrivileges) ref.read(privilegeListProvider);
+    });
   }
 
   @override
@@ -76,6 +99,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final currentUserId = authState.userId ?? 1;
     final role = authState.role ?? 'User';
     final access = RoleAccess(role);
+    _scheduleScreenWarmup(currentUserId, access);
     final config = _RoleDashboardConfig.forRole(role);
     final summaryAsync = ref.watch(dashboardSummaryProvider(currentUserId));
     final notificationsAsync = ref.watch(
@@ -85,8 +109,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final memberMeetings = access.isMember
         ? ref.watch(meetingListProvider).valueOrNull
         : null;
-    final usersAsync = isAdmin ? ref.watch(userListProvider) : null;
-    final devicesAsync = isAdmin ? ref.watch(deviceListProvider) : null;
 
     if (access.isMember) {
       return MemberDashboardHome(
@@ -98,9 +120,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     return Scaffold(
-      backgroundColor: DashboardScreen.bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: DecoratedBox(
-        decoration: AppGlassDecoration.background,
+        decoration: AppGlassDecoration.backgroundFor(context),
         child: SafeArea(
           top: false,
           child: Column(
@@ -134,35 +156,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 );
                               }
 
-                              return usersAsync!.when(
-                                data: (users) => devicesAsync!.when(
-                                  data: (devices) => _SummaryGrid(
-                                    cards: _summaryCardsForRole(
-                                      summary,
-                                      config,
-                                      users: users,
-                                      devices: devices,
-                                    ),
-                                  ),
-                                  loading: () => const Padding(
-                                    padding: EdgeInsets.all(40),
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                  error: (error, _) => _ErrorBox(
-                                    message: ApiErrorMessage.from(error),
-                                  ),
-                                ),
-                                loading: () => const Padding(
-                                  padding: EdgeInsets.all(40),
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                ),
-                                error: (error, _) => _ErrorBox(
-                                  message: ApiErrorMessage.from(error),
-                                ),
+                              return _SummaryGrid(
+                                cards: _summaryCardsForRole(summary, config),
                               );
                             },
 
@@ -254,7 +249,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             lightAngle: _glassLightAngle,
                           ),
                           const SizedBox(height: 24),
-                          NewsFeedSection(canCreate: access.isSecretary),
+                          DeferredNewsFeedSection(
+                            canCreate: access.isSecretary,
+                          ),
                         ],
                       ),
                     ),
@@ -311,6 +308,7 @@ class _WhatsNewSection extends StatelessWidget {
               decoration: AppGlassDecoration.surface(
                 borderRadius: BorderRadius.circular(22),
                 tint: DashboardScreen.gold,
+                darkMode: Theme.of(context).brightness == Brightness.dark,
               ),
               child: Column(
                 children: [
@@ -373,7 +371,6 @@ class _WhatsNewTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: DashboardScreen.darkBlue,
                             fontSize: 13,
                             fontWeight: FontWeight.w900,
                           ),
@@ -395,8 +392,8 @@ class _WhatsNewTile extends StatelessWidget {
                     notification.message,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF6E7FA8),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 11,
                       height: 1.3,
                       fontWeight: FontWeight.w600,
@@ -451,7 +448,7 @@ class _WhatsNewEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: Colors.transparent,
     borderRadius: BorderRadius.circular(22),
     child: InkWell(
       onTap: onViewAll,
@@ -459,15 +456,27 @@ class _WhatsNewEmpty extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
+        decoration: AppGlassDecoration.surface(
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFE5E9F2)),
+          tint: Theme.of(context).colorScheme.surface,
+          darkMode: Theme.of(context).brightness == Brightness.dark,
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.auto_awesome_outlined, color: DashboardScreen.gold),
-            SizedBox(width: 12),
-            Expanded(child: Text('No new updates right now.')),
+            const Icon(
+              Icons.auto_awesome_outlined,
+              color: DashboardScreen.gold,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'No new updates right now.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -1517,8 +1526,8 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
-        color: Color(0xFF00184A),
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
         fontSize: 17,
         fontWeight: FontWeight.w900,
       ),
@@ -1526,8 +1535,15 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-BoxDecoration _lightDetailGlass(Color accent) {
+BoxDecoration _detailGlass(BuildContext context, Color accent) {
   const radius = BorderRadius.all(Radius.circular(22));
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return AppGlassDecoration.surface(
+      borderRadius: radius,
+      tint: accent,
+      darkMode: true,
+    );
+  }
   final brightTint = Color.alphaBlend(
     accent.withValues(alpha: 0.16),
     Colors.white.withValues(alpha: 0.92),
@@ -1606,9 +1622,10 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _lightDetailGlass(iconColor),
+      decoration: _detailGlass(context, iconColor),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1620,12 +1637,16 @@ class _SummaryCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withValues(alpha: 0.90),
-                  iconColor.withValues(alpha: 0.14),
+                  isDark
+                      ? const Color(0xFF293754).withValues(alpha: 0.92)
+                      : Colors.white.withValues(alpha: 0.90),
+                  iconColor.withValues(alpha: isDark ? 0.30 : 0.14),
                 ],
               ),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.88)),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.88),
+              ),
             ),
             child: Icon(icon, color: iconColor, size: 23),
           ),
@@ -1634,8 +1655,8 @@ class _SummaryCard extends StatelessWidget {
 
           Text(
             value,
-            style: const TextStyle(
-              color: Color(0xFF00184A),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 35,
               fontWeight: FontWeight.w900,
             ),
@@ -1647,8 +1668,8 @@ class _SummaryCard extends StatelessWidget {
             title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF68799F),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 15,
               height: 1.2,
               fontWeight: FontWeight.w600,
@@ -1697,10 +1718,11 @@ class _RoleOverview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: _lightDetailGlass(_DashboardCardColors.navy),
+      decoration: _detailGlass(context, _DashboardCardColors.navy),
       child: Row(
         children: [
           Container(
@@ -1711,14 +1733,24 @@ class _RoleOverview extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withValues(alpha: 0.90),
-                  const Color(0xFF6F8FE4).withValues(alpha: 0.14),
+                  isDark
+                      ? const Color(0xFF293754).withValues(alpha: 0.92)
+                      : Colors.white.withValues(alpha: 0.90),
+                  const Color(
+                    0xFF6F8FE4,
+                  ).withValues(alpha: isDark ? 0.30 : 0.14),
                 ],
               ),
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.88)),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.88),
+              ),
             ),
-            child: Icon(config.icon, color: const Color(0xFF233E8B), size: 23),
+            child: Icon(
+              config.icon,
+              color: isDark ? const Color(0xFFAFC4FF) : const Color(0xFF233E8B),
+              size: 23,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1729,8 +1761,8 @@ class _RoleOverview extends StatelessWidget {
                   config.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF00184A),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1740,8 +1772,8 @@ class _RoleOverview extends StatelessWidget {
                   config.subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF68799F),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                     height: 1.25,
                     fontWeight: FontWeight.w600,
@@ -1901,6 +1933,7 @@ class _MenuGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = responsiveColumnCount(
@@ -1933,12 +1966,16 @@ class _MenuGrid extends ConsumerWidget {
                   borderRadius: pillRadius,
                   boxShadow: [
                     BoxShadow(
-                      color: DashboardScreen.darkBlue.withValues(alpha: 0.16),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.42 : 0.16,
+                      ),
+                      blurRadius: isDark ? 26 : 18,
+                      offset: const Offset(0, 9),
                     ),
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.90),
+                      color: isDark
+                          ? const Color(0xFF7697EA).withValues(alpha: 0.08)
+                          : Colors.white.withValues(alpha: 0.90),
                       blurRadius: 5,
                       offset: const Offset(-2, -3),
                     ),
@@ -1952,7 +1989,9 @@ class _MenuGrid extends ConsumerWidget {
                     decoration: BoxDecoration(
                       borderRadius: pillRadius,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.96),
+                        color: isDark
+                            ? const Color(0xFFB8CCFF).withValues(alpha: 0.18)
+                            : Colors.white.withValues(alpha: 0.96),
                         width: 1.4,
                       ),
                       gradient: LinearGradient(
@@ -1960,9 +1999,15 @@ class _MenuGrid extends ConsumerWidget {
                         end: Alignment.bottomCenter,
                         transform: GradientRotation(angle),
                         colors: [
-                          Colors.white.withValues(alpha: 0.90),
-                          const Color(0xFFEFF3FA).withValues(alpha: 0.70),
-                          const Color(0xFFDCE4F1).withValues(alpha: 0.62),
+                          if (isDark) ...[
+                            const Color(0xE62A3857),
+                            const Color(0xE61C2943),
+                            const Color(0xF0121B2E),
+                          ] else ...[
+                            Colors.white.withValues(alpha: 0.90),
+                            const Color(0xFFEFF3FA).withValues(alpha: 0.70),
+                            const Color(0xFFDCE4F1).withValues(alpha: 0.62),
+                          ],
                         ],
                         stops: const [0, 0.52, 1],
                       ),
@@ -1970,7 +2015,9 @@ class _MenuGrid extends ConsumerWidget {
                     child: InkWell(
                       borderRadius: pillRadius,
                       splashColor: glassBlue.withValues(alpha: 0.10),
-                      highlightColor: Colors.white.withValues(alpha: 0.25),
+                      highlightColor: Colors.white.withValues(
+                        alpha: isDark ? 0.08 : 0.25,
+                      ),
                       onTap: () async {
                         await Navigator.push(
                           context,
@@ -1991,7 +2038,9 @@ class _MenuGrid extends ConsumerWidget {
                                 gradient: LinearGradient(
                                   colors: [
                                     Colors.white.withValues(alpha: 0),
-                                    Colors.white,
+                                    Colors.white.withValues(
+                                      alpha: isDark ? 0.28 : 1,
+                                    ),
                                     Colors.white.withValues(alpha: 0),
                                   ],
                                 ),
@@ -2015,13 +2064,19 @@ class _MenuGrid extends ConsumerWidget {
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                         colors: [
-                                          Colors.white.withValues(alpha: 0.96),
-                                          glassBlue.withValues(alpha: 0.13),
+                                          isDark
+                                              ? const Color(0xFF344566)
+                                              : Colors.white.withValues(
+                                                  alpha: 0.96,
+                                                ),
+                                          glassBlue.withValues(
+                                            alpha: isDark ? 0.42 : 0.13,
+                                          ),
                                         ],
                                       ),
                                       border: Border.all(
                                         color: Colors.white.withValues(
-                                          alpha: 0.95,
+                                          alpha: isDark ? 0.14 : 0.95,
                                         ),
                                       ),
                                       boxShadow: [
@@ -2036,7 +2091,9 @@ class _MenuGrid extends ConsumerWidget {
                                     ),
                                     child: Icon(
                                       item.icon,
-                                      color: glassBlue,
+                                      color: isDark
+                                          ? const Color(0xFFB8CAFF)
+                                          : glassBlue,
                                       size: 21,
                                     ),
                                   ),
@@ -2047,8 +2104,10 @@ class _MenuGrid extends ConsumerWidget {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       textAlign: TextAlign.left,
-                                      style: const TextStyle(
-                                        color: DashboardScreen.darkBlue,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : DashboardScreen.darkBlue,
                                         fontSize: 12.5,
                                         height: 1.15,
                                         fontWeight: FontWeight.w800,
@@ -2254,39 +2313,33 @@ const _memberTiles = [
 
 List<_SummaryCard> _summaryCardsForRole(
   DashboardSummaryModel summary,
-  _RoleDashboardConfig config, {
-  List<UserModel>? users,
-  List<DeviceModel>? devices,
-}) {
-  final roleCounts = _UserRoleCounts.fromUsers(users ?? const []);
+  _RoleDashboardConfig config,
+) {
   final cards = <String, _SummaryCard>{
     'members': _SummaryCard(
       title: 'Members',
-      value: roleCounts.members.toString(),
+      value: summary.totalMembers.toString(),
       icon: Icons.groups_2_outlined,
       iconColor: _DashboardCardColors.navy,
       iconBg: const Color(0xFFEAF0FF),
     ),
     'secretaries': _SummaryCard(
       title: 'Secretaries',
-      value: roleCounts.secretaries.toString(),
+      value: summary.totalSecretaries.toString(),
       icon: Icons.badge_outlined,
       iconColor: _DashboardCardColors.gold,
       iconBg: const Color(0xFFFFF3DC),
     ),
     'admins': _SummaryCard(
       title: 'Admins',
-      value: roleCounts.admins.toString(),
+      value: summary.totalAdmins.toString(),
       icon: Icons.admin_panel_settings_outlined,
       iconColor: _DashboardCardColors.plum,
       iconBg: const Color(0xFFFFE7F2),
     ),
     'pendingDevices': _SummaryCard(
       title: 'Pending User Device Approvals',
-      value: (devices ?? const <DeviceModel>[])
-          .where((device) => device.isPending)
-          .length
-          .toString(),
+      value: summary.pendingDevices.toString(),
       icon: Icons.person_add_alt_1_rounded,
       iconColor: _DashboardCardColors.teal,
       iconBg: const Color(0xFFE0F8F5),
@@ -2355,51 +2408,6 @@ List<_SummaryCard> _summaryCardsForRole(
       .map((key) => cards[key])
       .whereType<_SummaryCard>()
       .toList();
-}
-
-class _UserRoleCounts {
-  final int members;
-  final int secretaries;
-  final int admins;
-
-  const _UserRoleCounts({
-    required this.members,
-    required this.secretaries,
-    required this.admins,
-  });
-
-  factory _UserRoleCounts.fromUsers(List<UserModel> users) {
-    var members = 0;
-    var secretaries = 0;
-    var admins = 0;
-
-    for (final user in users) {
-      final role = user.role?.trim().toUpperCase().replaceAll('-', '_') ?? '';
-
-      if (const {
-        'ADMIN',
-        'SUPER_ADMIN',
-        'BOARD_ADMIN',
-        'SUPPORT_TEAM',
-      }.contains(role)) {
-        admins++;
-      } else if (const {
-        'SECRETARY',
-        'BOARD_SECRETARY',
-        'ORGANIZER',
-      }.contains(role)) {
-        secretaries++;
-      } else if (role == 'MEMBER') {
-        members++;
-      }
-    }
-
-    return _UserRoleCounts(
-      members: members,
-      secretaries: secretaries,
-      admins: admins,
-    );
-  }
 }
 
 String _greetingText() {

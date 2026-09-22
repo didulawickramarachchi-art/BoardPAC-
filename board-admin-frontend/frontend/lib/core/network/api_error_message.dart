@@ -16,6 +16,8 @@ class ApiErrorMessage {
         return 'You do not have permission to view this content. Sign in again or contact an administrator.';
       case 404:
         return 'The requested data was not found.';
+      case 429:
+        return 'Too many requests. Please wait a moment and try again.';
       case 500:
         return 'The server had a problem. Please try again later.';
     }
@@ -43,7 +45,16 @@ class ApiErrorMessage {
     }
 
     if (data is String && data.trim().isNotEmpty) {
-      return data;
+      final value = data.trim();
+      final lower = value.toLowerCase();
+      if (lower.startsWith('<!doctype html') ||
+          lower.startsWith('<html') ||
+          lower.contains('<head>') ||
+          lower.contains('<body')) {
+        return 'The API returned a web page instead of data. Check that the backend tunnel is online.';
+      }
+      // Avoid rendering unexpectedly large infrastructure responses in the UI.
+      return value.length <= 300 ? value : '${value.substring(0, 300)}…';
     }
 
     return null;

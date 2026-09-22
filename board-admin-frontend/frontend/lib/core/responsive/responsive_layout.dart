@@ -40,7 +40,7 @@ class ResponsiveAppViewport extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
 
     return ColoredBox(
-      color: const Color(0xFFE9ECF4),
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(

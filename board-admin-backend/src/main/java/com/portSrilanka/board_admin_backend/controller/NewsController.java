@@ -10,7 +10,10 @@ import java.util.List;
 @RestController @RequestMapping("/api/news") @RequiredArgsConstructor
 public class NewsController {
     private final NewsService service;
-    @GetMapping @PreAuthorize("isAuthenticated()") public ResponseEntity<List<NewsResponse>> all(Authentication a){return ResponseEntity.ok(service.getAll(a.getName()));}
+    @GetMapping @PreAuthorize("isAuthenticated()") public ResponseEntity<List<NewsResponse>> all(
+            @RequestParam(defaultValue = "15") int limit, Authentication a) {
+        return ResponseEntity.ok(service.getAll(a.getName(), limit));
+    }
     @PostMapping @PreAuthorize("hasRole('SECRETARY')") public ResponseEntity<NewsResponse> create(@RequestBody NewsRequest r,Authentication a){return ResponseEntity.ok(service.create(r,a.getName()));}
     @PutMapping("/{id}") @PreAuthorize("hasRole('SECRETARY')") public ResponseEntity<NewsResponse> update(@PathVariable Long id,@RequestBody NewsRequest r,Authentication a){return ResponseEntity.ok(service.update(id,r,a.getName()));}
     @DeleteMapping("/{id}") @PreAuthorize("hasRole('SECRETARY')") public ResponseEntity<Void> delete(@PathVariable Long id){service.delete(id);return ResponseEntity.noContent().build();}

@@ -53,8 +53,15 @@ class CommentNotifier extends StateNotifier<AsyncValue<List<CommentModel>>> {
     await load();
   }
 
-  Future<void> updateComment(int id, CommentRequest request) async { await repository.updateComment(id, request); await load(); }
-  Future<void> deleteComment(int id) async { await repository.deleteComment(id); await load(); }
+  Future<void> updateComment(int id, CommentRequest request) async {
+    await repository.updateComment(id, request);
+    await load();
+  }
+
+  Future<void> deleteComment(int id) async {
+    await repository.deleteComment(id);
+    await load();
+  }
 
   Future<void> react(int commentId, String reactionType) async {
     await repository.react(commentId, reactionType);
@@ -99,8 +106,15 @@ class MeetingCommentNotifier
     await load();
   }
 
-  Future<void> updateComment(int id, CommentRequest request) async { await repository.updateComment(id, request); await load(); }
-  Future<void> deleteComment(int id) async { await repository.deleteComment(id); await load(); }
+  Future<void> updateComment(int id, CommentRequest request) async {
+    await repository.updateComment(id, request);
+    await load();
+  }
+
+  Future<void> deleteComment(int id) async {
+    await repository.deleteComment(id);
+    await load();
+  }
 
   Future<void> reply(int commentId, String message) async {
     await repository.reply(commentId, message);

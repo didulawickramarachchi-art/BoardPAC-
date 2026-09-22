@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface CommentShareRepository extends JpaRepository<CommentShare, Long> {
     List<CommentShare> findBySharedToId(Long userId);
+    long countBySharedToId(Long userId);
 }

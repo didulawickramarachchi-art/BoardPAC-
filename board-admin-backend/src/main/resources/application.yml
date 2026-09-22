@@ -71,6 +71,12 @@ app:
     frontend-url: ${PASSWORD_RESET_FRONTEND_URL:http://localhost:8080/#/reset-password}
     expiration-minutes: ${PASSWORD_RESET_EXPIRATION_MINUTES:30}
 
+server:
+  compression:
+    enabled: true
+    mime-types: application/json,text/html,text/plain,text/css,application/javascript
+    min-response-size: 1024
+
 supabase:
   url: ${SUPABASE_URL:}
   key: ${SUPABASE_KEY:}

@@ -7,14 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "axios": "latest",
     "lucide-react": "latest",
+    "pdfjs-dist": "^5.4.296",
     "react": "latest",
     "react-dom": "latest",
+    "react-pdf": "^10.2.0",
     "react-router-dom": "latest",
     "vite": "latest"
   },
@@ -23,6 +26,7 @@
     "eslint": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
-    "globals": "latest"
+    "globals": "latest",
+    "vitest": "^3.2.4"
   }
 }

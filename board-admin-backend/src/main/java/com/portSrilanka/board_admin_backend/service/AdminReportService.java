@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -40,9 +42,10 @@ public class AdminReportService {
                 .build();
     }
 
-    public List<PendingApprovalReportResponse> pendingApprovalReport() {
+    public List<PendingApprovalReportResponse> pendingApprovalReport(String username, boolean canViewAll) {
         return paperApprovalRepository.findAll().stream()
                 .filter(pa -> pa.getApprovalStatus() == ApprovalStatus.PENDING)
+                .filter(pa -> canViewAll || pa.getUser().getUsername().equals(username))
                 .map(this::mapPending)
                 .toList();
     }
@@ -64,6 +67,13 @@ public class AdminReportService {
                 .userId(pa.getUser().getId())
                 .username(pa.getUser().getUsername())
                 .meetingTitle(pa.getPaper().getMeeting().getTitle())
+                .submittedAt(pa.getCreatedAt())
+                .approvalAgeDays(approvalAgeDays(pa.getCreatedAt()))
                 .build();
+    }
+
+    private long approvalAgeDays(LocalDateTime submittedAt) {
+        if (submittedAt == null) return 0;
+        return Math.max(0, ChronoUnit.DAYS.between(submittedAt, LocalDateTime.now()));
     }
 }

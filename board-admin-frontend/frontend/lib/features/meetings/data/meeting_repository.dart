@@ -18,6 +18,13 @@ class MeetingRepository {
         .toList();
   }
 
+  Future<List<MeetingModel>> getMeetingsForCurrentMember() async {
+    final response = await dio.get('/meetings/member');
+    return (response.data as List)
+        .map((item) => MeetingModel.fromJson(item))
+        .toList();
+  }
+
   Future<MeetingModel> createMeeting(MeetingRequest request) async {
     final response = await dio.post('/meetings', data: request.toJson());
     return MeetingModel.fromJson(response.data);
@@ -40,32 +47,6 @@ class MeetingRepository {
     return (response.data as List)
         .map((e) => MeetingParticipantModel.fromJson(e))
         .toList();
-  }
-
-  Future<List<MeetingModel>> getMeetingsForMember({
-    required int userId,
-    required Set<int> privilegedSubcategoryIds,
-    required Set<String> privilegedSubcategoryNames,
-  }) async {
-    if (privilegedSubcategoryIds.isEmpty) return <MeetingModel>[];
-
-    final responses = await Future.wait(
-      privilegedSubcategoryIds.map(
-        (subcategoryId) => dio.get('/meetings/subcategory/$subcategoryId'),
-      ),
-    );
-
-    final meetingsById = <int, MeetingModel>{};
-    for (final response in responses) {
-      for (final item in response.data as List) {
-        final meeting = MeetingModel.fromJson(item);
-        meetingsById[meeting.id] = meeting;
-      }
-    }
-
-    final meetings = meetingsById.values.toList()
-      ..sort((a, b) => a.meetingDateTime.compareTo(b.meetingDateTime));
-    return meetings;
   }
 
   Future<List<ParticipantOptionModel>> getParticipantOptions(

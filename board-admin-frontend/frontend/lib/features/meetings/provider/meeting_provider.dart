@@ -4,8 +4,6 @@ import '../../../core/auth/role_access.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/notifications/device_notification_service.dart';
 import '../../auth/provider/auth_provider.dart';
-import '../../privileges/data/privilege_repository.dart';
-import '../../privileges/provider/privilege_provider.dart';
 import '../data/meeting_repository.dart';
 import '../model/meeting_model.dart';
 import '../model/meeting_participant_model.dart';
@@ -27,7 +25,6 @@ final meetingListProvider =
       final auth = ref.watch(authProvider);
       return MeetingNotifier(
         ref.read(meetingRepositoryProvider),
-        ref.read(privilegeRepositoryProvider),
         ref.read(notificationRepositoryProvider),
         role: auth.role,
         userId: auth.userId,
@@ -36,14 +33,12 @@ final meetingListProvider =
 
 class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
   final MeetingRepository repository;
-  final PrivilegeRepository privilegeRepository;
   final NotificationRepository notificationRepository;
   final String? role;
   final int? userId;
 
   MeetingNotifier(
     this.repository,
-    this.privilegeRepository,
     this.notificationRepository, {
     required this.role,
     required this.userId,
@@ -58,20 +53,7 @@ class MeetingNotifier extends StateNotifier<AsyncValue<List<MeetingModel>>> {
         if (memberId == null) {
           data = <MeetingModel>[];
         } else {
-          final memberPrivileges = await privilegeRepository
-              .getPrivilegesByUser(memberId);
-          data = await repository.getMeetingsForMember(
-            userId: memberId,
-            privilegedSubcategoryIds: memberPrivileges
-                .map((privilege) => privilege.subcategoryId)
-                .toSet(),
-            privilegedSubcategoryNames: memberPrivileges
-                .map(
-                  (privilege) => privilege.subcategoryName.trim().toLowerCase(),
-                )
-                .where((name) => name.isNotEmpty)
-                .toSet(),
-          );
+          data = await repository.getMeetingsForCurrentMember();
         }
       } else {
         data = await repository.getMeetings();

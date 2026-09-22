@@ -8,17 +8,22 @@ import com.portSrilanka.board_admin_backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service @RequiredArgsConstructor
 public class NewsService {
+    private static final int MAX_IMAGES = 10;
+    private static final int MAX_IMAGE_URL_LENGTH = 2048;
+
     private final NewsPostRepository posts; private final NewsCommentRepository comments;
     private final NewsReactionRepository reactions; private final UserRepository users;
 
     @Transactional(readOnly = true)
-    public List<NewsResponse> getAll(String username) {
-        User current = user(username); List<NewsPost> all = posts.findAllByOrderByDisplayOrderDescCreatedAtDesc();
+    public List<NewsResponse> getAll(String username, int limit) {
+        User current = user(username); List<NewsPost> all = posts.findAllByOrderByDisplayOrderDescCreatedAtDesc(
+                PageRequest.of(0, Math.min(Math.max(limit, 1), 100)));
         if (all.isEmpty()) return List.of();
         List<Long> ids = all.stream().map(NewsPost::getId).toList();
         Map<Long,List<NewsComment>> cs = comments.findByPostIdInOrderByCreatedAtAsc(ids).stream().collect(Collectors.groupingBy(x -> x.getPost().getId()));
@@ -31,14 +36,17 @@ public class NewsService {
         validate(title, content);
         int nextOrder = posts.findAll().stream().map(NewsPost::getDisplayOrder).filter(Objects::nonNull).max(Integer::compareTo).orElse(0) + 1;
         List<String> imageUrls = images(request);
-        NewsPost post = posts.save(NewsPost.builder().title(title).content(content).imageUrl(imageUrls.isEmpty() ? "" : imageUrls.get(0)).imageUrls(imageUrls).displayOrder(nextOrder).createdBy(user(username)).build());
+        NewsPost post = posts.save(NewsPost.builder().title(title).content(content).badgeLabel(badge(request.getBadgeLabel())).imageUrl(imageUrls.isEmpty() ? "" : imageUrls.get(0)).imageUrls(imageUrls).displayOrder(nextOrder).createdBy(user(username)).build());
         return map(post, post.getCreatedBy().getId(), List.of(), List.of());
     }
     @Transactional public NewsResponse update(Long id, NewsRequest request, String username) {
         NewsPost post = post(id); String title=clean(request.getTitle()), content=clean(request.getContent());
         validate(title, content);
         List<String> imageUrls = images(request);
-        post.setTitle(title); post.setContent(content); post.setImageUrl(imageUrls.isEmpty() ? "" : imageUrls.get(0)); post.setImageUrls(imageUrls);
+        post.setTitle(title); post.setContent(content); post.setBadgeLabel(badge(request.getBadgeLabel())); post.setImageUrl(imageUrls.isEmpty() ? "" : imageUrls.get(0));
+        if (post.getImageUrls() == null) post.setImageUrls(new ArrayList<>());
+        else post.getImageUrls().clear();
+        post.getImageUrls().addAll(imageUrls);
         posts.save(post); return one(post,user(username).getId());
     }
     @Transactional public void delete(Long id) { posts.delete(post(id)); }
@@ -68,11 +76,17 @@ public class NewsService {
         List<String> imageUrls = p.getImageUrls() == null || p.getImageUrls().isEmpty()
                 ? (clean(p.getImageUrl()).isEmpty() ? List.of() : List.of(p.getImageUrl()))
                 : List.copyOf(p.getImageUrls());
-        return NewsResponse.builder().id(p.getId()).title(p.getTitle()).content(p.getContent()).imageUrl(imageUrls.isEmpty() ? null : imageUrls.get(0)).imageUrls(imageUrls).createdByUserId(by.getId()).createdByName(name(by)).createdByProfilePictureUrl(by.getProfilePictureUrl()).createdAt(p.getCreatedAt()).reactionCounts(counts).currentReaction(mine).comments(cs.stream().map(c->NewsResponse.Comment.builder().id(c.getId()).userId(c.getUser().getId()).userName(name(c.getUser())).profilePictureUrl(c.getUser().getProfilePictureUrl()).message(c.getMessage()).createdAt(c.getCreatedAt()).build()).toList()).build();
+        return NewsResponse.builder().id(p.getId()).title(p.getTitle()).content(p.getContent()).badgeLabel(badge(p.getBadgeLabel())).imageUrl(imageUrls.isEmpty() ? null : imageUrls.get(0)).imageUrls(imageUrls).createdByUserId(by.getId()).createdByName(name(by)).createdByProfilePictureUrl(by.getProfilePictureUrl()).createdAt(p.getCreatedAt()).reactionCounts(counts).currentReaction(mine).comments(cs.stream().map(c->NewsResponse.Comment.builder().id(c.getId()).userId(c.getUser().getId()).userName(name(c.getUser())).profilePictureUrl(c.getUser().getProfilePictureUrl()).message(c.getMessage()).createdAt(c.getCreatedAt()).build()).toList()).build();
     }
     private User user(String username) { return users.findByUsername(username).orElseThrow(()->new ResourceNotFoundException("User not found")); }
     private NewsPost post(Long id) { return posts.findById(id).orElseThrow(()->new ResourceNotFoundException("News post not found")); }
     private String clean(String s) { return s == null ? "" : s.trim(); }
+    private String badge(String value) {
+        String cleaned = clean(value);
+        if (cleaned.isEmpty()) return "BOARD NEWS";
+        if (cleaned.length() > 30) throw new BadRequestException("News badge must be 30 characters or fewer");
+        return cleaned.toUpperCase(Locale.ROOT);
+    }
     private void validate(String title, String content) {
         if (title.isEmpty() || content.isEmpty()) throw new BadRequestException("News content is required");
         if (title.length() > 300) throw new BadRequestException("News headline must be 300 characters or fewer");
@@ -82,7 +96,10 @@ public class NewsService {
         List<String> values = request.getImageUrls();
         if (values == null) values = clean(request.getImageUrl()).isEmpty() ? List.of() : List.of(request.getImageUrl());
         List<String> cleaned = values.stream().map(this::clean).filter(s -> !s.isEmpty()).distinct().toList();
-        if (cleaned.size() > 10) throw new BadRequestException("A news post can contain up to 10 images");
+        if (cleaned.size() > MAX_IMAGES) throw new BadRequestException("A news post can contain up to 10 images");
+        if (cleaned.stream().anyMatch(url -> url.length() > MAX_IMAGE_URL_LENGTH)) {
+            throw new BadRequestException("Each news image URL must be 2,048 characters or fewer");
+        }
         return new ArrayList<>(cleaned);
     }
     private String name(User u) { return u.getDisplayName()!=null&&!u.getDisplayName().isBlank()?u.getDisplayName():(u.getFirstName()+" "+u.getLastName()).trim(); }

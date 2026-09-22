@@ -85,10 +85,27 @@ class _MemberDashboardHomeState extends ConsumerState<MemberDashboardHome> {
   @override
   Widget build(BuildContext context) {
     final meetingsAsync = ref.watch(meetingListProvider);
+    final meetings = meetingsAsync.valueOrNull ?? const <MeetingModel>[];
+    final boards = _boardNames(meetings);
+    final selectedBoard = boards.contains(_selectedBoard)
+        ? _selectedBoard
+        : 'All';
+    final filtered = selectedBoard == 'All'
+        ? meetings
+        : meetings
+              .where((meeting) => _boardName(meeting) == selectedBoard)
+              .toList();
+    final scheduled = [...filtered]
+      ..sort((a, b) => a.meetingDateTime.compareTo(b.meetingDateTime));
+    final unreadByBoard = _unreadCountsByBoard(
+      meetings,
+      widget.notifications.valueOrNull ?? const <NotificationModel>[],
+    );
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: DecoratedBox(
-        decoration: AppGlassDecoration.background,
+        decoration: AppGlassDecoration.backgroundFor(context),
         child: SafeArea(
           top: false,
           child: Column(
@@ -100,102 +117,82 @@ class _MemberDashboardHomeState extends ConsumerState<MemberDashboardHome> {
                 onRefresh: _refresh,
               ),
               Expanded(
-                child: meetingsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => _DashboardError(
-                    message: ApiErrorMessage.from(error),
-                    onRetry: _refresh,
-                  ),
-                  data: (meetings) {
-                    final boards = _boardNames(meetings);
-                    if (!boards.contains(_selectedBoard)) {
-                      _selectedBoard = 'All';
-                    }
-                    final filtered = _selectedBoard == 'All'
-                        ? meetings
-                        : meetings
-                              .where((m) => _boardName(m) == _selectedBoard)
-                              .toList();
-                    final scheduled = [...filtered]
-                      ..sort(
-                        (a, b) =>
-                            a.meetingDateTime.compareTo(b.meetingDateTime),
-                      );
-                    final unreadByBoard = _unreadCountsByBoard(
-                      meetings,
-                      widget.notifications.valueOrNull ??
-                          const <NotificationModel>[],
-                    );
-                    return RefreshIndicator(
-                      onRefresh: _refresh,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
-                        children: [
-                          _WelcomeCard(summary: widget.summary),
-                          const SizedBox(height: 20),
-                          const _SectionHeading(
-                            title: 'My workspace',
-                            subtitle:
-                                'Everything you can access in one dashboard',
-                          ),
-                          const SizedBox(height: 10),
-                          const _MemberWorkspaceGrid(),
-                          const SizedBox(height: 22),
-                          const _SectionHeading(
-                            title: 'Meetings',
-                            subtitle:
-                                'Your accessible boards and meeting packs',
-                          ),
-                          const SizedBox(height: 10),
-                          _BoardSelector(
-                            boards: boards,
-                            selected: _selectedBoard,
-                            unreadCounts: unreadByBoard,
-                            onSelected: _selectBoard,
-                          ),
-                          const SizedBox(height: 12),
-                          _MeetingStrip(meetings: scheduled),
-                          const SizedBox(height: 22),
-                          _CalendarPanel(
-                            visibleMonth: _visibleMonth,
-                            selectedDay: _selectedDay,
-                            meetings: filtered,
-                            onPrevious: () => setState(
-                              () => _visibleMonth = DateTime(
-                                _visibleMonth.year,
-                                _visibleMonth.month - 1,
-                              ),
-                            ),
-                            onNext: () => setState(
-                              () => _visibleMonth = DateTime(
-                                _visibleMonth.year,
-                                _visibleMonth.month + 1,
-                              ),
-                            ),
-                            onSelectDay: (day) =>
-                                setState(() => _selectedDay = day),
-                            onOpenCalendar: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MemberCalendarScreen(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          _RecentDocuments(meetings: filtered),
-                          const SizedBox(height: 22),
-                          _MemberWhatsNew(
-                            summary: widget.summary,
-                            notifications: widget.notifications,
-                            meetingIds: meetings.map((m) => m.id).toSet(),
-                          ),
-                          const SizedBox(height: 22),
-                          const NewsFeedSection(canCreate: false),
-                        ],
+                child: RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
+                    children: [
+                      if (meetingsAsync.isLoading) ...[
+                        const LinearProgressIndicator(minHeight: 3),
+                        const SizedBox(height: 13),
+                      ],
+                      if (meetingsAsync.hasError) ...[
+                        _DashboardError(
+                          message: ApiErrorMessage.from(meetingsAsync.error!),
+                          onRetry: _refresh,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      _WelcomeCard(summary: widget.summary),
+                      const SizedBox(height: 20),
+                      const _SectionHeading(
+                        title: 'My workspace',
+                        subtitle: 'Everything you can access in one dashboard',
                       ),
-                    );
-                  },
+                      const SizedBox(height: 10),
+                      const _MemberWorkspaceGrid(),
+                      const SizedBox(height: 22),
+                      const _SectionHeading(
+                        title: 'Meetings',
+                        subtitle: 'Your accessible boards and meeting packs',
+                      ),
+                      const SizedBox(height: 10),
+                      _BoardSelector(
+                        boards: boards,
+                        selected: selectedBoard,
+                        unreadCounts: unreadByBoard,
+                        onSelected: _selectBoard,
+                      ),
+                      const SizedBox(height: 12),
+                      _MeetingStrip(meetings: scheduled),
+                      const SizedBox(height: 22),
+                      _CalendarPanel(
+                        visibleMonth: _visibleMonth,
+                        selectedDay: _selectedDay,
+                        meetings: filtered,
+                        onPrevious: () => setState(
+                          () => _visibleMonth = DateTime(
+                            _visibleMonth.year,
+                            _visibleMonth.month - 1,
+                          ),
+                        ),
+                        onNext: () => setState(
+                          () => _visibleMonth = DateTime(
+                            _visibleMonth.year,
+                            _visibleMonth.month + 1,
+                          ),
+                        ),
+                        onSelectDay: (day) =>
+                            setState(() => _selectedDay = day),
+                        onOpenCalendar: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MemberCalendarScreen(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      _RecentDocuments(meetings: filtered),
+                      const SizedBox(height: 22),
+                      _MemberWhatsNew(
+                        summary: widget.summary,
+                        notifications: widget.notifications,
+                        meetingIds: meetings.map((m) => m.id).toSet(),
+                      ),
+                      const SizedBox(height: 22),
+                      const DeferredNewsFeedSection(canCreate: false),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -1487,6 +1484,7 @@ class _MetricTile extends StatelessWidget {
     decoration: AppGlassDecoration.surface(
       borderRadius: BorderRadius.circular(16),
       tint: const Color(0xFF244B9B),
+      darkMode: Theme.of(context).brightness == Brightness.dark,
     ),
     child: Row(
       children: [
@@ -1528,6 +1526,7 @@ class _EmptyPanel extends StatelessWidget {
     padding: const EdgeInsets.all(24),
     decoration: AppGlassDecoration.surface(
       borderRadius: BorderRadius.circular(18),
+      darkMode: Theme.of(context).brightness == Brightness.dark,
     ),
     child: Column(
       children: [
@@ -1574,7 +1573,7 @@ void _showMemberNotifications(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFFF5F7FC),
+    backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (context) => SafeArea(
       child: SizedBox(
         height: MediaQuery.sizeOf(context).height * 0.58,

@@ -80,12 +80,13 @@ class AuthInterceptor extends Interceptor {
     final client = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 20),
-        receiveTimeout: const Duration(seconds: 20),
-        sendTimeout: const Duration(seconds: 20),
+        connectTimeout: const Duration(seconds: 45),
+        receiveTimeout: const Duration(minutes: 2),
+        sendTimeout: const Duration(seconds: 45),
         headers: const {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       ),
     );

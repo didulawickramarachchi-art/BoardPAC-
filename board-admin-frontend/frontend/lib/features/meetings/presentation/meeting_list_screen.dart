@@ -77,7 +77,6 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
   static const Color primaryBlue = Color(0xFF12275B);
   static const Color darkBlue = Color(0xFF00184A);
   static const Color gold = Color(0xFFFFB52E);
-  static const Color bgColor = Color(0xFFF6F7FB);
 
   @override
   Widget build(BuildContext context) {
@@ -98,13 +97,12 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
 
     if (!access.canViewMeetings) {
       return const Scaffold(
-        backgroundColor: bgColor,
         body: Center(child: Text('You do not have access to meetings.')),
       );
     }
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
+import '../../../core/theme/theme_mode_provider.dart';
 import '../../auth/provider/auth_provider.dart';
 import 'setting_group_screen.dart';
 
@@ -8,7 +9,6 @@ class SettingHomeScreen extends ConsumerWidget {
   const SettingHomeScreen({super.key});
 
   static const Color navy = Color(0xFF14275B);
-  static const Color bgColor = Color(0xFFF6F7FC);
   static const Color cardColor = Colors.white;
   static const Color iconBg = Color(0xFFE9ECF3);
   static const Color arrowBg = Color(0xFFFFF1D8);
@@ -17,11 +17,11 @@ class SettingHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
+    final themeMode = ref.watch(themeModeProvider);
     final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
 
     if (!access.canManageSettings) {
       return const Scaffold(
-        backgroundColor: bgColor,
         body: Center(child: Text('You do not have access to settings.')),
       );
     }
@@ -72,7 +72,7 @@ class SettingHomeScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: navy,
         elevation: 0,
@@ -86,6 +86,43 @@ class SettingHomeScreen extends ConsumerWidget {
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          PopupMenuButton<ThemeMode>(
+            tooltip: 'Choose appearance',
+            initialValue: themeMode,
+            icon: Icon(
+              themeMode == ThemeMode.dark
+                  ? Icons.dark_mode_rounded
+                  : themeMode == ThemeMode.light
+                  ? Icons.light_mode_rounded
+                  : Icons.brightness_auto_rounded,
+            ),
+            onSelected: ref.read(themeModeProvider.notifier).setMode,
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: ThemeMode.system,
+                child: ListTile(
+                  leading: Icon(Icons.brightness_auto_rounded),
+                  title: Text('Use system setting'),
+                ),
+              ),
+              PopupMenuItem(
+                value: ThemeMode.light,
+                child: ListTile(
+                  leading: Icon(Icons.light_mode_rounded),
+                  title: Text('Light mode'),
+                ),
+              ),
+              PopupMenuItem(
+                value: ThemeMode.dark,
+                child: ListTile(
+                  leading: Icon(Icons.dark_mode_rounded),
+                  title: Text('Dark mode'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         top: false,
@@ -112,7 +149,7 @@ class SettingHomeScreen extends ConsumerWidget {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: cardColor,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
@@ -128,7 +165,9 @@ class SettingHomeScreen extends ConsumerWidget {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: iconBg,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(item.icon, color: navy, size: 25),
@@ -140,8 +179,8 @@ class SettingHomeScreen extends ConsumerWidget {
                         children: [
                           Text(
                             item.title,
-                            style: const TextStyle(
-                              color: navy,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontSize: 15.5,
                               fontWeight: FontWeight.w700,
                             ),
@@ -149,8 +188,10 @@ class SettingHomeScreen extends ConsumerWidget {
                           const SizedBox(height: 5),
                           Text(
                             item.subtitle,
-                            style: const TextStyle(
-                              color: subTextColor,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                               fontSize: 12.5,
                               fontWeight: FontWeight.w500,
                             ),

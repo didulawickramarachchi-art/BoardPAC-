@@ -106,6 +106,12 @@ public class PaperService {
                 .toList();
     }
 
+    public PaperResponse getById(Long paperId) {
+        Paper paper = paperRepository.findById(paperId)
+                .orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+        return mapPaper(paper);
+    }
+
     public List<PaperResponse> getByAgendaItem(Long agendaItemId) {
         return paperRepository.findByAgendaItemId(agendaItemId)
                 .stream()

@@ -35,7 +35,6 @@ class _AccessValidationScreenState
   String channel = 'WEB';
 
   static const Color navy = Color(0xFF14275B);
-  static const Color bgColor = Color(0xFFF6F7FC);
   static const Color cardColor = Colors.white;
   static const Color iconBg = Color(0xFFE9ECF3);
   static const Color subTextColor = Color(0xFF6E7FA8);
@@ -62,7 +61,6 @@ class _AccessValidationScreenState
 
     if (!access.isAdmin) {
       return const Scaffold(
-        backgroundColor: bgColor,
         body: Center(
           child: Text('You do not have access to access validation.'),
         ),
@@ -76,7 +74,7 @@ class _AccessValidationScreenState
         : ref.watch(accessValidationProvider(submittedArgs!));
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: navy,
         elevation: 0,

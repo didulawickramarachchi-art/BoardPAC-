@@ -75,7 +75,7 @@ class _AssignPrivilegeScreenState extends ConsumerState<AssignPrivilegeScreen> {
     final subcategoriesAsync = ref.watch(subcategoryListProvider);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

@@ -218,7 +218,7 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
     final subcategoriesAsync = ref.watch(subcategoryListProvider);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

@@ -48,7 +48,9 @@ class CommentModel {
       visibility: json['visibility'] ?? 'ALL_PARTICIPANTS',
       pageNumber: (json['pageNumber'] as num?)?.toInt(),
       ownedByCurrentUser: json['ownedByCurrentUser'] ?? false,
-      selectedUserIds: (json['selectedUserIds'] as List? ?? const []).map((e) => (e as num).toInt()).toList(),
+      selectedUserIds: (json['selectedUserIds'] as List? ?? const [])
+          .map((e) => (e as num).toInt())
+          .toList(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       reactionCount: (json['reactionCount'] as num?)?.toInt() ?? 0,

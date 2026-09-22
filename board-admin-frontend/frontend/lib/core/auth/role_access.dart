@@ -155,7 +155,8 @@ class RoleAccess {
   bool get canAnnotatePapers =>
       _profileKey == 'BOARD_SECRETARY' || _profileKey == 'MEMBER';
 
-  bool get canViewReports => isAdmin;
+  bool get canViewPendingApprovals => isAdmin || canApprovePapers;
+  bool get canViewReports => isAdmin || canApprovePapers;
   bool get canManageSettings => isAdmin;
   bool get canManageBoardSetup => isSecretary && canManageMeetings;
   bool get canViewCategories => isAdmin || isSecretary || isMember;

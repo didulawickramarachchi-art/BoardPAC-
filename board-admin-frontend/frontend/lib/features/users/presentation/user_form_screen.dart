@@ -128,7 +128,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final fullName = '${widget.user.firstName} ${widget.user.lastName}'.trim();
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

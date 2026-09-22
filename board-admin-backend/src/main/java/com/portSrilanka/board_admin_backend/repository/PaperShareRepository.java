@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface PaperShareRepository extends JpaRepository<PaperShare, Long> {
     List<PaperShare> findBySharedToId(Long userId);
+    long countBySharedToId(Long userId);
 }

@@ -9,6 +9,10 @@ import java.time.LocalDateTime;
 @Builder
 public class DashboardSummaryResponse {
     private long totalUsers;
+    private long totalMembers;
+    private long totalSecretaries;
+    private long totalAdmins;
+    private long pendingDevices;
     private long totalMeetings;
     private long totalCirculars;
     private long pendingApprovals;
