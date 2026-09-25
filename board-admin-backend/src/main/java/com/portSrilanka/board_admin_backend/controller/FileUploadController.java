@@ -1,6 +1,6 @@
 package com.portSrilanka.board_admin_backend.controller;
 
-import com.portSrilanka.board_admin_backend.service.SupabaseStorageService;
+import com.portSrilanka.board_admin_backend.service.FileStorageService;
 import com.portSrilanka.board_admin_backend.service.PaperStoragePathService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +15,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class FileUploadController {
 
-    private final SupabaseStorageService supabaseStorageService;
+    private final FileStorageService fileStorageService;
     private final PaperStoragePathService paperStoragePathService;
 
     @PostMapping("/upload")
@@ -37,7 +37,7 @@ public class FileUploadController {
                     ? paperStoragePathService.buildPath(
                             meetingId, paperId, file.getOriginalFilename())
                     : null;
-            String fileUrl = supabaseStorageService.uploadFile(file, objectPath);
+            String fileUrl = fileStorageService.uploadFile(file, objectPath);
             if (objectPath == null) {
                 return ResponseEntity.ok(Map.of("filePath", fileUrl));
             }

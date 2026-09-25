@@ -19,7 +19,9 @@ application-secrets.properties
 secrets.properties
 
 # Logs
+/uploads/
 *.log
+/logs/
 errorlog.txt
 
 # OS
