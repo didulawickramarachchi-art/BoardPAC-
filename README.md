@@ -6,6 +6,7 @@ BoardPAC is a cross-platform board management application built with Flutter. It
     src="https://github.com/user-attachments/assets/027fe728-69cb-4fe5-9d7b-fb75351ef399"
     alt="BoardPAC Logo"
     width="220"
+    style="border-radius: 16px;"
   />
 
   <h1>BoardPAC</h1>
