@@ -1,6 +1,7 @@
 # BoardPAC
 
 BoardPAC is a cross-platform board management application built with Flutter. It provides secure, role-based tools for administrators, board secretaries, and board members to manage meetings, agendas, papers, approvals, and organizational resources.
+<img width="1081" height="1024" alt="logo" src="https://github.com/user-attachments/assets/027fe728-69cb-4fe5-9d7b-fb75351ef399" />
 
 ## Features
 
