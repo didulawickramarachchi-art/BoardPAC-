@@ -6,6 +6,7 @@ import 'package:frontend/features/agendas/model/agenda_item_model.dart';
 import 'package:frontend/features/agendas/provider/agenda_provider.dart';
 
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../model/paper_request.dart';
 import '../provider/paper_provider.dart';
 
@@ -36,10 +37,6 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
   String? selectedFilePath;
 
   static const Color navy = Color(0xFF14275B);
-  static const Color cardColor = Colors.white;
-  static const Color iconBg = Color(0xFFE9ECF3);
-  static const Color arrowBg = Color(0xFFFFF1D8);
-  static const Color subTextColor = Color(0xFF6E7FA8);
 
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
@@ -149,234 +146,256 @@ class _PaperFormScreenState extends ConsumerState<PaperFormScreen> {
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 30),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                agendaItemsAsync.when(
-                  data: (items) => _AgendaItemDropdown(
-                    items: items,
-                    value: selectedAgendaItemId,
+      body: DecoratedBox(
+        decoration: AppGlassDecoration.backgroundFor(context),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 30),
+          children: [
+            AppGlassSurface(
+              enableBackdropBlur: false,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  agendaItemsAsync.when(
+                    data: (items) => _AgendaItemDropdown(
+                      items: items,
+                      value: selectedAgendaItemId,
+                      onChanged: (value) {
+                        setState(() => selectedAgendaItemId = value);
+                      },
+                    ),
+                    loading: () => const _LoadingDropdownField(),
+                    error: (error, _) => _AgendaLoadError(
+                      message: 'Failed to load agenda items',
+                      onRetry: () {
+                        ref.invalidate(agendaItemProvider(widget.meetingId));
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  DropdownButtonFormField<String>(
+                    initialValue: paperType,
+                    dropdownColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHigh,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Paper Type',
+                      prefixIcon: Icon(
+                        Icons.category_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: .6),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 1.4,
+                        ),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'APPROVAL',
+                        child: Text('Approval'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'INFORMATION',
+                        child: Text('Information'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'DISCUSSION_ITEM',
+                        child: Text('Discussion Item'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'DISCUSSION_PAPER',
+                        child: Text('Discussion Paper'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'SUPPORTING_DOCUMENT',
+                        child: Text('Supporting Document'),
+                      ),
+                    ],
                     onChanged: (value) {
-                      setState(() => selectedAgendaItemId = value);
+                      if (value != null) {
+                        setState(() => paperType = value);
+                      }
                     },
                   ),
-                  loading: () => const _LoadingDropdownField(),
-                  error: (error, _) => _AgendaLoadError(
-                    message: 'Failed to load agenda items',
-                    onRetry: () {
-                      ref.invalidate(agendaItemProvider(widget.meetingId));
+
+                  const SizedBox(height: 14),
+
+                  _ModernTextField(
+                    controller: _titleController,
+                    hintText: 'Paper Title',
+                    icon: Icons.description_rounded,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _ModernTextField(
+                    controller: _referenceController,
+                    hintText: 'Reference Number',
+                    icon: Icons.confirmation_number_rounded,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: _pickFile,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: .6),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.upload_file_rounded,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Choose PDF or Image',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _fileNameController.text.isEmpty
+                                      ? 'Upload your paper document'
+                                      : _fileNameController.text,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _ModernTextField(
+                    controller: _fileNameController,
+                    hintText: 'File Name',
+                    icon: Icons.insert_drive_file_rounded,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _ModernTextField(
+                    controller: _versionController,
+                    hintText: 'Version Number',
+                    icon: Icons.system_update_alt_rounded,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _ModernTextField(
+                    controller: _disclaimerController,
+                    hintText: 'Disclaimer Message',
+                    icon: Icons.warning_amber_rounded,
+                    maxLines: 3,
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  _ModernSwitchTile(
+                    title: 'Requires Approval',
+                    subtitle: 'Paper requires approval process',
+                    value: requiresApproval,
+                    icon: Icons.verified_rounded,
+                    onChanged: (value) {
+                      setState(() => requiresApproval = value);
                     },
                   ),
-                ),
 
-                const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
-                DropdownButtonFormField<String>(
-                  initialValue: paperType,
-                  decoration: InputDecoration(
-                    labelText: 'Paper Type',
-                    prefixIcon: const Icon(Icons.category_rounded, color: navy),
-                    filled: true,
-                    fillColor: iconBg.withValues(alpha: 0.5),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: navy, width: 1.4),
+                  _ModernSwitchTile(
+                    title: 'Main Paper',
+                    subtitle: 'Set as the main meeting paper',
+                    value: isMainPaper,
+                    icon: Icons.star_rounded,
+                    onChanged: (value) {
+                      setState(() => isMainPaper = value);
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: AppButton(
+                      label: 'Create Paper',
+                      onPressed: _save,
+                      isLoading: isSaving,
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'APPROVAL',
-                      child: Text('Approval'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'INFORMATION',
-                      child: Text('Information'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'DISCUSSION_ITEM',
-                      child: Text('Discussion Item'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'DISCUSSION_PAPER',
-                      child: Text('Discussion Paper'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'SUPPORTING_DOCUMENT',
-                      child: Text('Supporting Document'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => paperType = value);
-                    }
-                  },
-                ),
-
-                const SizedBox(height: 14),
-
-                _ModernTextField(
-                  controller: _titleController,
-                  hintText: 'Paper Title',
-                  icon: Icons.description_rounded,
-                ),
-
-                const SizedBox(height: 14),
-
-                _ModernTextField(
-                  controller: _referenceController,
-                  hintText: 'Reference Number',
-                  icon: Icons.confirmation_number_rounded,
-                ),
-
-                const SizedBox(height: 16),
-
-                InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: _pickFile,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: iconBg.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: navy.withValues(alpha: 0.08)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: arrowBg,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.upload_file_rounded,
-                            color: navy,
-                            size: 26,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Choose PDF or Image',
-                                style: TextStyle(
-                                  color: navy,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _fileNameController.text.isEmpty
-                                    ? 'Upload your paper document'
-                                    : _fileNameController.text,
-                                style: const TextStyle(
-                                  color: subTextColor,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: navy,
-                          size: 18,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                _ModernTextField(
-                  controller: _fileNameController,
-                  hintText: 'File Name',
-                  icon: Icons.insert_drive_file_rounded,
-                ),
-
-                const SizedBox(height: 14),
-
-                _ModernTextField(
-                  controller: _versionController,
-                  hintText: 'Version Number',
-                  icon: Icons.system_update_alt_rounded,
-                  keyboardType: TextInputType.number,
-                ),
-
-                const SizedBox(height: 14),
-
-                _ModernTextField(
-                  controller: _disclaimerController,
-                  hintText: 'Disclaimer Message',
-                  icon: Icons.warning_amber_rounded,
-                  maxLines: 3,
-                ),
-
-                const SizedBox(height: 18),
-
-                _ModernSwitchTile(
-                  title: 'Requires Approval',
-                  subtitle: 'Paper requires approval process',
-                  value: requiresApproval,
-                  icon: Icons.verified_rounded,
-                  onChanged: (value) {
-                    setState(() => requiresApproval = value);
-                  },
-                ),
-
-                const SizedBox(height: 12),
-
-                _ModernSwitchTile(
-                  title: 'Main Paper',
-                  subtitle: 'Set as the main meeting paper',
-                  value: isMainPaper,
-                  icon: Icons.star_rounded,
-                  onChanged: (value) {
-                    setState(() => isMainPaper = value);
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: AppButton(
-                    label: 'Create Paper',
-                    onPressed: _save,
-                    isLoading: isSaving,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -393,9 +412,6 @@ class _AgendaItemDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
-  static const Color navy = Color(0xFF14275B);
-  static const Color iconBg = Color(0xFFE9ECF3);
-
   @override
   Widget build(BuildContext context) {
     final hasSelectedItem = items.any((item) => item.id == value);
@@ -405,9 +421,17 @@ class _AgendaItemDropdown extends StatelessWidget {
       key: ValueKey(effectiveValue),
       initialValue: effectiveValue,
       isExpanded: true,
+      dropdownColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+        fontSize: 14,
+      ),
       decoration: InputDecoration(
         labelText: 'Agenda Item',
-        prefixIcon: const Icon(Icons.format_list_numbered_rounded, color: navy),
+        prefixIcon: Icon(
+          Icons.format_list_numbered_rounded,
+          color: Theme.of(context).colorScheme.primary,
+        ),
         suffixIcon: effectiveValue == null
             ? null
             : IconButton(
@@ -416,14 +440,19 @@ class _AgendaItemDropdown extends StatelessWidget {
                 onPressed: () => onChanged(null),
               ),
         filled: true,
-        fillColor: iconBg.withValues(alpha: 0.5),
+        fillColor: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .6),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: navy, width: 1.4),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 1.4,
+          ),
         ),
       ),
       hint: const Text('No agenda item'),
@@ -454,17 +483,19 @@ class _AgendaItemDropdown extends StatelessWidget {
 class _LoadingDropdownField extends StatelessWidget {
   const _LoadingDropdownField();
 
-  static const Color navy = Color(0xFF14275B);
-  static const Color iconBg = Color(0xFFE9ECF3);
-
   @override
   Widget build(BuildContext context) {
     return InputDecorator(
       decoration: InputDecoration(
         labelText: 'Agenda Item',
-        prefixIcon: const Icon(Icons.format_list_numbered_rounded, color: navy),
+        prefixIcon: Icon(
+          Icons.format_list_numbered_rounded,
+          color: Theme.of(context).colorScheme.primary,
+        ),
         filled: true,
-        fillColor: iconBg.withValues(alpha: 0.5),
+        fillColor: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .6),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
@@ -481,26 +512,29 @@ class _AgendaLoadError extends StatelessWidget {
 
   const _AgendaLoadError({required this.message, required this.onRetry});
 
-  static const Color navy = Color(0xFF14275B);
-  static const Color iconBg = Color(0xFFE9ECF3);
-
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: iconBg.withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .6),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: navy),
+          Icon(
+            Icons.error_outline_rounded,
+            color: Theme.of(context).colorScheme.error,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: navy,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -528,9 +562,6 @@ class _ModernTextField extends StatelessWidget {
     this.maxLines = 1,
   });
 
-  static const Color navy = Color(0xFF14275B);
-  static const Color iconBg = Color(0xFFE9ECF3);
-
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -539,16 +570,21 @@ class _ModernTextField extends StatelessWidget {
       maxLines: maxLines,
       decoration: InputDecoration(
         hintText: hintText,
-        prefixIcon: Icon(icon, color: navy),
+        prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
         filled: true,
-        fillColor: iconBg.withValues(alpha: 0.5),
+        fillColor: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .6),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: navy, width: 1.4),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 1.4,
+          ),
         ),
       ),
     );
@@ -570,17 +606,16 @@ class _ModernSwitchTile extends StatelessWidget {
     required this.onChanged,
   });
 
-  static const Color navy = Color(0xFF14275B);
-  static const Color iconBg = Color(0xFFE9ECF3);
-  static const Color subTextColor = Color(0xFF6E7FA8);
-
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: iconBg.withValues(alpha: 0.45),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .55),
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         children: [
@@ -588,10 +623,13 @@ class _ModernSwitchTile extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: navy),
+            child: Icon(
+              icon,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -600,8 +638,8 @@ class _ModernSwitchTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: navy,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 14.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -609,8 +647,8 @@ class _ModernSwitchTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: subTextColor,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),

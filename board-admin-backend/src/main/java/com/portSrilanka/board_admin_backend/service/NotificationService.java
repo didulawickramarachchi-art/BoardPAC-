@@ -221,18 +221,39 @@ public class NotificationService {
                 null, null, null, null,
                 true
         );
+
+        emailUsers(
+                activeAdmins(),
+                "Device request approved",
+                "A device access request has been approved.\n\n"
+                        + "User: " + senderName(user) + "\n"
+                        + "Device: " + deviceName + "\n"
+                        + "Status: Approved"
+        );
     }
 
     @Transactional
     public void notifyAdminsOfNewMember(User member) {
+        String message = senderName(member) + " (" + member.getUsername()
+                + ") has been added as a BoardPAC user.";
         createForRecipients(
                 activeAdmins(),
                 member,
-                "New member added",
-                senderName(member) + " (" + member.getUsername() + ") has been added as a board member.",
+                "New user added",
+                message,
                 "MEMBER_ADDED",
                 null, null, null, null,
                 true
+        );
+        emailUsers(activeAdmins(), "New BoardPAC user added", message);
+        emailUsers(
+                List.of(member),
+                "Welcome to BoardPAC",
+                "Hello " + clean(member.getFirstName(), member.getUsername())
+                        + ",\n\nYour BoardPAC account is ready. You can now securely access your assigned board workspace.\n\n"
+                        + "Username: " + member.getUsername() + "\n"
+                        + "Registered email: " + member.getBoardEmail() + "\n\n"
+                        + "Sign in using the credentials provided by your BoardPAC administrator."
         );
     }
 
@@ -258,26 +279,34 @@ public class NotificationService {
                 null,
                 false
         );
-        // optionally send email notifications for meeting created
-        if (workflowSettingService.isEnabled("SEND_EMAIL_NOTIFICATION_WHEN_MEETING_CREATED", true)) {
-            for (User recipient : recipients) {
-                try {
-                    emailService.sendEmail(
-                            recipient.getBoardEmail(),
-                            "New meeting: " + meeting.getTitle(),
-                            "A new meeting '" + meeting.getTitle() + "' has been scheduled on " + meeting.getMeetingDateTime()
-                    );
-                } catch (Exception ex) {
-                    // log and continue
-                }
-            }
-        }
+        log.info("Sending meeting-created email for meeting {} to {} recipient(s)",
+                meeting.getId(), recipients.size());
+        emailUsers(
+                recipients,
+                "New meeting: " + meeting.getTitle(),
+                "A new meeting has been added to your BoardPAC schedule.\n\n"
+                        + "Meeting: " + meeting.getTitle() + "\n"
+                        + "Date and time: " + meeting.getMeetingDateTime() + "\n"
+                        + "Location: " + clean(meeting.getLocation(), "To be confirmed") + "\n"
+                        + "Category: " + clean(meeting.getCategory() == null
+                                ? null : meeting.getCategory().getDisplayName(), "Not specified") + "\n"
+                        + "Subcategory: " + clean(meeting.getSubcategory() == null
+                                ? null : meeting.getSubcategory().getDisplayName(), "Not specified") + "\n\n"
+                        + "Please review the meeting details and available papers before the scheduled time."
+        );
     }
 
     @Transactional
     public void notifyMeetingReminder(Meeting meeting, List<MeetingParticipant> participants) {
+        List<User> recipients = participants.stream()
+                .map(MeetingParticipant::getUser)
+                .filter(this::canReceiveMeetingNotifications)
+                .filter(user -> !notificationRepository.existsByRecipientIdAndTypeAndRelatedMeetingId(
+                        user.getId(), "MEETING_REMINDER", meeting.getId()))
+                .toList();
+        if (recipients.isEmpty()) return;
         createForRecipients(
-                participants.stream().map(MeetingParticipant::getUser).toList(),
+                recipients,
                 meeting.getCreatedBy(),
                 "Upcoming meeting reminder",
                 "Reminder: " + meeting.getTitle() + " will take place on " + meeting.getMeetingDateTime() + ".",
@@ -289,25 +318,25 @@ public class NotificationService {
                 false
         );
 
-        if (workflowSettingService.isEnabled("SEND_EMAIL_NOTIFICATION_WHEN_MEETING_REMINDER", true)) {
-            for (MeetingParticipant p : participants) {
-                try {
-                    emailService.sendEmail(
-                            p.getUser().getBoardEmail(),
-                            "Meeting reminder: " + meeting.getTitle(),
-                            "Reminder: '" + meeting.getTitle() + "' will take place on " + meeting.getMeetingDateTime()
-                    );
-                } catch (Exception ex) {
-                    // ignore individual email failures
-                }
-            }
-        }
+        emailUsers(
+                recipients,
+                "Meeting reminder: " + meeting.getTitle(),
+                "Your meeting is scheduled within the next 24 hours.\n\n"
+                        + "Meeting: " + meeting.getTitle() + "\n"
+                        + "Date and time: " + meeting.getMeetingDateTime() + "\n"
+                        + "Location: " + clean(meeting.getLocation(), "To be confirmed") + "\n\n"
+                        + "Please review the agenda and complete any pending paper approvals before the meeting."
+        );
     }
 
     @Transactional
     public void notifyPaperCreated(Paper paper, List<MeetingParticipant> participants, User createdBy) {
+        List<User> recipients = participants.stream()
+                .map(MeetingParticipant::getUser)
+                .filter(this::canReceiveMeetingNotifications)
+                .toList();
         createForRecipients(
-                participants.stream().map(MeetingParticipant::getUser).toList(),
+                recipients,
                 createdBy,
                 "New paper created",
                 paper.getTitle() + " is now available for review.",
@@ -318,12 +347,26 @@ public class NotificationService {
                 null,
                 false
         );
+        emailUsers(
+                recipients,
+                "New paper: " + paper.getTitle(),
+                "A new paper is available in your BoardPAC meeting pack.\n\n"
+                        + "Paper: " + paper.getTitle() + "\n"
+                        + "Meeting: " + paper.getMeeting().getTitle() + "\n"
+                        + "Reference: " + clean(paper.getReferenceNumber(), "Not provided") + "\n"
+                        + "Approval required: " + (paper.isRequiresApproval() ? "Yes" : "No") + "\n\n"
+                        + "Please open BoardPAC to read the paper and complete any required approval."
+        );
     }
 
     @Transactional
     public void notifyDocumentUploaded(PaperAttachment attachment, List<MeetingParticipant> participants, User createdBy) {
+        List<User> recipients = participants.stream()
+                .map(MeetingParticipant::getUser)
+                .filter(this::canReceiveMeetingNotifications)
+                .toList();
         createForRecipients(
-                participants.stream().map(MeetingParticipant::getUser).toList(),
+                recipients,
                 createdBy,
                 "Document uploaded",
                 attachment.getFileName() + " has been uploaded.",
@@ -333,6 +376,15 @@ public class NotificationService {
                 null,
                 attachment.getId(),
                 false
+        );
+        emailUsers(
+                recipients,
+                "New attachment: " + attachment.getFileName(),
+                "A new supporting document has been added to a paper you can access.\n\n"
+                        + "Attachment: " + attachment.getFileName() + "\n"
+                        + "Paper: " + attachment.getPaper().getTitle() + "\n"
+                        + "Meeting: " + attachment.getPaper().getMeeting().getTitle() + "\n\n"
+                        + "Open the paper in BoardPAC to securely view the attachment."
         );
     }
 
@@ -510,8 +562,28 @@ public class NotificationService {
     }
 
     private boolean canReceiveMeetingNotifications(User user) {
-        return user != null && user.getRoles().stream()
+        return hasDeliverableEmail(user) && user.getRoles().stream()
                 .noneMatch(role -> role.getName() == SystemRole.ADMIN);
+    }
+
+    private boolean hasDeliverableEmail(User user) {
+        return user != null
+                && user.getStatus() == UserStatus.ACTIVE
+                && user.getBoardEmail() != null
+                && !user.getBoardEmail().isBlank();
+    }
+
+    private void emailUsers(List<User> users, String subject, String body) {
+        Set<Long> seen = new HashSet<>();
+        for (User user : users) {
+            if (!hasDeliverableEmail(user) || !seen.add(user.getId())) continue;
+            try {
+                emailService.sendEmail(user.getBoardEmail().trim(), subject, body);
+            } catch (RuntimeException ex) {
+                log.warn("Unable to send '{}' email to user {} ({})",
+                        subject, user.getUsername(), user.getBoardEmail(), ex);
+            }
+        }
     }
 
     private void createForRecipients(

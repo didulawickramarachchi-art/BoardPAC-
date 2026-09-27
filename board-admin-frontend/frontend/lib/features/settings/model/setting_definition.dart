@@ -641,20 +641,4 @@ const Map<String, List<SettingDefinition>> settingDefinitions = {
       ],
     ),
   ],
-  'SURVEY': [
-    SettingDefinition(
-      'display_survey_responder',
-      'Display Responder Option',
-      _w,
-      SettingControl.toggle,
-    ),
-    SettingDefinition(
-      'survey_reminder_days',
-      'Send Survey reminder alert before',
-      _w,
-      SettingControl.number,
-      defaultValue: '2',
-      suffix: 'days',
-    ),
-  ],
 };

@@ -17,7 +17,7 @@ void main() {
     expect(find.text('BOARDPACK'), findsNothing);
     expect(find.text('Welcome Back'), findsOneWidget);
     expect(find.text('Sign in to your account'), findsOneWidget);
-    expect(find.text('Sign In >'), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
   });
 
   testWidgets('login remains usable in phone landscape', (tester) async {
@@ -30,7 +30,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome Back'), findsOneWidget);
-    expect(find.text('Sign In >'), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

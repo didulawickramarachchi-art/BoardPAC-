@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/app_status_chip.dart';
 import '../../auth/provider/auth_provider.dart';
@@ -80,19 +81,27 @@ class UserListScreen extends ConsumerWidget {
               final user = entry as UserModel;
               final fullName = '${user.firstName} ${user.lastName}'.trim();
               final initials = _getInitials(fullName);
+              final scheme = Theme.of(context).colorScheme;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
 
               return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
+                decoration: isDark
+                    ? AppGlassDecoration.surface(
+                        borderRadius: BorderRadius.circular(22),
+                        tint: scheme.surface,
+                        darkMode: true,
+                      )
+                    : BoxDecoration(
+                        color: scheme.surface,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Row(
@@ -109,8 +118,8 @@ class UserListScreen extends ConsumerWidget {
                               fullName.isEmpty ? 'Unknown User' : fullName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: darkBlue,
+                              style: TextStyle(
+                                color: scheme.onSurface,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -120,10 +129,10 @@ class UserListScreen extends ConsumerWidget {
 
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.person_outline_rounded,
                                   size: 15,
-                                  color: Color(0xFF7D8CB2),
+                                  color: scheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 5),
                                 Expanded(
@@ -131,8 +140,8 @@ class UserListScreen extends ConsumerWidget {
                                     user.username,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFF7D8CB2),
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -168,10 +177,10 @@ class UserListScreen extends ConsumerWidget {
 
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.email_outlined,
                                   size: 15,
-                                  color: Color(0xFF7D8CB2),
+                                  color: scheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 5),
                                 Expanded(
@@ -179,8 +188,8 @@ class UserListScreen extends ConsumerWidget {
                                     user.email,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFF7D8CB2),
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -196,7 +205,7 @@ class UserListScreen extends ConsumerWidget {
 
                       if (access.canManageUsers)
                         PopupMenuButton<String>(
-                          color: Colors.white,
+                          color: scheme.surface,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -204,12 +213,12 @@ class UserListScreen extends ConsumerWidget {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: primaryBlue.withValues(alpha: 0.08),
+                              color: scheme.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.more_vert_rounded,
-                              color: primaryBlue,
+                              color: scheme.primary,
                               size: 22,
                             ),
                           ),
@@ -463,12 +472,12 @@ class _PopupItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: Color(0xFF12275B)),
-        SizedBox(width: 10),
+        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 10),
         Text(
           text,
           style: TextStyle(
-            color: Color(0xFF00184A),
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -528,35 +537,38 @@ class _UserSectionHeader extends StatelessWidget {
   const _UserSectionHeader({required this.section});
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Icon(section.icon, color: UserListScreen.primaryBlue, size: 21),
-      const SizedBox(width: 9),
-      Text(
-        section.title,
-        style: const TextStyle(
-          color: UserListScreen.darkBlue,
-          fontSize: 17,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      const SizedBox(width: 8),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-        decoration: BoxDecoration(
-          color: UserListScreen.primaryBlue.withValues(alpha: 0.09),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          '${section.count}',
-          style: const TextStyle(
-            color: UserListScreen.primaryBlue,
-            fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(section.icon, color: scheme.onSurface, size: 21),
+        const SizedBox(width: 9),
+        Text(
+          section.title,
+          style: TextStyle(
+            color: scheme.onSurface,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
           ),
         ),
-      ),
-    ],
-  );
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          decoration: BoxDecoration(
+            color: scheme.onSurface.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '${section.count}',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _RoleChip extends StatelessWidget {
@@ -567,26 +579,23 @@ class _RoleChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = roleLabel(role);
+    final color = Theme.of(context).colorScheme.primary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: UserListScreen.primaryBlue.withValues(alpha: 0.09),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.badge_outlined,
-            size: 13,
-            color: UserListScreen.primaryBlue,
-          ),
+          Icon(Icons.badge_outlined, size: 13, color: color),
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: UserListScreen.primaryBlue,
+            style: TextStyle(
+              color: color,
               fontSize: 10,
               fontWeight: FontWeight.w900,
             ),

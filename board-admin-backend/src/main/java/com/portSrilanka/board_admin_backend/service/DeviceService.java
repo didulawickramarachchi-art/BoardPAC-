@@ -122,6 +122,7 @@ public class DeviceService {
                 .osVersion(device.getOsVersion())
                 .description(device.getDescription())
                 .status(device.getStatus())
+                .userId(device.getUser() != null ? device.getUser().getId() : null)
                 .username(device.getUser() != null ? device.getUser().getUsername() : null)
                 .build();
     }

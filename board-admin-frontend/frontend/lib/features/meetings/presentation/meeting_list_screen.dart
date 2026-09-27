@@ -325,7 +325,7 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
               final meeting = visibleItems[index];
 
               return Material(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(22),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(22),
@@ -384,8 +384,10 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
                                 meeting.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: darkBlue,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -409,10 +411,12 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
 
                               Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.schedule_rounded,
                                     size: 15,
-                                    color: Color(0xFF7D8CB2),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(width: 5),
                                   Expanded(
@@ -420,8 +424,10 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
                                       meeting.meetingDateTime,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Color(0xFF7D8CB2),
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -435,10 +441,12 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
                                 const SizedBox(height: 5),
                                 Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.account_tree_outlined,
                                       size: 15,
-                                      color: Color(0xFF7D8CB2),
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                     const SizedBox(width: 5),
                                     Expanded(
@@ -446,8 +454,10 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
                                         meeting.subcategoryName ?? '',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Color(0xFF7D8CB2),
+                                        style: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -464,7 +474,7 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
 
                         if (access.canManageMeetings)
                           PopupMenuButton<String>(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.surface,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -677,7 +687,7 @@ class _MeetingListScreenState extends ConsumerState<MeetingListScreen> {
           margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(26),
           ),
           child: Column(
@@ -813,7 +823,7 @@ class _SubcategoryMeetingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -841,8 +851,8 @@ class _SubcategoryMeetingCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: Color(0xFF00184A),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
                       ),
@@ -850,7 +860,9 @@ class _SubcategoryMeetingCard extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       subtitle,
-                      style: const TextStyle(color: Color(0xFF7D8CB2)),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -947,7 +959,7 @@ class _PopupItem extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            color: Color(0xFF00184A),
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -970,8 +982,6 @@ class _BottomSheetTile extends StatelessWidget {
   });
 
   static const Color primaryBlue = Color(0xFF12275B);
-  static const Color darkBlue = Color(0xFF00184A);
-
   @override
   Widget build(BuildContext context) {
     return ListTile(
@@ -987,16 +997,16 @@ class _BottomSheetTile extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          color: darkBlue,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
           fontSize: 14,
           fontWeight: FontWeight.w900,
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
-          color: Color(0xFF7D8CB2),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),

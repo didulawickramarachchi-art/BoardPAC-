@@ -13,6 +13,7 @@ public class MeetingRequest {
     private LocalDateTime targetDateTime;
     private String location;
     private String description;
+    private String imageUrl;
     private Long categoryId;
     private Long subcategoryId;
     private Long createdByUserId;

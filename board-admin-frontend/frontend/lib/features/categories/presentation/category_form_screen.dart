@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_error_message.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../model/category_model.dart';
 import '../model/category_request.dart';
 import '../provider/category_provider.dart';
@@ -179,8 +180,8 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
                           ? Stack(
                               fit: StackFit.expand,
                               children: [
-                                Image.network(
-                                  widget.category!.imageUrl!.trim(),
+                                AppNetworkImage(
+                                  url: widget.category!.imageUrl!.trim(),
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, _, _) =>
                                       const _ImagePrompt(editing: true),
@@ -410,14 +411,12 @@ class _SectionCard extends StatelessWidget {
 
   const _SectionCard({required this.title, required this.children});
 
-  static const Color darkBlue = Color(0xFF00184A);
-
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -432,8 +431,8 @@ class _SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: darkBlue,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 15,
               fontWeight: FontWeight.w900,
             ),
@@ -476,12 +475,12 @@ class _FormTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
-        labelStyle: const TextStyle(
-          color: Color(0xFF7D8CB2),
+        labelStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
         filled: true,
-        fillColor: const Color(0xFFF6F7FB),
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

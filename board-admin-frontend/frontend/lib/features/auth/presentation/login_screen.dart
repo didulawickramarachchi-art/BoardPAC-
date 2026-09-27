@@ -90,6 +90,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           final landscape =
                               MediaQuery.sizeOf(context).height < 650 &&
                               constraints.maxWidth >= 600;
+                          final portraitHeight =
+                              (MediaQuery.sizeOf(context).height -
+                                      MediaQuery.paddingOf(context).vertical -
+                                      72)
+                                  .clamp(620.0, 900.0)
+                                  .toDouble();
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(34),
                             child: BackdropFilter(
@@ -159,26 +165,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                           ],
                                         ),
                                       )
-                                    : Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const _CompactBrand(),
-                                          _LoginPanel(
-                                            formKey: _formKey,
-                                            usernameController:
-                                                _usernameController,
-                                            passwordController:
-                                                _passwordController,
-                                            obscurePassword: _obscurePassword,
-                                            loading: state.isLoading,
-                                            error: state.error,
-                                            onTogglePassword: () => setState(
-                                              () => _obscurePassword =
-                                                  !_obscurePassword,
+                                    : SizedBox(
+                                        height: portraitHeight,
+                                        child: Column(
+                                          children: [
+                                            const Expanded(
+                                              flex: 4,
+                                              child: _PortraitBrand(),
                                             ),
-                                            onLogin: _login,
-                                          ),
-                                        ],
+                                            Expanded(
+                                              flex: 6,
+                                              child: _LoginPanel(
+                                                formKey: _formKey,
+                                                usernameController:
+                                                    _usernameController,
+                                                passwordController:
+                                                    _passwordController,
+                                                obscurePassword:
+                                                    _obscurePassword,
+                                                loading: state.isLoading,
+                                                error: state.error,
+                                                compact: true,
+                                                showCapabilities: true,
+                                                onTogglePassword: () =>
+                                                    setState(
+                                                      () => _obscurePassword =
+                                                          !_obscurePassword,
+                                                    ),
+                                                onLogin: _login,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                               ),
                             ),
@@ -327,6 +345,75 @@ class _CompactBrand extends StatelessWidget {
   );
 }
 
+class _PortraitBrand extends StatelessWidget {
+  const _PortraitBrand();
+
+  @override
+  Widget build(BuildContext context) => SizedBox.expand(
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          'assets/images/BG.jpeg',
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF071C4D).withValues(alpha: .42),
+                const Color(0xFF00143F).withValues(alpha: .88),
+              ],
+            ),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+          child: Row(
+            children: [
+              _LogoMark(size: 92),
+              SizedBox(width: 22),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BOARDPAC',
+                      style: TextStyle(
+                        color: Color(0xFFFFC85A),
+                        fontSize: 14,
+                        letterSpacing: 2.6,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'Govern with clarity.\nLead with confidence.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 21,
+                        height: 1.18,
+                        fontWeight: FontWeight.w800,
+                        shadows: [
+                          Shadow(color: Color(0x99000000), blurRadius: 10),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _LogoMark extends StatelessWidget {
   final double size;
   const _LogoMark({required this.size});
@@ -335,20 +422,23 @@ class _LogoMark extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: size,
     height: size,
-    padding: EdgeInsets.all(size * .08),
+    padding: EdgeInsets.all(size * .02),
     decoration: BoxDecoration(
       shape: BoxShape.circle,
-      color: Colors.white.withValues(alpha: .94),
-      border: Border.all(color: Colors.white.withValues(alpha: .8), width: 2),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFFFFB52E).withValues(alpha: .22),
-          blurRadius: 28,
-          spreadRadius: 2,
+          color: const Color(0xFF00184A).withValues(alpha: .48),
+          blurRadius: 24,
+          spreadRadius: 1,
+          offset: const Offset(0, 8),
+        ),
+        BoxShadow(
+          color: const Color(0xFFFFB52E).withValues(alpha: .16),
+          blurRadius: 22,
         ),
       ],
     ),
-    child: Image.asset('assets/images/slpa_logo.png', fit: BoxFit.contain),
+    child: Image.asset('assets/images/Logo001.png', fit: BoxFit.contain),
   );
 }
 
@@ -388,6 +478,7 @@ class _LoginPanel extends StatelessWidget {
   final bool loading;
   final String? error;
   final bool compact;
+  final bool showCapabilities;
   final VoidCallback onTogglePassword;
   final VoidCallback onLogin;
 
@@ -399,6 +490,7 @@ class _LoginPanel extends StatelessWidget {
     required this.loading,
     required this.error,
     this.compact = false,
+    this.showCapabilities = false,
     required this.onTogglePassword,
     required this.onLogin,
   });
@@ -460,16 +552,17 @@ class _LoginPanel extends StatelessWidget {
               ),
             ),
             SizedBox(height: compact ? 13 : 31),
-            const _FieldLabel('Username'),
+            const _FieldLabel('Username or email'),
             SizedBox(height: compact ? 5 : 9),
             _GlassTextField(
               controller: usernameController,
-              hintText: 'Enter your username',
+              hintText: 'Enter your username or email',
               icon: Icons.person_outline_rounded,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.username],
-              validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Username is required' : null,
+              validator: (value) => (value ?? '').trim().isEmpty
+                  ? 'Username or email is required'
+                  : null,
             ),
             SizedBox(height: compact ? 9 : 20),
             const _FieldLabel('Password'),
@@ -558,7 +651,7 @@ class _LoginPanel extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Sign In >',
+                            'Sign in',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -580,10 +673,82 @@ class _LoginPanel extends StatelessWidget {
                 ),
               ),
             ),
+            if (showCapabilities) ...[
+              const SizedBox(height: 16),
+              const _CapabilityStrip(),
+            ],
           ],
         ),
       ),
     ),
+  );
+}
+
+class _CapabilityStrip extends StatelessWidget {
+  const _CapabilityStrip();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: .055),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.white.withValues(alpha: .11)),
+    ),
+    child: const Row(
+      children: [
+        _CapabilityItem(
+          icon: Icons.event_note_rounded,
+          label: 'Meetings\n& papers',
+        ),
+        _CapabilityDivider(),
+        _CapabilityItem(
+          icon: Icons.verified_user_rounded,
+          label: 'Secure\napprovals',
+        ),
+        _CapabilityDivider(),
+        _CapabilityItem(icon: Icons.draw_rounded, label: 'Annotate\n& review'),
+      ],
+    ),
+  );
+}
+
+class _CapabilityItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _CapabilityItem({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: const Color(0xFFFFC85A), size: 20),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFFD7E1F5),
+            fontSize: 10.5,
+            height: 1.25,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CapabilityDivider extends StatelessWidget {
+  const _CapabilityDivider();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 42,
+    color: Colors.white.withValues(alpha: .1),
   );
 }
 
@@ -670,40 +835,42 @@ class _LuxuryBackground extends StatelessWidget {
   const _LuxuryBackground();
 
   @override
-  Widget build(BuildContext context) => Stack(
-    fit: StackFit.expand,
-    children: [
-      const DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF020719), Color(0xFF071A45), Color(0xFF020B25)],
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF020719), Color(0xFF071A45), Color(0xFF020B25)],
+            ),
           ),
         ),
-      ),
-      const Positioned(
-        top: -210,
-        right: -120,
-        child: _GlowOrb(size: 520, color: Color(0xFF2563EB)),
-      ),
-      const Positioned(
-        bottom: -230,
-        left: -160,
-        child: _GlowOrb(size: 520, color: Color(0xFF7357D8)),
-      ),
-      Positioned(
-        top: 80,
-        left: MediaQuery.sizeOf(context).width * .2,
-        child: const _GlowOrb(
-          size: 250,
-          color: Color(0xFFD49428),
-          opacity: .12,
+        const Positioned(
+          top: -210,
+          right: -120,
+          child: _GlowOrb(size: 520, color: Color(0xFF2563EB)),
         ),
-      ),
-      CustomPaint(painter: _GridPainter()),
-    ],
-  );
+        const Positioned(
+          bottom: -230,
+          left: -160,
+          child: _GlowOrb(size: 520, color: Color(0xFF7357D8)),
+        ),
+        Positioned(
+          top: 80,
+          left: MediaQuery.sizeOf(context).width * .2,
+          child: const _GlowOrb(
+            size: 250,
+            color: Color(0xFFD49428),
+            opacity: .12,
+          ),
+        ),
+        CustomPaint(painter: _GridPainter()),
+      ],
+    );
+  }
 }
 
 class _GlowOrb extends StatelessWidget {

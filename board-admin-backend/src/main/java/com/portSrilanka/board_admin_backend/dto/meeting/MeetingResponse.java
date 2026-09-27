@@ -18,6 +18,7 @@ public class MeetingResponse {
     private LocalDateTime targetDateTime;
     private String location;
     private String description;
+    private String imageUrl;
     private String categoryName;
     private Long subcategoryId;
     private String subcategoryName;

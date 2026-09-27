@@ -9,4 +9,5 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<BoardNotification, Long> {
     List<BoardNotification> findByRecipientIdOrderByCreatedAtDesc(Long recipientId);
     List<BoardNotification> findByRecipientIdOrderByCreatedAtDesc(Long recipientId, Pageable pageable);
+    boolean existsByRecipientIdAndTypeAndRelatedMeetingId(Long recipientId, String type, Long relatedMeetingId);
 }

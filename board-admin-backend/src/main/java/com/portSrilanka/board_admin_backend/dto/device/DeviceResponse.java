@@ -14,5 +14,6 @@ public class DeviceResponse {
     private String osVersion;
     private String description;
     private DeviceStatus status;
+    private Long userId;
     private String username;
 }

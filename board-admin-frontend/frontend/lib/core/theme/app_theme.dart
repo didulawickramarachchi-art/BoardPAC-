@@ -352,6 +352,34 @@ class AppTheme {
         color: scheme.surface,
         surfaceTintColor: Colors.transparent,
       ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: TextStyle(color: scheme.onSurface),
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(scheme.surface),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        ),
+        inputDecorationTheme: base.inputDecorationTheme.copyWith(
+          fillColor: const Color(0xFF202B44),
+          labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+          hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+        ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.navy,
+        headerForegroundColor: Colors.white,
+        dayForegroundColor: WidgetStatePropertyAll(scheme.onSurface),
+        weekdayStyle: TextStyle(color: scheme.onSurfaceVariant),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: scheme.surface,
+        hourMinuteColor: const Color(0xFF202B44),
+        hourMinuteTextColor: scheme.onSurface,
+        dialBackgroundColor: const Color(0xFF202B44),
+        dialTextColor: scheme.onSurface,
+        entryModeIconColor: scheme.primary,
+      ),
       listTileTheme: base.listTileTheme.copyWith(
         iconColor: scheme.onSurfaceVariant,
         textColor: scheme.onSurface,

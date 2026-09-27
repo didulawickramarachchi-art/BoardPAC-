@@ -20,6 +20,9 @@ class ReportHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final access = RoleAccess(auth.role ?? 'MEMBER', auth.accessProfile);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     if (!access.canViewReports) {
       return const Scaffold(
@@ -63,7 +66,7 @@ class ReportHomeScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
@@ -88,7 +91,7 @@ class ReportHomeScreen extends ConsumerWidget {
             final item = items[index];
 
             return Material(
-              color: Theme.of(context).colorScheme.surface,
+              color: colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(22),
               child: InkWell(
                 borderRadius: BorderRadius.circular(22),
@@ -102,9 +105,16 @@ class ReportHomeScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(
+                        alpha: isDark ? 0.75 : 0.35,
+                      ),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.22 : 0.04,
+                        ),
                         blurRadius: 18,
                         offset: const Offset(0, 8),
                       ),
@@ -116,10 +126,18 @@ class ReportHomeScreen extends ConsumerWidget {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: primaryBlue.withValues(alpha: 0.08),
+                          color: isDark
+                              ? colorScheme.primaryContainer
+                              : primaryBlue.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(item.icon, color: primaryBlue, size: 27),
+                        child: Icon(
+                          item.icon,
+                          color: isDark
+                              ? colorScheme.onPrimaryContainer
+                              : primaryBlue,
+                          size: 27,
+                        ),
                       ),
 
                       const SizedBox(width: 14),
@@ -132,8 +150,8 @@ class ReportHomeScreen extends ConsumerWidget {
                               item.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: darkBlue,
+                              style: TextStyle(
+                                color: colorScheme.onSurface,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -145,8 +163,8 @@ class ReportHomeScreen extends ConsumerWidget {
                               item.subtitle,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF7D8CB2),
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
                                 fontSize: 12,
                                 height: 1.3,
                                 fontWeight: FontWeight.w600,
@@ -162,12 +180,14 @@ class ReportHomeScreen extends ConsumerWidget {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: gold.withValues(alpha: 0.18),
+                          color: isDark
+                              ? gold.withValues(alpha: 0.28)
+                              : gold.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.arrow_forward_ios_rounded,
-                          color: darkBlue,
+                          color: isDark ? gold : darkBlue,
                           size: 16,
                         ),
                       ),

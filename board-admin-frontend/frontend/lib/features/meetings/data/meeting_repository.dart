@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
+import '../../../core/constants/api_constants.dart';
 import '../model/meeting_model.dart';
 import '../model/meeting_participant_model.dart';
 import '../model/meeting_participant_request.dart';
@@ -28,6 +31,29 @@ class MeetingRepository {
   Future<MeetingModel> createMeeting(MeetingRequest request) async {
     final response = await dio.post('/meetings', data: request.toJson());
     return MeetingModel.fromJson(response.data);
+  }
+
+  Future<String> uploadMeetingImage({
+    required String fileName,
+    String? filePath,
+    Uint8List? fileBytes,
+  }) async {
+    final file = filePath != null && filePath.isNotEmpty
+        ? await MultipartFile.fromFile(filePath, filename: fileName)
+        : MultipartFile.fromBytes(
+            fileBytes ?? Uint8List(0),
+            filename: fileName,
+          );
+    final response = await dio.post(
+      ApiConstants.filesUpload,
+      data: FormData.fromMap({'file': file}),
+    );
+    final data = response.data;
+    if (data is Map) {
+      return (data['filePath'] ?? data['fileUrl'] ?? data['url'] ?? '')
+          .toString();
+    }
+    return data?.toString() ?? '';
   }
 
   Future<void> openMeeting(int meetingId) async {

@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/widgets/app_glass_surface.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../model/news_post.dart';
 import '../provider/news_provider.dart';
 
@@ -230,7 +231,9 @@ class _CreatePostScreenState extends State<_CreatePostScreen> {
   late final TextEditingController _body;
   late final TextEditingController _badge;
   final List<_PendingPhoto> _photos = [];
+  final ImagePicker _imagePicker = ImagePicker();
   late final List<String> _existingUrls;
+  bool _isPickingPhotos = false;
 
   int get _imageCount => _existingUrls.length + _photos.length;
 
@@ -252,6 +255,8 @@ class _CreatePostScreenState extends State<_CreatePostScreen> {
   }
 
   Future<void> _pickPhoto() async {
+    if (_isPickingPhotos) return;
+
     final available = _maxImages - _imageCount;
     if (available <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -259,24 +264,35 @@ class _CreatePostScreenState extends State<_CreatePostScreen> {
       );
       return;
     }
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-      allowMultiple: true,
-    );
-    if (result != null && mounted) {
-      final selected = result.files
-          .where((file) => file.bytes != null)
-          .take(available)
-          .map((file) => _PendingPhoto(file.bytes!, file.name));
-      setState(() {
-        _photos.addAll(selected);
-      });
-      if (result.files.length > available && mounted) {
+
+    _isPickingPhotos = true;
+    try {
+      final result = await _imagePicker.pickMultiImage(limit: available);
+      if (result.isEmpty || !mounted) return;
+
+      final selected = await Future.wait(
+        result
+            .take(available)
+            .map(
+              (file) async =>
+                  _PendingPhoto(await file.readAsBytes(), file.name),
+            ),
+      );
+      if (!mounted) return;
+
+      setState(() => _photos.addAll(selected));
+      if (result.length > available) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('You can add up to 10 images.')),
         );
       }
+    } on PlatformException catch (error) {
+      if (!mounted || error.code == 'already_active') return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open photos: ${error.message}')),
+      );
+    } finally {
+      _isPickingPhotos = false;
     }
   }
 
@@ -460,8 +476,8 @@ class _CreatePostScreenState extends State<_CreatePostScreen> {
                           itemBuilder: (_, index) {
                             final existing = index < _existingUrls.length;
                             final image = existing
-                                ? Image.network(
-                                    _existingUrls[index],
+                                ? AppNetworkImage(
+                                    url: _existingUrls[index],
                                     fit: BoxFit.cover,
                                   )
                                 : Image.memory(
@@ -1182,8 +1198,8 @@ class _NewsImages extends StatelessWidget {
   Widget _photo(String url, {int remaining = 0}) => Stack(
     fit: StackFit.expand,
     children: [
-      Image.network(
-        url,
+      AppNetworkImage(
+        url: url,
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => const ColoredBox(
           color: Color(0xFFF0F3F8),

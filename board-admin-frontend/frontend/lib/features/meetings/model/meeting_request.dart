@@ -5,6 +5,7 @@ class MeetingRequest {
   final String? targetDateTime;
   final String? location;
   final String? description;
+  final String? imageUrl;
   final int categoryId;
   final int subcategoryId;
 
@@ -15,6 +16,7 @@ class MeetingRequest {
     this.targetDateTime,
     this.location,
     this.description,
+    this.imageUrl,
     required this.categoryId,
     required this.subcategoryId,
   });
@@ -27,6 +29,7 @@ class MeetingRequest {
       'targetDateTime': targetDateTime,
       'location': location,
       'description': description,
+      'imageUrl': imageUrl,
       'categoryId': categoryId,
       'subcategoryId': subcategoryId,
     };

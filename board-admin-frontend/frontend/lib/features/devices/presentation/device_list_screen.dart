@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../model/device_model.dart';
 import '../provider/device_provider.dart';
 
 class DeviceListScreen extends ConsumerWidget {
@@ -52,11 +54,7 @@ class DeviceListScreen extends ConsumerWidget {
             return const AppEmptyState(message: 'No devices found');
           }
 
-          final orderedDevices = [...devices]
-            ..sort((a, b) {
-              if (a.isPending != b.isPending) return a.isPending ? -1 : 1;
-              return a.deviceId.compareTo(b.deviceId);
-            });
+          final entries = _groupedDeviceEntries(devices);
 
           return RefreshIndicator(
             onRefresh: () =>
@@ -64,26 +62,38 @@ class DeviceListScreen extends ConsumerWidget {
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              itemCount: orderedDevices.length,
+              itemCount: entries.length,
               separatorBuilder: (_, _) => const SizedBox(height: 14),
               itemBuilder: (context, index) {
-                final device = orderedDevices[index];
+                final entry = entries[index];
+                if (entry is _DeviceUserGroup) {
+                  return _DeviceUserHeader(group: entry);
+                }
+                final device = entry as DeviceModel;
 
                 final deviceInfo = device.deviceInfo ?? 'Unknown device';
                 final status = device.status ?? '-';
+                final scheme = Theme.of(context).colorScheme;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
 
                 return Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
+                  decoration: isDark
+                      ? AppGlassDecoration.surface(
+                          borderRadius: BorderRadius.circular(22),
+                          tint: scheme.surface,
+                          darkMode: true,
+                        )
+                      : BoxDecoration(
+                          color: scheme.surface,
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Row(
@@ -92,12 +102,12 @@ class DeviceListScreen extends ConsumerWidget {
                           width: 52,
                           height: 52,
                           decoration: BoxDecoration(
-                            color: primaryBlue.withValues(alpha: 0.08),
+                            color: scheme.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Icon(
                             _deviceIcon(deviceInfo),
-                            color: primaryBlue,
+                            color: scheme.primary,
                             size: 27,
                           ),
                         ),
@@ -112,8 +122,8 @@ class DeviceListScreen extends ConsumerWidget {
                                 device.deviceId,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: darkBlue,
+                                style: TextStyle(
+                                  color: scheme.onSurface,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -123,10 +133,10 @@ class DeviceListScreen extends ConsumerWidget {
 
                               Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.info_outline_rounded,
                                     size: 15,
-                                    color: Color(0xFF7D8CB2),
+                                    color: scheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(width: 5),
                                   Expanded(
@@ -134,8 +144,8 @@ class DeviceListScreen extends ConsumerWidget {
                                       deviceInfo,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Color(0xFF7D8CB2),
+                                      style: TextStyle(
+                                        color: scheme.onSurfaceVariant,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -149,8 +159,8 @@ class DeviceListScreen extends ConsumerWidget {
                                 const SizedBox(height: 6),
                                 Text(
                                   'Requested by ${device.username}',
-                                  style: const TextStyle(
-                                    color: Color(0xFF52648F),
+                                  style: TextStyle(
+                                    color: scheme.onSurfaceVariant,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -167,7 +177,7 @@ class DeviceListScreen extends ConsumerWidget {
                         const SizedBox(width: 8),
 
                         PopupMenuButton<String>(
-                          color: Colors.white,
+                          color: scheme.surface,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -175,12 +185,12 @@ class DeviceListScreen extends ConsumerWidget {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: primaryBlue.withValues(alpha: 0.08),
+                              color: scheme.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.more_vert_rounded,
-                              color: primaryBlue,
+                              color: scheme.primary,
                               size: 22,
                             ),
                           ),
@@ -307,6 +317,140 @@ class DeviceListScreen extends ConsumerWidget {
   }
 }
 
+class _DeviceUserGroup {
+  final int? userId;
+  final String username;
+  final int pendingCount;
+  final int approvedCount;
+
+  const _DeviceUserGroup({
+    required this.userId,
+    required this.username,
+    required this.pendingCount,
+    required this.approvedCount,
+  });
+}
+
+List<Object> _groupedDeviceEntries(List<DeviceModel> devices) {
+  final grouped = <String, List<DeviceModel>>{};
+  for (final device in devices) {
+    final key = device.userId != null
+        ? 'id:${device.userId}'
+        : 'username:${device.username ?? 'unknown'}';
+    grouped.putIfAbsent(key, () => []).add(device);
+  }
+
+  final groups = grouped.values.toList()
+    ..sort((a, b) {
+      final aName = a.first.username ?? 'Unknown user';
+      final bName = b.first.username ?? 'Unknown user';
+      return aName.toLowerCase().compareTo(bName.toLowerCase());
+    });
+
+  final entries = <Object>[];
+  for (final groupDevices in groups) {
+    groupDevices.sort((a, b) {
+      if (a.isPending != b.isPending) return a.isPending ? -1 : 1;
+      return a.deviceId.compareTo(b.deviceId);
+    });
+    final first = groupDevices.first;
+    entries.add(
+      _DeviceUserGroup(
+        userId: first.userId,
+        username: first.username?.trim().isNotEmpty == true
+            ? first.username!.trim()
+            : 'Unknown user',
+        pendingCount: groupDevices.where((device) => device.isPending).length,
+        approvedCount: groupDevices.where((device) => device.isApproved).length,
+      ),
+    );
+    entries.addAll(groupDevices);
+  }
+  return entries;
+}
+
+class _DeviceUserHeader extends StatelessWidget {
+  final _DeviceUserGroup group;
+
+  const _DeviceUserHeader({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+      child: Row(
+        children: [
+          Icon(Icons.person_outline_rounded, color: scheme.onSurface, size: 21),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  group.username,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  group.userId == null
+                      ? 'User ID unavailable'
+                      : 'User ID: ${group.userId}',
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _DeviceCountChip(
+            label: 'Pending',
+            count: group.pendingCount,
+            color: const Color(0xFFFFB52E),
+          ),
+          const SizedBox(width: 7),
+          _DeviceCountChip(
+            label: 'Approved',
+            count: group.approvedCount,
+            color: const Color(0xFF20A67A),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeviceCountChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _DeviceCountChip({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: 0.35)),
+    ),
+    child: Text(
+      '$label $count',
+      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900),
+    ),
+  );
+}
+
 class _StatusChip extends StatelessWidget {
   final String status;
 
@@ -366,7 +510,8 @@ class _PopupItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDanger ? Colors.red : const Color(0xFF12275B);
+    final scheme = Theme.of(context).colorScheme;
+    final color = isDanger ? scheme.error : scheme.primary;
 
     return Row(
       children: [
@@ -375,7 +520,7 @@ class _PopupItem extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            color: isDanger ? Colors.red : const Color(0xFF00184A),
+            color: isDanger ? scheme.error : scheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),

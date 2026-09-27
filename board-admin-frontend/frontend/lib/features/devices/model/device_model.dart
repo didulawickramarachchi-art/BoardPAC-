@@ -6,6 +6,7 @@ class DeviceModel {
   final String? osVersion;
   final String? description;
   final String? status;
+  final int? userId;
   final String? username;
 
   DeviceModel({
@@ -16,6 +17,7 @@ class DeviceModel {
     this.osVersion,
     this.description,
     this.status,
+    this.userId,
     this.username,
   });
 
@@ -28,6 +30,7 @@ class DeviceModel {
       osVersion: json['osVersion'],
       description: json['description'],
       status: json['status'],
+      userId: (json['userId'] as num?)?.toInt(),
       username: json['username'],
     );
   }

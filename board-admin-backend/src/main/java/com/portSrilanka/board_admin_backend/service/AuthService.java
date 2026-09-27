@@ -94,9 +94,7 @@ public class AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        if (requestedRole == SystemRole.MEMBER) {
-            notificationService.notifyAdminsOfNewMember(savedUser);
-        }
+        notificationService.notifyAdminsOfNewMember(savedUser);
         return "User registered successfully";
     }
 
@@ -109,20 +107,23 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
+        User user = null;
         try {
+            String loginId = request.getUsername().trim();
+            user = userRepository.findByUsername(loginId)
+                    .or(() -> userRepository.findByBoardEmailIgnoreCase(loginId))
+                    .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getUsername(),
+                            user.getUsername(),
                             request.getPassword()
                     )
             );
         } catch (AuthenticationException ex) {
-            recordLoginHistory(null, request.getUsername(), LoginStatus.FAILED);
+            recordLoginHistory(user, request.getUsername(), LoginStatus.FAILED);
             throw ex;
         }
-
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new BadRequestException("Invalid credentials"));
 
         requireApprovedDevice(request, user);
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_glass_surface.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../meetings/provider/meeting_provider.dart';
@@ -185,8 +186,8 @@ class CategoryListScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(26),
                         ),
                         child: (category.imageUrl ?? '').trim().isNotEmpty
-                            ? Image.network(
-                                category.imageUrl!.trim(),
+                            ? AppNetworkImage(
+                                url: category.imageUrl!.trim(),
                                 fit: BoxFit.cover,
                                 cacheWidth: 440,
                                 filterQuality: FilterQuality.medium,
@@ -208,8 +209,8 @@ class CategoryListScreen extends ConsumerWidget {
                               category.displayName.toUpperCase(),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF111111),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 19,
                                 height: 1,
                                 fontWeight: FontWeight.w900,
@@ -220,10 +221,12 @@ class CategoryListScreen extends ConsumerWidget {
 
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.label_outline_rounded,
                                   size: 15,
-                                  color: Color(0xFF7D8CB2),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 5),
                                 Expanded(
@@ -231,8 +234,10 @@ class CategoryListScreen extends ConsumerWidget {
                                     category.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFF7D8CB2),
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                       fontSize: 12,
                                       height: 1.3,
                                       fontWeight: FontWeight.w600,

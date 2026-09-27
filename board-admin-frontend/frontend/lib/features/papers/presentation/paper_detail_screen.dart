@@ -2,11 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../../../core/auth/role_access.dart';
 import '../../../core/network/api_error_message.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../../../core/widgets/reaction_bar.dart';
@@ -33,7 +34,12 @@ class PaperDetailScreen extends ConsumerWidget {
 
   const PaperDetailScreen({super.key, required this.paper});
 
-  Future<void> _openFile(BuildContext context, String? url) async {
+  Future<void> _openFile(
+    BuildContext context,
+    WidgetRef ref,
+    String? url, {
+    required String fileName,
+  }) async {
     final value = url?.trim();
     if (value == null || value.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -42,30 +48,93 @@ class PaperDetailScreen extends ConsumerWidget {
       return;
     }
 
-    final uri = Uri.tryParse(value);
-    if (uri == null || !uri.hasScheme) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cannot open this file path: $value')),
+    final isImage =
+        _FilePreview._isImage(fileName) || _FilePreview._isImage(value);
+    if (isImage) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              _AuthenticatedFileViewer(title: fileName, imageUrl: value),
+        ),
       );
       return;
     }
 
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && context.mounted) {
-      ScaffoldMessenger.of(
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final bytes = await ref
+          .read(offlinePaperProvider(paper.id).notifier)
+          .loadBytes(value);
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      await Navigator.push(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Could not open the file.')));
+        MaterialPageRoute(
+          builder: (_) =>
+              _AuthenticatedFileViewer(title: fileName, pdfBytes: bytes),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ApiErrorMessage.from(
+              error,
+              fallback: 'Could not open the paper file.',
+            ),
+          ),
+        ),
+      );
     }
   }
 
-  void _annotatePdf(
+  Future<void> _annotatePdf(
     BuildContext context, {
+    required WidgetRef ref,
     required int userId,
     required String documentKey,
     required String title,
     required String filePath,
-  }) {
-    Navigator.push(
+  }) async {
+    var accessiblePath = filePath;
+    final uri = Uri.tryParse(filePath);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      try {
+        accessiblePath = await ref
+            .read(offlinePaperProvider(paper.id).notifier)
+            .cacheForAccess(filePath, title);
+        if (!context.mounted) return;
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (error) {
+        if (!context.mounted) return;
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ApiErrorMessage.from(
+                error,
+                fallback: 'Could not prepare this PDF for annotation.',
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+    }
+    if (!context.mounted) return;
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PdfAnnotationScreen(
@@ -73,7 +142,7 @@ class PaperDetailScreen extends ConsumerWidget {
           userId: userId,
           documentKey: documentKey,
           documentTitle: title,
-          filePath: filePath,
+          filePath: accessiblePath,
         ),
       ),
     );
@@ -167,7 +236,9 @@ class PaperDetailScreen extends ConsumerWidget {
         .initialize(offlineFileName);
     final offline = ref.watch(offlinePaperProvider(paper.id));
     final versions = ref.watch(paperVersionHistoryProvider(paper.id));
-    final readablePath = offline.value ?? paper.filePath;
+    // An offline download error should be rendered by the header without
+    // throwing again while the rest of the paper detail page rebuilds.
+    final readablePath = offline.valueOrNull ?? paper.filePath;
     final attachmentsAsync = ref.watch(attachmentListProvider(paper.id));
     final commentsAsync = ref.watch(paperCommentProvider(paper.id));
     final approvalsAsync = paper.requiresApproval && access.canApprovePapers
@@ -237,13 +308,16 @@ class PaperDetailScreen extends ConsumerWidget {
                 : null,
             onRemoveDownload: () =>
                 ref.read(offlinePaperProvider(paper.id).notifier).remove(),
-            onOpen: () => _openFile(context, paper.filePath),
+            onOpen: () =>
+                _openFile(context, ref, paper.filePath, fileName: fileName),
             onAnnotate:
                 auth.userId != null &&
                     access.canAnnotatePapers &&
-                    paper.filePath?.toLowerCase().contains('.pdf') == true
+                    _FilePreview._isPdf(fileName) &&
+                    paper.filePath?.trim().isNotEmpty == true
                 ? () => _annotatePdf(
                     context,
+                    ref: ref,
                     userId: auth.userId!,
                     documentKey: 'paper:${paper.id}',
                     title: paper.fileName ?? paper.title,
@@ -349,14 +423,18 @@ class PaperDetailScreen extends ConsumerWidget {
                     .map(
                       (attachment) => _AttachmentCard(
                         attachment: attachment,
-                        onOpen: () => _openFile(context, attachment.filePath),
+                        onOpen: () => _openFile(
+                          context,
+                          ref,
+                          attachment.filePath,
+                          fileName: attachment.fileName,
+                        ),
                         onAnnotate:
                             auth.userId != null &&
-                                attachment.filePath.toLowerCase().contains(
-                                  '.pdf',
-                                )
+                                _FilePreview._isPdf(attachment.fileName)
                             ? () => _annotatePdf(
                                 context,
+                                ref: ref,
                                 userId: auth.userId!,
                                 documentKey: 'attachment:${attachment.id}',
                                 title: attachment.fileName,
@@ -719,8 +797,8 @@ class _FilePreview extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Image.network(
-                  filePath,
+                child: AppNetworkImage(
+                  url: filePath,
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => const ColoredBox(
                     color: Color(0xFFE9ECF3),
@@ -783,6 +861,11 @@ class _FilePreview extends StatelessWidget {
         lower.endsWith('.jpeg') ||
         lower.endsWith('.gif') ||
         lower.endsWith('.webp');
+  }
+
+  static bool _isPdf(String value) {
+    final uri = Uri.tryParse(value.trim());
+    return (uri?.path ?? value).toLowerCase().endsWith('.pdf');
   }
 }
 
@@ -853,6 +936,42 @@ class _InfoChip extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
+    );
+  }
+}
+
+class _AuthenticatedFileViewer extends StatelessWidget {
+  final String title;
+  final Uint8List? pdfBytes;
+  final String? imageUrl;
+
+  const _AuthenticatedFileViewer({
+    required this.title,
+    this.pdfBytes,
+    this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title, overflow: TextOverflow.ellipsis)),
+      body: imageUrl != null
+          ? InteractiveViewer(
+              minScale: .5,
+              maxScale: 5,
+              child: Center(
+                child: AppNetworkImage(
+                  url: imageUrl!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const AppEmptyState(
+                    message: 'The image could not be opened.',
+                  ),
+                ),
+              ),
+            )
+          : pdfBytes != null
+          ? SfPdfViewer.memory(pdfBytes!)
+          : const AppEmptyState(message: 'No file is available to display.'),
     );
   }
 }

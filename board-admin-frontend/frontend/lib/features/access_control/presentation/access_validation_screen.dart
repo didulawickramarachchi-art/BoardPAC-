@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/widgets/app_loading.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../../core/widgets/app_status_chip.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../users/model/user_model.dart';
@@ -35,9 +36,6 @@ class _AccessValidationScreenState
   String channel = 'WEB';
 
   static const Color navy = Color(0xFF14275B);
-  static const Color cardColor = Colors.white;
-  static const Color iconBg = Color(0xFFE9ECF3);
-  static const Color subTextColor = Color(0xFF6E7FA8);
 
   void _validate() {
     final userId = selectedUserId;
@@ -68,6 +66,8 @@ class _AccessValidationScreenState
     }
 
     final usersAsync = ref.watch(userListProvider);
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final asyncData = submittedArgs == null
         ? null
@@ -96,21 +96,17 @@ class _AccessValidationScreenState
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: cardColor,
+              decoration: AppGlassDecoration.surface(
                 borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+                tint: scheme.surface,
+                darkMode: isDark,
               ),
               child: Column(
                 children: [
                   usersAsync.when(
                     data: (users) => DropdownButtonFormField<int>(
+                      dropdownColor: scheme.surface,
+                      style: TextStyle(color: scheme.onSurface),
                       initialValue:
                           users.any((user) => user.id == selectedUserId)
                           ? selectedUserId
@@ -118,19 +114,22 @@ class _AccessValidationScreenState
                       isExpanded: true,
                       decoration: InputDecoration(
                         labelText: 'Select User',
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.person_search_rounded,
-                          color: navy,
+                          color: scheme.primary,
                         ),
                         filled: true,
-                        fillColor: iconBg.withValues(alpha: 0.55),
+                        fillColor: scheme.surfaceContainerHighest,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide.none,
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: navy, width: 1.4),
+                          borderSide: BorderSide(
+                            color: scheme.primary,
+                            width: 1.4,
+                          ),
                         ),
                       ),
                       hint: const Text('Choose a user'),
@@ -163,22 +162,27 @@ class _AccessValidationScreenState
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
+                    dropdownColor: scheme.surface,
+                    style: TextStyle(color: scheme.onSurface),
                     initialValue: channel,
                     decoration: InputDecoration(
                       labelText: 'Requested Channel',
-                      prefixIcon: const Icon(
+                      prefixIcon: Icon(
                         Icons.devices_rounded,
-                        color: navy,
+                        color: scheme.primary,
                       ),
                       filled: true,
-                      fillColor: iconBg.withValues(alpha: 0.55),
+                      fillColor: scheme.surfaceContainerHighest,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: navy, width: 1.4),
+                        borderSide: BorderSide(
+                          color: scheme.primary,
+                          width: 1.4,
+                        ),
                       ),
                     ),
                     items: const [
@@ -227,16 +231,10 @@ class _AccessValidationScreenState
 
                   return Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: cardColor,
+                    decoration: AppGlassDecoration.surface(
                       borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      tint: scheme.surface,
+                      darkMode: isDark,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,8 +268,8 @@ class _AccessValidationScreenState
                                 children: [
                                   Text(
                                     item.username,
-                                    style: const TextStyle(
-                                      color: navy,
+                                    style: TextStyle(
+                                      color: scheme.onSurface,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -281,8 +279,8 @@ class _AccessValidationScreenState
                                     allowed
                                         ? 'User access is allowed'
                                         : 'User access is denied',
-                                    style: const TextStyle(
-                                      color: subTextColor,
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -313,15 +311,16 @@ class _AccessValidationScreenState
                 },
                 error: (e, _) => Container(
                   padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: cardColor,
+                  decoration: AppGlassDecoration.surface(
                     borderRadius: BorderRadius.circular(22),
+                    tint: scheme.surface,
+                    darkMode: isDark,
                   ),
                   child: Text(
                     'Failed to validate access:\n$e',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: navy,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -348,16 +347,16 @@ class _UserLoadError extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFECEC),
+        color: Theme.of(context).colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
               'Could not load users.',
               style: TextStyle(
-                color: Color(0xFFD64545),
+                color: Theme.of(context).colorScheme.onErrorContainer,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -376,19 +375,23 @@ class _ValidationPrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: AppGlassDecoration.surface(
         borderRadius: BorderRadius.circular(22),
+        tint: Theme.of(context).colorScheme.surface,
+        darkMode: Theme.of(context).brightness == Brightness.dark,
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.info_outline_rounded, color: Color(0xFF14275B)),
-          SizedBox(width: 12),
+          Icon(
+            Icons.info_outline_rounded,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Select a user and channel, then validate access.',
               style: TextStyle(
-                color: Color(0xFF6E7FA8),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -410,22 +413,18 @@ class _InfoTile extends StatelessWidget {
     required this.value,
   });
 
-  static const Color navy = Color(0xFF14275B);
-  static const Color iconBg = Color(0xFFE9ECF3);
-  static const Color subTextColor = Color(0xFF6E7FA8);
-
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: iconBg.withValues(alpha: 0.55),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: navy, size: 22),
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -433,8 +432,8 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: subTextColor,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -442,8 +441,8 @@ class _InfoTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: navy,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
                     height: 1.3,

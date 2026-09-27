@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/auth/role_access.dart';
@@ -28,7 +29,6 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
 
   static const navy = Color(0xFF12275B);
   static const gold = Color(0xFFFFB52E);
-  static const background = Color(0xFFF6F7FB);
 
   @override
   void dispose() {
@@ -127,6 +127,10 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
             title: 'Role and Access',
             children: [
               DropdownButtonFormField<String>(
+                dropdownColor: Theme.of(context).colorScheme.surface,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 initialValue: role,
                 decoration: _decoration('Role'),
                 items: supportedRoles
@@ -146,6 +150,10 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                dropdownColor: Theme.of(context).colorScheme.surface,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 key: ValueKey(role),
                 initialValue: accessProfile,
                 decoration: _decoration('Access profile'),
@@ -171,6 +179,10 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                dropdownColor: Theme.of(context).colorScheme.surface,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 initialValue: boardType,
                 decoration: _decoration('Board type'),
                 items: supportedBoardTypes
@@ -202,7 +214,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   InputDecoration _decoration(String label) => InputDecoration(
     labelText: label,
     filled: true,
-    fillColor: background,
+    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide.none,
@@ -228,8 +240,8 @@ class _AccessHint extends StatelessWidget {
       Expanded(
         child: Text(
           text,
-          style: const TextStyle(
-            color: Color(0xFF7D8CB2),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -246,26 +258,30 @@ class _Card extends StatelessWidget {
   const _Card({required this.title, required this.children});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Color(0xFF00184A),
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppGlassDecoration.surface(
+        borderRadius: BorderRadius.circular(20),
+        tint: scheme.surface,
+        darkMode: Theme.of(context).brightness == Brightness.dark,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
-        const SizedBox(height: 14),
-        ...children,
-      ],
-    ),
-  );
+          const SizedBox(height: 14),
+          ...children,
+        ],
+      ),
+    );
+  }
 }

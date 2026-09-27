@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_error_message.dart';
@@ -27,6 +28,7 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   String meetingType = 'MEETING';
   int? selectedCategoryId;
   int? selectedSubcategoryId;
+  PlatformFile? _image;
   bool isSaving = false;
 
   static const Color primaryBlue = Color(0xFF12275B);
@@ -158,22 +160,37 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
       return;
     }
 
-    final request = MeetingRequest(
-      title: _titleController.text.trim(),
-      type: meetingType,
-      meetingDateTime: _meetingDateController.text.trim(),
-      targetDateTime: _targetDateController.text.trim().isEmpty
-          ? null
-          : _targetDateController.text.trim(),
-      location: _locationController.text.trim(),
-      description: _descriptionController.text.trim(),
-      categoryId: categoryId,
-      subcategoryId: subcategoryId,
-    );
-
     setState(() => isSaving = true);
 
     try {
+      String? imageUrl;
+      if (_image != null) {
+        imageUrl = await ref
+            .read(meetingRepositoryProvider)
+            .uploadMeetingImage(
+              fileName: _image!.name,
+              filePath: _image!.path,
+              fileBytes: _image!.bytes,
+            );
+        if (imageUrl.isEmpty) {
+          throw StateError('The meeting image upload returned an empty URL.');
+        }
+      }
+
+      final request = MeetingRequest(
+        title: _titleController.text.trim(),
+        type: meetingType,
+        meetingDateTime: _meetingDateController.text.trim(),
+        targetDateTime: _targetDateController.text.trim().isEmpty
+            ? null
+            : _targetDateController.text.trim(),
+        location: _locationController.text.trim(),
+        description: _descriptionController.text.trim(),
+        imageUrl: imageUrl,
+        categoryId: categoryId,
+        subcategoryId: subcategoryId,
+      );
+
       await ref.read(meetingListProvider.notifier).createMeeting(request);
 
       if (mounted) {
@@ -194,6 +211,22 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
         setState(() => isSaving = false);
       }
     }
+  }
+
+  Future<void> _chooseImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final image = result.files.single;
+    if (image.size > 5 * 1024 * 1024) {
+      _showValidationMessage('Meeting image must be 5 MB or smaller.');
+      return;
+    }
+    setState(() => _image = image);
   }
 
   String _formatLocalDateTime(DateTime dateTime) {
@@ -237,6 +270,68 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
           const SizedBox(height: 18),
 
           _SectionCard(
+            title: 'Meeting Image',
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: isSaving ? null : _chooseImage,
+                child: Container(
+                  height: 150,
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: _image?.bytes != null
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(_image!.bytes!, fit: BoxFit.cover),
+                            const Align(
+                              alignment: Alignment.bottomCenter,
+                              child: ColoredBox(
+                                color: Color(0x9900184A),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 7,
+                                  ),
+                                  child: Text(
+                                    'Tap to replace image',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 38,
+                              color: primaryBlue,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Add meeting image (optional)',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          _SectionCard(
             title: 'Meeting Details',
             children: [
               AppTextField(
@@ -249,7 +344,7 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
               DropdownButtonFormField<String>(
                 initialValue: meetingType,
                 decoration: _dropdownDecoration('Meeting Type'),
-                dropdownColor: Colors.white,
+                dropdownColor: Theme.of(context).colorScheme.surface,
                 icon: const Icon(
                   Icons.keyboard_arrow_down_rounded,
                   color: primaryBlue,
@@ -360,7 +455,7 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
     return DropdownButtonFormField<int>(
       initialValue: selectedCategoryId,
       decoration: _dropdownDecoration('Category'),
-      dropdownColor: Colors.white,
+      dropdownColor: Theme.of(context).colorScheme.surface,
       icon: const Icon(Icons.keyboard_arrow_down_rounded, color: primaryBlue),
       items: categories
           .map(
@@ -396,7 +491,7 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
     return DropdownButtonFormField<int>(
       initialValue: selectedSubcategoryId,
       decoration: _dropdownDecoration('Subcategory'),
-      dropdownColor: Colors.white,
+      dropdownColor: Theme.of(context).colorScheme.surface,
       icon: const Icon(Icons.keyboard_arrow_down_rounded, color: primaryBlue),
       items: filteredSubcategories
           .map(
@@ -434,12 +529,12 @@ class _MeetingFormScreenState extends ConsumerState<MeetingFormScreen> {
   InputDecoration _dropdownDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(
-        color: Color(0xFF7D8CB2),
+      labelStyle: TextStyle(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         fontWeight: FontWeight.w600,
       ),
       filled: true,
-      fillColor: bgColor,
+      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
@@ -462,8 +557,6 @@ class _HeaderCard extends StatelessWidget {
   const _HeaderCard({required this.meetingType});
 
   static const Color primaryBlue = Color(0xFF12275B);
-
-  static const Color darkBlue = Color(0xFF00184A);
 
   static const Color gold = Color(0xFFFFB52E);
 
@@ -495,7 +588,7 @@ class _HeaderCard extends StatelessWidget {
             ),
             child: Icon(
               isCircular ? Icons.campaign_outlined : Icons.event_note_outlined,
-              color: darkBlue,
+              color: const Color(0xFF00184A),
               size: 30,
             ),
           ),
@@ -555,12 +648,12 @@ class _DropdownLoading extends StatelessWidget {
     return InputDecorator(
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(
-          color: Color(0xFF7D8CB2),
+        labelStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
         filled: true,
-        fillColor: _MeetingFormScreenState.bgColor,
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
@@ -624,14 +717,12 @@ class _SectionCard extends StatelessWidget {
 
   const _SectionCard({required this.title, required this.children});
 
-  static const Color darkBlue = Color(0xFF00184A);
-
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -646,8 +737,8 @@ class _SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: darkBlue,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 15,
               fontWeight: FontWeight.w900,
             ),

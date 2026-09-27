@@ -50,6 +50,8 @@ dependencies:
   record: ^6.2.1
   path_provider: ^2.1.5
   audioplayers: ^6.7.1
+  image_picker: ^1.2.3
+  android_id: ^0.5.2+1
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +79,7 @@ flutter:
     - assets/images/logo.png
     - assets/images/logo.svg
     - assets/images/slpa_logo.png
+    - assets/images/Logo001.png
     - assets/images/BG.jpeg
 
 flutter_icons:

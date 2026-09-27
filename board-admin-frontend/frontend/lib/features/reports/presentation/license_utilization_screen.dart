@@ -41,7 +41,7 @@ class LicenseUtilizationScreen extends ConsumerWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
-              childAspectRatio: 1.1,
+              mainAxisExtent: 150,
               children: [
                 _StatCard(
                   title: 'Total Users',
@@ -203,18 +203,25 @@ class _StatCard extends StatelessWidget {
     required this.iconColor,
   });
 
-  static const Color darkBlue = Color(0xFF00184A);
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(
+            alpha: isDark ? 0.75 : 0.35,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.04),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -227,7 +234,7 @@ class _StatCard extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: bgColor,
+              color: isDark ? iconColor.withValues(alpha: 0.18) : bgColor,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: iconColor, size: 24),
@@ -237,8 +244,8 @@ class _StatCard extends StatelessWidget {
 
           Text(
             value,
-            style: const TextStyle(
-              color: darkBlue,
+            style: TextStyle(
+              color: colorScheme.onSurface,
               fontSize: 26,
               fontWeight: FontWeight.w900,
             ),
@@ -250,8 +257,8 @@ class _StatCard extends StatelessWidget {
             title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF7D8CB2),
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
               fontSize: 12,
               height: 1.3,
               fontWeight: FontWeight.w600,

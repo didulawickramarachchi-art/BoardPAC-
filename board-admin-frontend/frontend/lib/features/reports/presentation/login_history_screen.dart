@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../provider/report_provider.dart';
 
@@ -7,10 +8,6 @@ class LoginHistoryScreen extends ConsumerWidget {
   const LoginHistoryScreen({super.key});
 
   static const Color primaryBlue = Color(0xFF12275B);
-  static const Color darkBlue = Color(0xFF00184A);
-  static const Color gold = Color(0xFFFFB52E);
-  static const Color bgColor = Color(0xFFF6F7FB);
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncData = ref.watch(loginHistoryProvider);
@@ -27,40 +24,33 @@ class LoginHistoryScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
-      body: asyncData.when(
-        data: (items) {
-          if (items.isEmpty) {
-            return const Center(
-              child: Text(
-                'No login history found',
-                style: TextStyle(
-                  color: Color(0xFF7D8CB2),
-                  fontWeight: FontWeight.w600,
+      body: DecoratedBox(
+        decoration: AppGlassDecoration.backgroundFor(context),
+        child: asyncData.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No login history found',
+                  style: TextStyle(
+                    color: Color(0xFF7D8CB2),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 14),
-            itemBuilder: (context, index) {
-              final item = items[index];
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 14),
+              itemBuilder: (context, index) {
+                final item = items[index];
 
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
+                final scheme = Theme.of(context).colorScheme;
+                return AppGlassSurface(
+                  enableBackdropBlur: false,
                   borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Row(
                     children: [
@@ -68,12 +58,12 @@ class LoginHistoryScreen extends ConsumerWidget {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: primaryBlue.withValues(alpha: 0.08),
+                          color: scheme.primaryContainer.withValues(alpha: .72),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
                           _deviceIcon(item.deviceInfo ?? ''),
-                          color: primaryBlue,
+                          color: scheme.onPrimaryContainer,
                           size: 27,
                         ),
                       ),
@@ -88,8 +78,8 @@ class LoginHistoryScreen extends ConsumerWidget {
                               item.username,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: darkBlue,
+                              style: TextStyle(
+                                color: scheme.onSurface,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -99,10 +89,10 @@ class LoginHistoryScreen extends ConsumerWidget {
 
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.schedule_rounded,
                                   size: 15,
-                                  color: Color(0xFF7D8CB2),
+                                  color: scheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 5),
                                 Expanded(
@@ -110,8 +100,8 @@ class LoginHistoryScreen extends ConsumerWidget {
                                     item.loginTime,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFF7D8CB2),
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -124,10 +114,10 @@ class LoginHistoryScreen extends ConsumerWidget {
 
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.devices_other_rounded,
                                   size: 15,
-                                  color: Color(0xFF7D8CB2),
+                                  color: scheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 5),
                                 Expanded(
@@ -135,8 +125,8 @@ class LoginHistoryScreen extends ConsumerWidget {
                                     item.deviceInfo ?? '-',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFF7D8CB2),
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -153,25 +143,25 @@ class LoginHistoryScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                );
+              },
+            );
+          },
+          error: (e, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'Failed to load login history: $e',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
                 ),
-              );
-            },
-          );
-        },
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Text(
-              'Failed to load login history: $e',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ),
+          loading: () => const AppLoading(),
         ),
-        loading: () => const AppLoading(),
       ),
     );
   }
@@ -185,6 +175,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lowerStatus = status.toLowerCase();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Color bgColor;
     Color textColor;
@@ -207,6 +198,24 @@ class _StatusChip extends StatelessWidget {
       textColor = const Color(0xFF233E8B);
     }
 
+    if (isDark) {
+      bgColor = textColor.withValues(alpha: .18);
+      textColor = switch (lowerStatus) {
+        final value
+            when value.contains('success') ||
+                value.contains('active') ||
+                value.contains('approved') =>
+          const Color(0xFF6EE7B7),
+        final value when value.contains('pending') => const Color(0xFFFFD27A),
+        final value
+            when value.contains('fail') ||
+                value.contains('error') ||
+                value.contains('blocked') =>
+          const Color(0xFFFF9C96),
+        _ => const Color(0xFFADC6FF),
+      };
+    }
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -214,6 +223,7 @@ class _StatusChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: textColor.withValues(alpha: .28)),
         ),
         child: Text(
           status,

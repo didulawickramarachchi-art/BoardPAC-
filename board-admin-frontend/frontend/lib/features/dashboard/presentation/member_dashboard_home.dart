@@ -742,8 +742,8 @@ class _WorkspaceTile extends StatelessWidget {
             item.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF071C4D),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -751,7 +751,10 @@ class _WorkspaceTile extends StatelessWidget {
             item.subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Color(0xFF69758C), fontSize: 11),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -864,14 +867,19 @@ class _SectionHeading extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                color: Color(0xFF071C4D),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
               ),
             ),
             if (subtitle case final subtitle?)
-              Text(subtitle, style: const TextStyle(color: Color(0xFF69758C))),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
           ],
         ),
       ),
@@ -1002,8 +1010,11 @@ class _MeetingStrip extends StatelessWidget {
                           _boardName(meeting),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF244B9B),
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Theme.of(context).colorScheme.primary
+                                : const Color(0xFF244B9B),
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -1016,8 +1027,8 @@ class _MeetingStrip extends StatelessWidget {
                     meeting.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF071C4D),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1036,7 +1047,9 @@ class _MeetingStrip extends StatelessWidget {
                         : 'Location not provided',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFF69758C)),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -1488,7 +1501,7 @@ class _MetricTile extends StatelessWidget {
     ),
     child: Row(
       children: [
-        Icon(icon, color: const Color(0xFF244B9B)),
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -1505,7 +1518,10 @@ class _MetricTile extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF69758C), fontSize: 11),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -1530,12 +1546,14 @@ class _EmptyPanel extends StatelessWidget {
     ),
     child: Column(
       children: [
-        Icon(icon, color: const Color(0xFF69758C)),
+        Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(height: 8),
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xFF69758C)),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     ),

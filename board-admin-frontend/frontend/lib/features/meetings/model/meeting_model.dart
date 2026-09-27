@@ -7,6 +7,7 @@ class MeetingModel {
   final String? targetDateTime;
   final String? location;
   final String? description;
+  final String? imageUrl;
   final String? categoryName;
   final int? subcategoryId;
   final String? subcategoryName;
@@ -20,6 +21,7 @@ class MeetingModel {
     this.targetDateTime,
     this.location,
     this.description,
+    this.imageUrl,
     this.categoryName,
     this.subcategoryId,
     this.subcategoryName,
@@ -35,6 +37,7 @@ class MeetingModel {
       targetDateTime: json['targetDateTime'],
       location: json['location'],
       description: json['description'],
+      imageUrl: json['imageUrl'],
       categoryName: json['categoryName'],
       subcategoryId: (json['subcategoryId'] as num?)?.toInt(),
       subcategoryName: json['subcategoryName'],

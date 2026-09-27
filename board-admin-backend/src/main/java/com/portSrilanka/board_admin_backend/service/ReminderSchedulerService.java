@@ -11,6 +11,7 @@ import com.portSrilanka.board_admin_backend.repository.MeetingRepository;
 import com.portSrilanka.board_admin_backend.repository.PaperApprovalRepository;
 import com.portSrilanka.board_admin_backend.repository.PaperRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReminderSchedulerService {
 
     private final MeetingRepository meetingRepository;
@@ -54,13 +56,15 @@ public class ReminderSchedulerService {
         LocalDateTime reminderTime = referenceTime.minusHours(24);
         LocalDateTime now = LocalDateTime.now();
 
-        // if within 30 minutes window after the exact reminder time, send reminder
-        if (!now.isBefore(reminderTime) && now.isBefore(reminderTime.plusMinutes(30))) {
+        // Send once after the meeting enters its final 24-hour window. The
+        // notification service de-duplicates per member and meeting, allowing
+        // this to recover if the server was offline at the exact 24-hour mark.
+        if (!now.isBefore(reminderTime) && now.isBefore(referenceTime)) {
             List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetingIdOrderByDisplaySequenceAsc(meeting.getId());
             try {
                 notificationService.notifyMeetingReminder(meeting, participants);
             } catch (Exception ex) {
-                // swallow to avoid scheduled task failure
+                log.warn("Unable to send one-day reminder for meeting {}", meeting.getId(), ex);
             }
         }
     }

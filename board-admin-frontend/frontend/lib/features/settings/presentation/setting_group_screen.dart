@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../../core/widgets/app_loading.dart';
 import '../model/setting_definition.dart';
 import '../model/setting_model.dart';
@@ -97,43 +97,48 @@ class _SettingGroupScreenState extends ConsumerState<SettingGroupScreen> {
     final settings = ref.watch(settingGroupProvider(widget.group));
     return Scaffold(
       appBar: AppBar(title: Text('$_title Settings')),
-      body: settings.when(
-        loading: () => const AppLoading(),
-        error: (error, _) => _ErrorView(
-          error: error,
-          onRetry: () =>
-              ref.read(settingGroupProvider(widget.group).notifier).load(),
-        ),
-        data: (items) {
-          _initialize(items);
-          if (_definitions.isEmpty) {
-            return const Center(child: Text('No settings configured.'));
-          }
-          return Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-                    children: [
-                      Text(
-                        'Configure how $_title features behave across the web portal and member devices.',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          height: 1.4,
+      body: DecoratedBox(
+        decoration: AppGlassDecoration.backgroundFor(context),
+        child: settings.when(
+          loading: () => const AppLoading(),
+          error: (error, _) => _ErrorView(
+            error: error,
+            onRetry: () =>
+                ref.read(settingGroupProvider(widget.group).notifier).load(),
+          ),
+          data: (items) {
+            _initialize(items);
+            if (_definitions.isEmpty) {
+              return const Center(child: Text('No settings configured.'));
+            }
+            return Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                      children: [
+                        Text(
+                          'Configure how $_title features behave across the web portal and member devices.',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      ..._buildSections(),
-                    ],
+                        const SizedBox(height: 18),
+                        ..._buildSections(),
+                      ],
+                    ),
                   ),
-                ),
-                _SaveBar(saving: _saving, onSave: _save),
-              ],
-            ),
-          );
-        },
+                  _SaveBar(saving: _saving, onSave: _save),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -229,22 +234,37 @@ class _SettingGroupScreenState extends ConsumerState<SettingGroupScreen> {
         control = Wrap(
           spacing: 8,
           runSpacing: 6,
-          children: d.options
-              .map(
-                (option) => FilterChip(
-                  label: Text(option),
-                  selected: selected.contains(option),
-                  onSelected: enabled
-                      ? (checked) => setState(() {
-                          checked
-                              ? selected.add(option)
-                              : selected.remove(option);
-                          _values[d.key] = selected.join(',');
-                        })
-                      : null,
+          children: d.options.map((option) {
+            final isSelected = selected.contains(option);
+            final scheme = Theme.of(context).colorScheme;
+            return FilterChip(
+              label: Text(
+                option,
+                style: TextStyle(
+                  color: isSelected
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
-              )
-              .toList(),
+              ),
+              selected: isSelected,
+              selectedColor: scheme.primaryContainer,
+              backgroundColor: scheme.surfaceContainerHighest,
+              disabledColor: scheme.surfaceContainerHighest.withValues(
+                alpha: .55,
+              ),
+              checkmarkColor: scheme.onPrimaryContainer,
+              side: BorderSide(
+                color: isSelected ? scheme.primary : scheme.outline,
+              ),
+              onSelected: enabled
+                  ? (checked) => setState(() {
+                      checked ? selected.add(option) : selected.remove(option);
+                      _values[d.key] = selected.join(',');
+                    })
+                  : null,
+            );
+          }).toList(),
         );
     }
     return Opacity(
@@ -256,7 +276,7 @@ class _SettingGroupScreenState extends ConsumerState<SettingGroupScreen> {
             final label = Text(
               d.label,
               style: TextStyle(
-                color: AppColors.text,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: d.indented ? FontWeight.w500 : FontWeight.w600,
                 height: 1.35,
               ),
@@ -287,36 +307,37 @@ class _SectionCard extends StatelessWidget {
   final List<Widget> children;
   const _SectionCard({required this.title, required this.children});
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.devices_rounded,
-                color: AppColors.navy,
-                size: 20,
+  Widget build(BuildContext context) => AppGlassSurface(
+    enableBackdropBlur: false,
+    borderRadius: BorderRadius.circular(22),
+    padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.devices_rounded,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+            const SizedBox(width: 9),
+            Text(
+              title,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
               ),
-              const SizedBox(width: 9),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) const Divider(height: 1),
-            children[i],
+            ),
           ],
+        ),
+        const SizedBox(height: 7),
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const Divider(height: 1),
+          children[i],
         ],
-      ),
+      ],
     ),
   );
 }
@@ -326,9 +347,12 @@ class _SaveBar extends StatelessWidget {
   final VoidCallback onSave;
   const _SaveBar({required this.saving, required this.onSave});
   @override
-  Widget build(BuildContext context) => Material(
-    color: AppColors.surface,
-    elevation: 10,
+  Widget build(BuildContext context) => Container(
+    decoration: AppGlassDecoration.surface(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      tint: Theme.of(context).colorScheme.primary,
+      darkMode: Theme.of(context).brightness == Brightness.dark,
+    ),
     child: SafeArea(
       top: false,
       child: Padding(
@@ -365,10 +389,10 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_off_rounded,
             size: 44,
-            color: AppColors.textMuted,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
           Text('Could not load settings\n$error', textAlign: TextAlign.center),

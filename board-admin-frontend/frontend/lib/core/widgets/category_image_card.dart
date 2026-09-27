@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_glass_surface.dart';
+import 'app_network_image.dart';
 
 class CategoryImageCard extends StatelessWidget {
   final String title;
@@ -42,8 +43,8 @@ class CategoryImageCard extends StatelessWidget {
                   ),
                   child: url.isEmpty
                       ? const _Placeholder()
-                      : Image.network(
-                          url,
+                      : AppNetworkImage(
+                          url: url,
                           fit: BoxFit.cover,
                           cacheWidth: 440,
                           filterQuality: FilterQuality.medium,
@@ -61,8 +62,8 @@ class CategoryImageCard extends StatelessWidget {
                         title.toUpperCase(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF111111),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 20,
                           height: 1,
                           fontWeight: FontWeight.w900,
@@ -75,8 +76,8 @@ class CategoryImageCard extends StatelessWidget {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF69738E),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -84,11 +85,11 @@ class CategoryImageCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.only(right: 14),
+                Padding(
+                  padding: const EdgeInsets.only(right: 14),
                   child: Icon(
                     Icons.chevron_right_rounded,
-                    color: Color(0xFF69738E),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -149,12 +150,12 @@ class _Placeholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: Color(0xFFD4D9E3),
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Center(
         child: Icon(
           Icons.category_outlined,
-          color: Color(0xFF12275B),
+          color: Theme.of(context).colorScheme.primary,
           size: 42,
         ),
       ),

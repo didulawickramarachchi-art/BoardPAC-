@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:android_id/android_id.dart';
 import 'package:flutter/foundation.dart';
 
 import '../storage/secure_storage_service.dart';
@@ -50,9 +51,17 @@ class DeviceIdentityService {
     // each account so two users of the same device receive separate requests.
     final storageKey =
         '$_deviceIdKey:${Uri.encodeComponent(normalizedUsername)}';
-    var deviceId = await storage.read(storageKey);
+    final persistentPlatformId = await _persistentPlatformId();
+    var deviceId = persistentPlatformId ?? await storage.read(storageKey);
     if (deviceId == null || deviceId.isEmpty) {
       deviceId = _newInstallationId();
+    }
+
+    // Always persist the selected value. On Android this migrates legacy
+    // installation UUIDs to ANDROID_ID immediately instead of waiting until
+    // the next reinstall, after which the old UUID is no longer recoverable.
+    final storedDeviceId = await storage.read(storageKey);
+    if (storedDeviceId != deviceId) {
       await storage.write(storageKey, deviceId);
     }
 
@@ -64,6 +73,22 @@ class DeviceIdentityService {
       osVersion: platform,
       description: 'BoardPAC ${kIsWeb ? 'web' : 'app'} installation',
     );
+  }
+
+  Future<String?> _persistentPlatformId() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return null;
+    }
+
+    try {
+      final androidId = await const AndroidId().getId();
+      if (androidId == null || androidId.trim().isEmpty) return null;
+      return 'android:${androidId.trim()}';
+    } catch (_) {
+      // Fall back to a generated installation ID if the platform service is
+      // unavailable. Authentication must remain usable on unsupported devices.
+      return null;
+    }
   }
 
   String _newInstallationId() {

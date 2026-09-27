@@ -1,9 +1,9 @@
 import 'dart:io';
 
 class ApiConstantsPlatform {
-  // Android development uses `adb reverse tcp:8081 tcp:8081`, avoiding host
-  // firewall and emulator DNS issues. Other native platforms use localhost.
+  // Android emulators reach the host machine through 10.0.2.2.
+  // Other native platforms can use localhost directly.
   static String get defaultBaseUrl => Platform.isAndroid
-      ? 'https://pajamas-penalize-posing.ngrok-free.dev/api'
-      : 'https://pajamas-penalize-posing.ngrok-free.dev/api';
+      ? 'http://10.0.2.2:8081/api'
+      : 'http://localhost:8081/api';
 }

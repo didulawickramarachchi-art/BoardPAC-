@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_provider.dart';
 import '../data/offline_file_store.dart';
 
@@ -43,20 +44,11 @@ class OfflinePaperNotifier extends StateNotifier<AsyncValue<String?>> {
     final previousPath = state.valueOrNull;
     state = const AsyncLoading();
     try {
-      final uri = Uri.tryParse(url);
-      final isExternalUrl =
-          uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
-      final downloadClient = isExternalUrl
-          ? Dio(
-              BaseOptions(
-                connectTimeout: const Duration(seconds: 30),
-                receiveTimeout: const Duration(minutes: 2),
-                sendTimeout: const Duration(seconds: 30),
-              ),
-            )
-          : dio;
-      final response = await downloadClient.get<List<int>>(
-        url,
+      // Use the configured application client even for absolute backend URLs.
+      // A fresh Dio instance drops the JWT and ngrok headers, causing protected
+      // paper downloads to fail with HTTP 403.
+      final response = await dio.get<List<int>>(
+        _normalizePaperUrl(url),
         options: Options(responseType: ResponseType.bytes),
       );
       final bytes = response.data;
@@ -101,6 +93,27 @@ class OfflinePaperNotifier extends StateNotifier<AsyncValue<String?>> {
     }
   }
 
+  Future<Uint8List> loadBytes(String url) async {
+    final response = await dio.get<List<int>>(
+      _normalizePaperUrl(url),
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final bytes = response.data;
+    if (bytes == null || bytes.isEmpty) {
+      throw StateError('The paper file is empty');
+    }
+    return Uint8List.fromList(bytes);
+  }
+
+  Future<String> cacheForAccess(String url, String fileName) async {
+    final bytes = await loadBytes(url);
+    final path = await store.save(paperId, fileName, bytes);
+    if (path == null) {
+      throw UnsupportedError('Local paper access is unavailable');
+    }
+    return path;
+  }
+
   Future<Uint8List> _applyWatermark(
     Uint8List source, {
     required String userName,
@@ -137,7 +150,27 @@ class OfflinePaperNotifier extends StateNotifier<AsyncValue<String?>> {
   }
 
   Future<void> remove() async {
-    await store.remove(state.value);
+    await store.remove(state.valueOrNull);
     state = const AsyncData(null);
+  }
+
+  String _normalizePaperUrl(String value) {
+    final fileUri = Uri.tryParse(value.trim());
+    if (fileUri == null || !fileUri.path.startsWith('/api/files/')) {
+      return value.trim();
+    }
+
+    final apiUri = Uri.tryParse(ApiConstants.baseUrl);
+    if (apiUri == null || !apiUri.hasScheme || apiUri.host.isEmpty) {
+      return value.trim();
+    }
+
+    return apiUri
+        .replace(
+          path: fileUri.path,
+          query: fileUri.hasQuery ? fileUri.query : null,
+          fragment: fileUri.hasFragment ? fileUri.fragment : null,
+        )
+        .toString();
   }
 }

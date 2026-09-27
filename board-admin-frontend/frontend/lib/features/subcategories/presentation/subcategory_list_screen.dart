@@ -15,7 +15,6 @@ class SubcategoryListScreen extends ConsumerWidget {
   const SubcategoryListScreen({super.key});
 
   static const Color primaryBlue = Color(0xFF12275B);
-  static const Color darkBlue = Color(0xFF00184A);
   static const Color gold = Color(0xFFFFB52E);
   static const Color bgColor = Color(0xFFF6F7FB);
 
@@ -122,7 +121,7 @@ class SubcategoryListScreen extends ConsumerWidget {
       floatingActionButton: access.canManageSubcategories
           ? FloatingActionButton.extended(
               backgroundColor: gold,
-              foregroundColor: darkBlue,
+              foregroundColor: const Color(0xFF00184A),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Add Subcategory'),
               onPressed: () => _openCreateScreen(context, ref),
@@ -143,7 +142,7 @@ class SubcategoryListScreen extends ConsumerWidget {
 
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
@@ -164,9 +163,11 @@ class SubcategoryListScreen extends ConsumerWidget {
                           color: primaryBlue.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.account_tree_outlined,
-                          color: primaryBlue,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : primaryBlue,
                           size: 27,
                         ),
                       ),
@@ -181,8 +182,8 @@ class SubcategoryListScreen extends ConsumerWidget {
                               sub.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: darkBlue,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -192,10 +193,12 @@ class SubcategoryListScreen extends ConsumerWidget {
 
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.label_outline_rounded,
                                   size: 15,
-                                  color: Color(0xFF7D8CB2),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 5),
                                 Expanded(
@@ -203,8 +206,10 @@ class SubcategoryListScreen extends ConsumerWidget {
                                     sub.displayName,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFF7D8CB2),
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -228,8 +233,10 @@ class SubcategoryListScreen extends ConsumerWidget {
                                 sub.categoryName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: darkBlue,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -283,7 +290,6 @@ class _SubcategoryErrorState extends StatelessWidget {
   const _SubcategoryErrorState({required this.message, required this.onRetry});
 
   static const Color primaryBlue = Color(0xFF12275B);
-  static const Color darkBlue = Color(0xFF00184A);
   static const Color gold = Color(0xFFFFB52E);
 
   @override
@@ -295,7 +301,7 @@ class _SubcategoryErrorState extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
@@ -327,8 +333,8 @@ class _SubcategoryErrorState extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: darkBlue,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 14,
                   height: 1.4,
                   fontWeight: FontWeight.w700,

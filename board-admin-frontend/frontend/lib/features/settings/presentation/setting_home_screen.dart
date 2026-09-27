@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/role_access.dart';
 import '../../../core/theme/theme_mode_provider.dart';
+import '../../../core/widgets/app_glass_surface.dart';
 import '../../auth/provider/auth_provider.dart';
 import 'setting_group_screen.dart';
 
@@ -9,10 +10,6 @@ class SettingHomeScreen extends ConsumerWidget {
   const SettingHomeScreen({super.key});
 
   static const Color navy = Color(0xFF14275B);
-  static const Color cardColor = Colors.white;
-  static const Color iconBg = Color(0xFFE9ECF3);
-  static const Color arrowBg = Color(0xFFFFF1D8);
-  static const Color subTextColor = Color(0xFF6E7FA8);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,12 +59,6 @@ class SettingHomeScreen extends ConsumerWidget {
         group: 'GENERAL',
         subtitle: 'Update general system settings',
         icon: Icons.settings_rounded,
-      ),
-      SettingGroupItem(
-        title: 'Survey',
-        group: 'SURVEY',
-        subtitle: 'Configure survey and reminder settings',
-        icon: Icons.poll_rounded,
       ),
     ];
 
@@ -124,41 +115,32 @@ class SettingHomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: SafeArea(
-        top: false,
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-          itemCount: groups.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 14),
-          itemBuilder: (context, index) {
-            final item = groups[index];
+      body: DecoratedBox(
+        decoration: AppGlassDecoration.backgroundFor(context),
+        child: SafeArea(
+          top: false,
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+            itemCount: groups.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 14),
+            itemBuilder: (context, index) {
+              final item = groups[index];
 
-            return InkWell(
-              borderRadius: BorderRadius.circular(22),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => SettingGroupScreen(group: item.group),
-                  ),
-                );
-              },
-              child: Container(
+              return AppGlassSurface(
+                borderRadius: BorderRadius.circular(22),
+                enableBackdropBlur: false,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 14,
                 ),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SettingGroupScreen(group: item.group),
                     ),
-                  ],
-                ),
+                  );
+                },
                 child: Row(
                   children: [
                     Container(
@@ -170,7 +152,11 @@ class SettingHomeScreen extends ConsumerWidget {
                         ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Icon(item.icon, color: navy, size: 25),
+                      child: Icon(
+                        item.icon,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 25,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -203,20 +189,20 @@ class SettingHomeScreen extends ConsumerWidget {
                       width: 34,
                       height: 34,
                       decoration: BoxDecoration(
-                        color: arrowBg,
+                        color: Theme.of(context).colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(11),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_forward_ios_rounded,
-                        color: navy,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                         size: 16,
                       ),
                     ),
                   ],
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
