@@ -8,7 +8,7 @@ const groups = [
   ['Overview', [['Dashboard', '/dashboard', LayoutDashboard, ['ADMIN', 'SECRETARY', 'MEMBER']]]],
   ['Board operations', [['Meetings', '/meetings', CalendarDays, ['SECRETARY', 'MEMBER']], ['Board papers', '/papers', FileText, ['SECRETARY', 'MEMBER']], ['Approvals', '/approvals', ClipboardCheck, ['ADMIN', 'SECRETARY', 'MEMBER']], ['Member library', '/favorites', Heart, ['ADMIN', 'SECRETARY', 'MEMBER']], ['Pack delivery', '/pack-delivery', Truck, ['MEMBER']]]],
   ['Organization', [['Users', '/users', Users, ['ADMIN']], ['Categories', '/categories', Tags, ['SECRETARY', 'MEMBER']], ['Subcategories', '/subcategories', Layers, ['SECRETARY', 'MEMBER']], ['Privileges', '/privileges', ShieldCheck, ['SECRETARY']], ['Devices', '/devices', MonitorSmartphone, ['ADMIN']], ['Access Control', '/access-control', ShieldCheck, ['ADMIN']]]],
-  ['Insights', [['Reports', '/reports', BarChart3, ['ADMIN']], ['Settings', '/settings', Settings, ['ADMIN']]]],
+  ['Insights', [['Reports', '/reports', BarChart3, ['ADMIN']], ['Legacy archive', '/legacy-archive', FileText, ['ADMIN']], ['Legacy audit', '/legacy-audit', BarChart3, ['ADMIN']], ['Legacy devices', '/legacy-devices', MonitorSmartphone, ['ADMIN']], ['Settings', '/settings', Settings, ['ADMIN']]]],
 ]
 
 const rowsFrom = data => Array.isArray(data) ? data : data?.notifications || data?.items || data?.content || []
