@@ -15,7 +15,6 @@ import '../../../core/widgets/app_glass_surface.dart';
 import '../../approvals/provider/approval_provider.dart';
 import '../../papers/provider/paper_provider.dart';
 import '../../papers/data/offline_file_store.dart';
-import '../model/annotation_request.dart';
 import '../provider/annotation_provider.dart';
 
 class PdfAnnotationScreen extends ConsumerStatefulWidget {
@@ -100,6 +99,37 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
       '_',
     );
     return 'local_pdf_annotation_${widget.userId}_${widget.paperId}_$document';
+  }
+
+  String get _localVoiceNotesKey => '${_localAnnotationKey}_voice_notes';
+
+  Future<List<_SavedVoiceNote>> _loadLocalVoiceNotes() async {
+    final stored = await SecureStorageService().read(_localVoiceNotesKey);
+    if (stored == null || stored.isEmpty) return [];
+    final notes = <_SavedVoiceNote>[];
+    dynamic records;
+    try {
+      records = jsonDecode(stored);
+    } on FormatException {
+      return notes;
+    }
+    if (records is! List) return notes;
+    for (final record in records) {
+      if (record is! Map) continue;
+      final path = record['localPath'];
+      final page = record['pageNumber'];
+      if (path is! String || page is! int) continue;
+      if (!await OfflineFileStore().exists(path)) continue;
+      notes.add(
+        _SavedVoiceNote(
+          source: path,
+          local: true,
+          fileName: record['fileName']?.toString() ?? 'Voice note',
+          pageNumber: page,
+        ),
+      );
+    }
+    return notes;
   }
 
   Future<void> _loadBookmarks() async {
@@ -199,21 +229,27 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
   Future<void> _showAnnotations() async {
     final annotations = _controller.getAnnotations()
       ..sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
-    final voiceNotes = <_SavedVoiceNote>[];
+    final voiceNotes = await _loadLocalVoiceNotes();
     try {
       final records = await ref
           .read(annotationRepositoryProvider)
-          .getByPaperAndUser(widget.paperId, widget.userId);
+          .getByPaperAndUser(widget.paperId, widget.userId)
+          .timeout(const Duration(seconds: 3));
       for (final record in records) {
         if (record.annotationType != 'AUDIO') continue;
         try {
           final data = jsonDecode(record.annotationDataJson);
           if (data is! Map || data['kind'] != 'voice_note') continue;
+          if (data['documentKey'] != null &&
+              data['documentKey'] != widget.documentKey) {
+            continue;
+          }
           final audioUrl = data['audioUrl']?.toString().trim() ?? '';
           if (audioUrl.isEmpty) continue;
           voiceNotes.add(
             _SavedVoiceNote(
-              audioUrl: audioUrl,
+              source: audioUrl,
+              local: false,
               fileName: data['fileName']?.toString() ?? 'Voice note',
               pageNumber: record.pageNumber ?? 1,
             ),
@@ -249,10 +285,7 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
                         onTap: () {
                           Navigator.pop(sheetContext);
                           _controller.jumpToPage(voiceNote.pageNumber);
-                          _showVoiceNotePlayer(
-                            voiceNote.audioUrl,
-                            voiceNote.fileName,
-                          );
+                          _showVoiceNotePlayer(voiceNote);
                         },
                       );
                     }
@@ -265,15 +298,17 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
                             : annotation.runtimeType.toString(),
                       ),
                       subtitle: Text('Page ${annotation.pageNumber}'),
-                      trailing: IconButton(
-                        tooltip: 'Remove annotation',
-                        onPressed: () {
-                          _controller.removeAnnotation(annotation);
-                          Navigator.pop(sheetContext);
-                          _showAnnotations();
-                        },
-                        icon: const Icon(Icons.delete_outline_rounded),
-                      ),
+                      trailing: widget.editable
+                          ? IconButton(
+                              tooltip: 'Remove annotation',
+                              onPressed: () {
+                                _controller.removeAnnotation(annotation);
+                                Navigator.pop(sheetContext);
+                                _showAnnotations();
+                              },
+                              icon: const Icon(Icons.delete_outline_rounded),
+                            )
+                          : null,
                       onTap: () {
                         Navigator.pop(sheetContext);
                         _controller.jumpToPage(annotation.pageNumber);
@@ -583,12 +618,12 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     );
   }
 
-  Future<void> _showVoiceNotePlayer(String audioUrl, String fileName) async {
+  Future<void> _showVoiceNotePlayer(_SavedVoiceNote note) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _VoiceNotePlayer(audioUrl: audioUrl, title: fileName),
+      builder: (_) => _VoiceNotePlayer(note: note),
     );
   }
 
@@ -603,50 +638,55 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
     if (result == null || !mounted) return;
 
     setState(() => _savingVoice = true);
-    final paperRepository = ref.read(paperRepositoryProvider);
-    final annotationNotifier = ref.read(
-      annotationListProvider((
-        paperId: widget.paperId,
-        userId: widget.userId,
-      )).notifier,
-    );
+    final fileStore = OfflineFileStore();
+    String? localPath;
     try {
       final now = DateTime.now();
-      final fileName = 'voice_note_${now.millisecondsSinceEpoch}.wav';
-      final audioUrl = await paperRepository.uploadAttachment(
+      final pageNumber = _currentPage;
+      final fileName =
+          'voice_note_${widget.userId}_${now.microsecondsSinceEpoch}.wav';
+      final existing = await _loadLocalVoiceNotes();
+      localPath = await fileStore.save(widget.paperId, fileName, result.bytes);
+      if (localPath == null) {
+        throw UnsupportedError('Local voice note storage is unavailable.');
+      }
+      final note = _SavedVoiceNote(
+        source: localPath,
+        local: true,
         fileName: fileName,
-        paperId: widget.paperId,
-        fileBytes: result.bytes,
+        pageNumber: pageNumber,
       );
-      await annotationNotifier.create(
-        AnnotationRequest(
-          paperId: widget.paperId,
-          userId: widget.userId,
-          annotationType: 'AUDIO',
-          pageNumber: _controller.pageNumber,
-          annotationDataJson: jsonEncode({
-            'kind': 'voice_note',
-            'documentKey': widget.documentKey,
-            'audioUrl': audioUrl,
+      await SecureStorageService().write(
+        _localVoiceNotesKey,
+        jsonEncode([
+          for (final saved in existing)
+            {
+              'localPath': saved.source,
+              'fileName': saved.fileName,
+              'pageNumber': saved.pageNumber,
+            },
+          {
+            'localPath': localPath,
             'fileName': fileName,
+            'pageNumber': pageNumber,
             'durationSeconds': result.duration.inSeconds,
-            'pageNumber': _controller.pageNumber,
             'createdAt': now.toUtc().toIso8601String(),
-          }),
-        ),
+          },
+        ]),
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Voice note added to this page.'),
+            content: const Text('Voice note saved on this device.'),
             action: SnackBarAction(
               label: 'Play',
-              onPressed: () => _showVoiceNotePlayer(audioUrl, fileName),
+              onPressed: () => _showVoiceNotePlayer(note),
             ),
           ),
         );
       }
     } catch (error) {
+      if (localPath != null) await fileStore.remove(localPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not add voice note: $error')),
@@ -814,12 +854,11 @@ class _PdfAnnotationScreenState extends ConsumerState<PdfAnnotationScreen> {
                     onPressed: _showBookmarks,
                     icon: const Icon(Icons.bookmarks_outlined),
                   ),
-                  if (widget.editable)
-                    IconButton(
-                      tooltip: 'Annotation list',
-                      onPressed: _showAnnotations,
-                      icon: const Icon(Icons.edit_note_rounded),
-                    ),
+                  IconButton(
+                    tooltip: 'Annotation list',
+                    onPressed: _showAnnotations,
+                    icon: const Icon(Icons.edit_note_rounded),
+                  ),
                   if (widget.editable)
                     IconButton(
                       tooltip: 'Save annotated PDF',
@@ -1330,22 +1369,23 @@ class _AnnotationMessageDialogState extends State<_AnnotationMessageDialog> {
 }
 
 class _SavedVoiceNote {
-  final String audioUrl;
+  final String source;
+  final bool local;
   final String fileName;
   final int pageNumber;
 
   const _SavedVoiceNote({
-    required this.audioUrl,
+    required this.source,
+    required this.local,
     required this.fileName,
     required this.pageNumber,
   });
 }
 
 class _VoiceNotePlayer extends StatefulWidget {
-  final String audioUrl;
-  final String title;
+  final _SavedVoiceNote note;
 
-  const _VoiceNotePlayer({required this.audioUrl, required this.title});
+  const _VoiceNotePlayer({required this.note});
 
   @override
   State<_VoiceNotePlayer> createState() => _VoiceNotePlayerState();
@@ -1373,13 +1413,19 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
     _positionSubscription = _player.onPositionChanged.listen((position) {
       if (mounted) setState(() => _position = position);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _play());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _play();
+    });
   }
 
   Future<void> _play() async {
     try {
       setState(() => _error = null);
-      await _player.play(UrlSource(widget.audioUrl));
+      await _player.play(
+        widget.note.local
+            ? DeviceFileSource(widget.note.source, mimeType: 'audio/wav')
+            : UrlSource(widget.note.source),
+      );
     } catch (error) {
       if (mounted) setState(() => _error = 'Unable to play this voice note.');
     }
@@ -1420,7 +1466,11 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
             const SizedBox(height: 8),
             Text('Voice note', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
-            Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(
+              widget.note.fileName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 16),
             Slider(
               value: positionMilliseconds,
