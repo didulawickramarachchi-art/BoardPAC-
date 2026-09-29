@@ -8,10 +8,17 @@ import { useAuth } from '../state/AuthContext'
 import { scheduleMeetingReminders } from '../features/meetings/reminders'
 
 const groups = [
+<<<<<<< HEAD
   ['Overview', [['Dashboard', '/dashboard', LayoutDashboard]]],
   ['Board operations', [['Meetings', '/meetings', CalendarDays, 'canViewMeetings'], ['Calendar', '/calendar', CalendarRange, 'canViewMeetings'], ['Board papers', '/papers', FileText, 'canViewPapers'], ['Approvals', '/approvals', ClipboardCheck, 'canViewPendingApprovals'], ['Member library', '/favorites', Heart, 'canViewFavorites'], ['Pack delivery', '/pack-delivery', Truck, 'canViewPackDelivery']]],
   ['Organization', [['Users', '/users', Users, 'canViewUsers'], ['Categories', '/categories', Tags, 'canViewCategories'], ['Subcategories', '/subcategories', Layers, 'canViewSubcategories'], ['Privileges', '/privileges', ShieldCheck, 'canManagePrivileges'], ['Devices', '/devices', MonitorSmartphone, 'canManageDevices'], ['Access Control', '/access-control', ShieldCheck, 'canManageAccessControl']]],
   ['Insights', [['Reports', '/reports', BarChart3, 'canViewReports'], ['Settings', '/settings', Settings, 'canManageSettings'], ['Report an issue', '/issues', AlertTriangle, 'canReportIssues']]],
+=======
+  ['Overview', [['Dashboard', '/dashboard', LayoutDashboard, ['ADMIN', 'SECRETARY', 'MEMBER']]]],
+  ['Board operations', [['Meetings', '/meetings', CalendarDays, ['SECRETARY', 'MEMBER']], ['Board papers', '/papers', FileText, ['SECRETARY', 'MEMBER']], ['Approvals', '/approvals', ClipboardCheck, ['ADMIN', 'SECRETARY', 'MEMBER']], ['Member library', '/favorites', Heart, ['ADMIN', 'SECRETARY', 'MEMBER']], ['Pack delivery', '/pack-delivery', Truck, ['MEMBER']]]],
+  ['Organization', [['Users', '/users', Users, ['ADMIN']], ['Categories', '/categories', Tags, ['SECRETARY', 'MEMBER']], ['Subcategories', '/subcategories', Layers, ['SECRETARY', 'MEMBER']], ['Privileges', '/privileges', ShieldCheck, ['SECRETARY']], ['Devices', '/devices', MonitorSmartphone, ['ADMIN']], ['Access Control', '/access-control', ShieldCheck, ['ADMIN']]]],
+  ['Insights', [['Reports', '/reports', BarChart3, ['ADMIN']], ['Legacy archive', '/legacy-archive', FileText, ['ADMIN']], ['Legacy audit', '/legacy-audit', BarChart3, ['ADMIN']], ['Legacy devices', '/legacy-devices', MonitorSmartphone, ['ADMIN']], ['Settings', '/settings', Settings, ['ADMIN']]]],
+>>>>>>> ec4c932c0e712bb4203beba94ac7b05767e0a35c
 ]
 
 const initials = name => String(name || 'System').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase()

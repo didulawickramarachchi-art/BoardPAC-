@@ -1,6 +1,7 @@
 package com.portSrilanka.board_admin_backend.controller;
 
 import com.portSrilanka.board_admin_backend.service.FileStorageService;
+import com.portSrilanka.board_admin_backend.security.LegacyPaperFileAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -20,9 +22,11 @@ import java.nio.file.Files;
 public class FileDownloadController {
 
     private final FileStorageService fileStorageService;
+    private final LegacyPaperFileAccessService legacyPaperFileAccessService;
 
     @GetMapping("/content/{token}")
-    public ResponseEntity<Resource> content(@PathVariable String token) throws IOException {
+    public ResponseEntity<Resource> content(@PathVariable String token, Authentication authentication) throws IOException {
+        legacyPaperFileAccessService.authorize(token, authentication);
         return serve(token, false);
     }
 

@@ -22,6 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -174,7 +176,9 @@ public class UserService {
     public String resetPassword(Long id) {
         User user = findUser(id);
 
-        String temporaryPassword = "Temp@12345";
+        byte[] random = new byte[24];
+        new SecureRandom().nextBytes(random);
+        String temporaryPassword = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
         user.setPassword(passwordEncoder.encode(temporaryPassword));
         userRepository.save(user);
 
