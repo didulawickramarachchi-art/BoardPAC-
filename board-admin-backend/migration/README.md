@@ -249,3 +249,24 @@ To refresh the readiness report after this activation without replacing the earl
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File migration/Check-CutoverReadiness.ps1 -Report target/cutover-readiness-after-activation.md
 ```
+
+## Test from another PC on the same network
+
+The backend PC's static Ethernet address is `10.105.4.183`. The frontend API client uses `VITE_API_BASE_URL` when set; otherwise it calls port 8081 on the hostname from which the frontend page was opened. If the frontend is served from this backend PC, the other PC can open `http://10.105.4.183:5173/` and the API client will call `http://10.105.4.183:8081/api`. If the frontend runs on a different PC, set `VITE_API_BASE_URL=http://10.105.4.183:8081/api` in that frontend's environment before starting Vite.
+
+On the backend PC, start a LAN test with the rehearsal database (PowerShell):
+
+```powershell
+$env:DB_URL = 'jdbc:postgresql://localhost:5432/boardpac_full_rehearsal'
+$env:APP_FILE_UPLOAD_DIR = (Resolve-Path target/migration-uploads-fast).Path
+$env:SERVER_ADDRESS = '10.105.4.183'
+$env:APP_CORS_ALLOWED_ORIGIN_PATTERNS = 'http://localhost:*,http://127.0.0.1:*,http://10.105.4.183:5173'
+mvn -q -DskipTests package
+java -jar target/board-admin-backend-0.0.1-SNAPSHOT.jar
+```
+
+In a second terminal on the same PC, start the frontend from `../board-admin-frontend/frontend_web` with `npm run dev -- --host 10.105.4.183`. For a frontend hosted on a different PC, add that PC's exact frontend origin (scheme, IP, and port) to `APP_CORS_ALLOWED_ORIGIN_PATTERNS`; restart the backend after changing it. Restart Vite after changing `VITE_API_BASE_URL`. Permit inbound TCP ports 8081 and 5173 on the backend PC's Windows firewall for the trusted local network if connections fail. Set `PASSWORD_RESET_FRONTEND_URL` to the reachable frontend address if testing email reset links.
+
+The rehearsal contains confidential board data. On 2026-09-29 the bootstrap admin's development password was replaced with a random password before LAN access. The credential is in the local, ignored `target/lan-bootstrap-admin.txt` file with access restricted to the Windows Administrator account. Keep this file private and delete it after testing. Do not use this LAN test as live cutover.
+
+For the public test endpoint `https://apds.slpa.lk`, see [`migration/public-test/README.md`](public-test/README.md) and its Caddyfile. Caddy is running with a public certificate and forwards HTTPS to the isolated rehearsal backend at `10.105.4.183:8081`. The live database remains unchanged.

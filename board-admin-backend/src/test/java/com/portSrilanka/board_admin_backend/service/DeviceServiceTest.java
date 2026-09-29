@@ -21,19 +21,19 @@ import static org.mockito.Mockito.when;
 class DeviceServiceTest {
 
     private DeviceRepository deviceRepository;
-    private EmailService emailService;
+    private DeviceEmailService deviceEmailService;
     private NotificationService notificationService;
     private DeviceService deviceService;
 
     @BeforeEach
     void setUp() {
         deviceRepository = mock(DeviceRepository.class);
-        emailService = mock(EmailService.class);
+        deviceEmailService = mock(DeviceEmailService.class);
         notificationService = mock(NotificationService.class);
         deviceService = new DeviceService(
                 deviceRepository,
                 mock(UserRepository.class),
-                emailService,
+                deviceEmailService,
                 notificationService
         );
     }
@@ -58,7 +58,7 @@ class DeviceServiceTest {
         assertEquals(DeviceStatus.APPROVED, device.getStatus());
         verify(deviceRepository).save(device);
         verify(notificationService).notifyAdminsOfDeviceApproval(device);
-        verify(emailService).sendEmail(
+        verify(deviceEmailService).send(
                 eq("nimal@example.com"),
                 eq("Device request approved"),
                 contains("Nimal's iPad")
@@ -76,7 +76,7 @@ class DeviceServiceTest {
         deviceService.approve(11L);
 
         assertEquals(DeviceStatus.APPROVED, device.getStatus());
-        verify(emailService, never()).sendEmail(
+        verify(deviceEmailService, never()).send(
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString()

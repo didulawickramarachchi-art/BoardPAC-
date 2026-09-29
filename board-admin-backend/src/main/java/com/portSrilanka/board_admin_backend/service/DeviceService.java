@@ -19,7 +19,7 @@ public class DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
-    private final EmailService emailService;
+    private final DeviceEmailService deviceEmailService;
     private final NotificationService notificationService;
 
     public DeviceResponse create(DeviceRequest request) {
@@ -64,7 +64,7 @@ public class DeviceService {
             String deviceName = device.getDeviceInfo() == null || device.getDeviceInfo().isBlank()
                     ? device.getDeviceId()
                     : device.getDeviceInfo();
-            emailService.sendEmail(
+            deviceEmailService.send(
                     user.getBoardEmail(),
                     "Device request approved",
                     "Hello " + user.getFirstName() + ",\n\n"

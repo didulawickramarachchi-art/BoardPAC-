@@ -1,0 +1,3 @@
+apds.slpa.lk {
+    reverse_proxy 10.105.4.183:8081
+}

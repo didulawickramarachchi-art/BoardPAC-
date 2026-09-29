@@ -8,7 +8,7 @@ Responsive React web frontend for the existing BoardPAC backend. The Flutter app
 2. Install packages with `npm install`.
 3. Start the app with `npm run dev`.
 
-The default API is `http://localhost:8081/api`.
+Without an override, the API uses port 8081 on the hostname serving the frontend. For the local public-backend rehearsal, an ignored `.env.local` sets `VITE_API_BASE_URL=https://apds.slpa.lk/api`. Restart Vite after changing an environment file.
 
 The backend must set `PASSWORD_RESET_FRONTEND_URL` to this site's public reset route, for example `https://board.example.com/reset-password`. The local backend default is `http://localhost:5174/reset-password`.
 
