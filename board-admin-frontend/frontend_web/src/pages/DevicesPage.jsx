@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Laptop, RefreshCw, RotateCcw, ShieldCheck, ShieldX, Smartphone, Trash2 } from 'lucide-react'
 import { api, errorMessage } from '../api/client'
+import { collectionFrom } from '../api/response'
 
 const isPending = status => ['PENDING', 'REQUESTED', 'AWAITING_APPROVAL'].includes(String(status).toUpperCase())
 const isRegistered = status => ['APPROVED', 'ACTIVE'].includes(String(status).toUpperCase())
@@ -35,7 +36,7 @@ export default function DevicesPage() {
   const load = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true)
     setError('')
-    try { const { data } = await api.get('/devices'); setDevices(Array.isArray(data) ? data : data.content || data.items || []) }
+    try { const { data } = await api.get('/devices'); setDevices(collectionFrom(data)) }
     catch (err) { setError(errorMessage(err)) }
     finally { if (!quiet) setLoading(false) }
   }, [])

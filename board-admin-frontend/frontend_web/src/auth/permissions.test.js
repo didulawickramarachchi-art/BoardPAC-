@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeRole, permissionsFor } from './permissions'
+import { meetingListEndpoint, normalizeRole, permissionsFor } from './permissions'
 
 describe('Flutter-compatible role access', () => {
   it('normalizes backend role aliases', () => {
@@ -26,5 +26,16 @@ describe('Flutter-compatible role access', () => {
     const secretary = permissionsFor({ role: 'SECRETARY' })
     expect(admin.canManageUsers && admin.canManageDevices && admin.canManageCategories).toBe(true)
     expect(secretary.canManageUsers || secretary.canManageDevices || secretary.canManageCategories).toBe(false)
+  })
+
+  it('limits administrative reports and access control to admins', () => {
+    expect(permissionsFor({ role: 'ADMIN' }).canViewAdminReports).toBe(true)
+    expect(permissionsFor({ role: 'MEMBER' }).canViewAdminReports).toBe(false)
+    expect(permissionsFor({ role: 'SECRETARY' }).canManageAccessControl).toBe(false)
+  })
+
+  it('uses the member-scoped meeting endpoint for members', () => {
+    expect(meetingListEndpoint({ role: 'MEMBER' })).toBe('/meetings/member')
+    expect(meetingListEndpoint({ role: 'SECRETARY' })).toBe('/meetings')
   })
 })

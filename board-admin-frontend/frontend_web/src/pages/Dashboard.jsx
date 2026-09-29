@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react'
 import { CalendarDays, FileText, Users, ClipboardCheck, ArrowUpRight, MapPin, Clock, AlertTriangle, Tags, Layers, ShieldCheck, MonitorSmartphone, BarChart3, Settings, Mail, MessageSquareText } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api, errorMessage } from '../api/client'
+import { collectionFrom } from '../api/response'
 import { useAuth } from '../state/AuthContext'
 import NewsFeed from '../features/news/NewsFeed'
-
-const rowsFrom = response => Array.isArray(response) ? response : response.content || response.items || []
+import { permissionsFor } from '../auth/permissions'
 
 export default function Dashboard() {
   const { user, role } = useAuth()
+  const access = permissionsFor(user)
   const [data, setData] = useState(null)
   const [adminUsers, setAdminUsers] = useState(null)
+  const [recentPapers,setRecentPapers] = useState([])
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -29,13 +31,13 @@ export default function Dashboard() {
           api.get('/categories'),
           api.get('/subcategories'),
         ])
-        const meetings = rowsFrom(meetingsResponse)
+        const meetings = collectionFrom(meetingsResponse)
         setData({
           ...summary,
           meetingCount: meetings.filter(item => String(item.type || '').toUpperCase() !== 'CIRCULAR').length,
           circularCount: meetings.filter(item => String(item.type || '').toUpperCase() === 'CIRCULAR').length,
-          categoryCount: rowsFrom(categoriesResponse).length,
-          subcategoryCount: rowsFrom(subcategoriesResponse).length,
+          categoryCount: collectionFrom(categoriesResponse).length,
+          subcategoryCount: collectionFrom(subcategoriesResponse).length,
         })
       } catch (e) {
         setError(errorMessage(e))
@@ -47,9 +49,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (role !== 'ADMIN') return
     api.get('/users').then(({ data: response }) => {
-      setAdminUsers(Array.isArray(response) ? response : response.content || response.items || [])
+      setAdminUsers(collectionFrom(response))
     }).catch(e => setError(errorMessage(e)))
   }, [role])
+  useEffect(()=>{if(role==='ADMIN')return;api.get('/paper-read-states/recent').then(({data:response})=>setRecentPapers(collectionFrom(response).slice(0,5))).catch(()=>setRecentPapers([]))},[role])
 
   const normalizedRole = account => String(account.role || '').trim().toUpperCase().replace(/[\s-]+/g, '_')
   const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'BOARD_ADMIN', 'SUPPORT_TEAM']
@@ -78,8 +81,8 @@ export default function Dashboard() {
   const quickActions = role === 'ADMIN'
     ? [[Users, 'Users', '/users'], [MonitorSmartphone, 'Devices', '/devices'], [BarChart3, 'Reports', '/reports'], [Settings, 'Settings', '/settings'], [ShieldCheck, 'Access Control', '/access-control']]
     : role === 'SECRETARY'
-      ? [[CalendarDays, 'Browse meetings', '/meetings'], [FileText, 'Review papers', '/papers'], [Tags, 'Manage categories', '/categories'], [Layers, 'Manage subcategories', '/subcategories'], [ShieldCheck, 'Manage privileges', '/privileges']]
-      : [[CalendarDays, 'Browse meetings', '/meetings'], [FileText, 'Review papers', '/papers'], [ClipboardCheck, 'Check approvals', '/approvals']]
+      ? [[CalendarDays, 'Meeting calendar', '/calendar'], [FileText, 'Review papers', '/papers'], ...(access.canViewPendingApprovals ? [[ClipboardCheck, 'Check approvals', '/approvals']] : []), ...(access.canViewPackDelivery ? [[Mail, 'Pack delivery', '/pack-delivery']] : [])]
+      : [[CalendarDays, 'Meeting calendar', '/calendar'], [FileText, 'Review papers', '/papers'], [ClipboardCheck, 'Check approvals', '/approvals']]
 
   return <div className="page">
     <div className="welcome">
@@ -101,6 +104,7 @@ export default function Dashboard() {
         <div className="quick-grid">{quickActions.map(([Icon, label, path]) => <Link to={path} key={path}><Icon />{label}</Link>)}</div>
       </section>
     </div>
+    {role!=='ADMIN'&&recentPapers.length>0&&<section className="panel recent-papers"><div className="section-title"><div><h3>Recently opened papers</h3><p>Continue where you left off</p></div><Link to="/favorites">Open library <ArrowUpRight/></Link></div><div>{recentPapers.map(item=><Link key={item.paperId||item.id} to={`/papers/${item.paperId||item.id}`}><FileText/><span><b>{item.paperTitle||item.title||`Paper #${item.paperId||item.id}`}</b><small>{item.lastReadAt||item.updatedAt?new Date(item.lastReadAt||item.updatedAt).toLocaleString():item.referenceNumber||''}</small></span><ArrowUpRight/></Link>)}</div></section>}
     {role !== 'ADMIN' && <NewsFeed canManage={role === 'SECRETARY'} />}
   </div>
 }

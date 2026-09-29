@@ -25,11 +25,20 @@ export const permissionsFor = user => {
     canViewPapers: secretary || member, canUploadPapers: secretary,
     canCommentPapers: ['BOARD_SECRETARY', 'SECRETARY_ASSISTANT', 'MEMBER', 'MEMBER_VIEW_COMMENTS'].includes(profile),
     canApprovePapers, canAnnotatePapers: profile === 'BOARD_SECRETARY' || profile === 'MEMBER',
-    canViewPendingApprovals: admin || canApprovePapers, canViewReports: admin || canApprovePapers,
+    canViewPendingApprovals: admin || canApprovePapers, canViewReports: true,
     canManageSettings: admin, canManageBoardSetup: secretary && canManageMeetings,
     canViewCategories: true, canManageCategories: admin,
     canViewSubcategories: true, canManageSubcategories: admin,
+    canViewFavorites: secretary || member,
+    canViewPackDelivery: secretary || member,
+    canViewAdminReports: admin,
+    canViewPersonalActivity: true,
+    canViewMeetingHistory: secretary,
+    canManageAccessControl: admin,
+    canReportIssues: admin,
   }
 }
 
 export const can = (user, permission) => Boolean(permissionsFor(user)[permission])
+
+export const meetingListEndpoint = user => permissionsFor(user).role === 'MEMBER' ? '/meetings/member' : '/meetings'

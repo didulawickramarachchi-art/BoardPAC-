@@ -10,6 +10,8 @@ Responsive React web frontend for the existing BoardPAC backend. The Flutter app
 
 The default API is `http://localhost:8081/api`.
 
+The backend must set `PASSWORD_RESET_FRONTEND_URL` to this site's public reset route, for example `https://board.example.com/reset-password`. The local backend default is `http://localhost:5174/reset-password`.
+
 ## Commands
 
 - `npm run dev` — development server

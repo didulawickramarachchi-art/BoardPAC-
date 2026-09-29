@@ -154,8 +154,16 @@ public class PaperService {
     public String markRead(Long paperId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Paper paper = paperRepository.findById(paperId)
+                .orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+
         PackDelivery delivery = packDeliveryRepository.findByPaperIdAndUserId(paperId, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Pack delivery record not found"));
+                .orElseGet(() -> PackDelivery.builder()
+                        .paper(paper)
+                        .user(user)
+                        .deliveryStatus(DeliveryStatus.NOT_READ)
+                        .build());
 
         delivery.setDeliveryStatus(DeliveryStatus.READ);
         packDeliveryRepository.save(delivery);

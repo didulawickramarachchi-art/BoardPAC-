@@ -6,6 +6,8 @@ import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 import './styles.css'
 
+document.documentElement.dataset.theme = localStorage.getItem('boardpac_theme') === 'light' ? 'light' : 'dark'
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode><ErrorBoundary><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></ErrorBoundary></React.StrictMode>,
 )

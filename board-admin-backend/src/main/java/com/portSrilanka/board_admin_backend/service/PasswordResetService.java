@@ -33,7 +33,7 @@ public class PasswordResetService {
     private final RefreshTokenService refreshTokenService;
     private final SessionService sessionService;
 
-    @Value("${app.password-reset.frontend-url:http://localhost:8080/#/reset-password}")
+    @Value("${app.password-reset.frontend-url:http://localhost:5174/reset-password}")
     private String frontendUrl;
 
     @Value("${app.password-reset.expiration-minutes:30}")

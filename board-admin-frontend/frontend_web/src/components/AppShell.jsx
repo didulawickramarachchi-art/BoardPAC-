@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Bell, CalendarDays, ChevronLeft, ClipboardCheck, FileText, Heart, Layers, LayoutDashboard, LogOut, MailCheck, Megaphone, Menu, MessageSquare, MonitorSmartphone, Search, Send, Settings, ShieldCheck, Tags, ThumbsUp, Truck, Users, X } from 'lucide-react'
+import { AlertTriangle, BarChart3, Bell, CalendarDays, CalendarRange, ChevronLeft, ClipboardCheck, FileText, Heart, Layers, LayoutDashboard, LogOut, MailCheck, Megaphone, Menu, MessageSquare, MonitorSmartphone, Moon, Search, Send, Settings, ShieldCheck, Sun, Tags, ThumbsUp, Truck, Users, X } from 'lucide-react'
 import { api, errorMessage } from '../api/client'
+import { collectionFrom } from '../api/response'
+import { meetingListEndpoint, permissionsFor } from '../auth/permissions'
 import { useAuth } from '../state/AuthContext'
+import { scheduleMeetingReminders } from '../features/meetings/reminders'
 
 const groups = [
-  ['Overview', [['Dashboard', '/dashboard', LayoutDashboard, ['ADMIN', 'SECRETARY', 'MEMBER']]]],
-  ['Board operations', [['Meetings', '/meetings', CalendarDays, ['SECRETARY', 'MEMBER']], ['Board papers', '/papers', FileText, ['SECRETARY', 'MEMBER']], ['Approvals', '/approvals', ClipboardCheck, ['ADMIN', 'SECRETARY', 'MEMBER']], ['Member library', '/favorites', Heart, ['ADMIN', 'SECRETARY', 'MEMBER']], ['Pack delivery', '/pack-delivery', Truck, ['MEMBER']]]],
-  ['Organization', [['Users', '/users', Users, ['ADMIN']], ['Categories', '/categories', Tags, ['SECRETARY', 'MEMBER']], ['Subcategories', '/subcategories', Layers, ['SECRETARY', 'MEMBER']], ['Privileges', '/privileges', ShieldCheck, ['SECRETARY']], ['Devices', '/devices', MonitorSmartphone, ['ADMIN']], ['Access Control', '/access-control', ShieldCheck, ['ADMIN']]]],
-  ['Insights', [['Reports', '/reports', BarChart3, ['ADMIN']], ['Settings', '/settings', Settings, ['ADMIN']]]],
+  ['Overview', [['Dashboard', '/dashboard', LayoutDashboard]]],
+  ['Board operations', [['Meetings', '/meetings', CalendarDays, 'canViewMeetings'], ['Calendar', '/calendar', CalendarRange, 'canViewMeetings'], ['Board papers', '/papers', FileText, 'canViewPapers'], ['Approvals', '/approvals', ClipboardCheck, 'canViewPendingApprovals'], ['Member library', '/favorites', Heart, 'canViewFavorites'], ['Pack delivery', '/pack-delivery', Truck, 'canViewPackDelivery']]],
+  ['Organization', [['Users', '/users', Users, 'canViewUsers'], ['Categories', '/categories', Tags, 'canViewCategories'], ['Subcategories', '/subcategories', Layers, 'canViewSubcategories'], ['Privileges', '/privileges', ShieldCheck, 'canManagePrivileges'], ['Devices', '/devices', MonitorSmartphone, 'canManageDevices'], ['Access Control', '/access-control', ShieldCheck, 'canManageAccessControl']]],
+  ['Insights', [['Reports', '/reports', BarChart3, 'canViewReports'], ['Settings', '/settings', Settings, 'canManageSettings'], ['Report an issue', '/issues', AlertTriangle, 'canReportIssues']]],
 ]
 
-const rowsFrom = data => Array.isArray(data) ? data : data?.notifications || data?.items || data?.content || []
 const initials = name => String(name || 'System').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase()
 const formatDate = value => {
   const date = value ? new Date(value) : null
@@ -41,7 +43,7 @@ function NotificationPanel({ user, role, onClose, onUnreadChange }) {
     setLoading(true); setError('')
     try {
       const { data } = await api.get(`/notifications/user/${userId}`)
-      const nextItems = rowsFrom(data)
+      const nextItems = collectionFrom(data)
       setItems(nextItems)
       onUnreadChange(nextItems.filter(item => !item.read).length)
     } catch (err) {
@@ -188,19 +190,30 @@ export default function AppShell() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const { user, role, logout } = useAuth()
+  const access = permissionsFor(user)
   const navigate = useNavigate()
   const location = useLocation()
   const [searchText, setSearchText] = useState('')
+  const [dark,setDark] = useState(() => localStorage.getItem('boardpac_theme') !== 'light')
   const title = useMemo(() => [...groups.flatMap(g => g[1])].find(i => location.pathname.startsWith(i[1]))?.[0] || 'Board Management', [location.pathname])
 
   useEffect(() => {
     if (!user?.id) return
     let active = true
-    api.get(`/notifications/user/${user.id}`)
-      .then(({ data }) => { if (active) setUnreadCount(rowsFrom(data).filter(item => !item.read).length) })
-      .catch(() => { if (active) setUnreadCount(0) })
-    return () => { active = false }
-  }, [user?.id, notificationsOpen])
+    const poll = () => {
+      if (document.visibilityState === 'hidden') return
+      api.get(`/notifications/user/${user.id}`, { params: { limit: 20 } })
+        .then(({ data }) => { if (active) setUnreadCount(collectionFrom(data).filter(item => !item.read).length) })
+        .catch(() => { if (active) setUnreadCount(0) })
+    }
+    poll()
+    const timer = window.setInterval(poll, 60000)
+    const visible = () => { if (document.visibilityState === 'visible') poll() }
+    document.addEventListener('visibilitychange', visible)
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', visible) }
+  }, [user?.id])
+  useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light';localStorage.setItem('boardpac_theme',dark?'dark':'light')},[dark])
+  useEffect(()=>{if(!user)return;api.get(meetingListEndpoint(user)).then(({data})=>scheduleMeetingReminders(collectionFrom(data))).catch(()=>{})},[user])
 
   const openNotifications = async () => {
     if (user?.id && unreadCount > 0) {
@@ -215,7 +228,7 @@ export default function AppShell() {
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="brand"><img src="/assets/slpa_logo.png" alt="SLPA" /><div><b>SLPA Board</b><span>Management System</span></div><button className="mobile-close" onClick={() => setOpen(false)}><X /></button></div>
       <nav>{groups.map(([group, items]) => {
-        const allowed = items.filter(i => i[3].includes(role))
+        const allowed = items.filter(item => !item[3] || access[item[3]])
         return allowed.length ? <div className="nav-group" key={group}><small>{group}</small>{allowed.map(([label, path, Icon]) => <NavLink key={path} to={path} onClick={() => setOpen(false)} title={label}><Icon /><span>{label}</span></NavLink>)}</div> : null
       })}</nav>
       <button className="collapse" type="button" aria-label={collapsed ? 'Expand menu' : 'Collapse menu'} aria-expanded={!collapsed} onClick={() => setCollapsed(value => !value)}><ChevronLeft /><span>{collapsed ? 'Expand menu' : 'Collapse menu'}</span></button>
@@ -225,7 +238,7 @@ export default function AppShell() {
         <button className="menu-button" aria-label="Open menu" onClick={() => setOpen(true)}><Menu /></button>
         <div><p>SLPA Board</p><h1>{title}</h1></div>
         <form className="global-search" onSubmit={event => { event.preventDefault(); const value = searchText.trim(); if (value) navigate(`/search?q=${encodeURIComponent(value)}`) }}><Search /><input aria-label="Search BoardPAC" value={searchText} onChange={event => setSearchText(event.target.value)} placeholder="Search anything..." /></form>
-        <button className="icon-button notification-trigger" aria-label="Notifications" onClick={openNotifications}><Bell />{unreadCount > 0 && <span>{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
+        <button className="icon-button" aria-label={dark?'Use light theme':'Use dark theme'} title={dark?'Light theme':'Dark theme'} onClick={()=>setDark(value=>!value)}>{dark?<Sun/>:<Moon/>}</button><button className="icon-button notification-trigger" aria-label="Notifications" onClick={openNotifications}><Bell />{unreadCount > 0 && <span>{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
         <NavLink to="/profile" className="user" title="Open profile"><div className="avatar">{initials(user?.displayName || user?.username || 'U')}</div><div><b>{user?.displayName || user?.username}</b><span>{role}</span></div></NavLink>
         <button className="icon-button" title="Sign out" onClick={() => { logout(); navigate('/login') }}><LogOut /></button>
       </header>

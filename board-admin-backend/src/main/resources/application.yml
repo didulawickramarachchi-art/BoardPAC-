@@ -68,7 +68,7 @@ app:
     code-expiration-minutes: 10
 
   password-reset:
-    frontend-url: ${PASSWORD_RESET_FRONTEND_URL:http://localhost:8080/#/reset-password}
+    frontend-url: ${PASSWORD_RESET_FRONTEND_URL:http://localhost:5174/reset-password}
     expiration-minutes: ${PASSWORD_RESET_EXPIRATION_MINUTES:30}
 
 server:

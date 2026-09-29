@@ -6,5 +6,6 @@ public enum AnnotationType {
     AUDIO,
     DRAWING,
     SHAPE,
-    FREEHAND
+    FREEHAND,
+    WEB_OVERLAY_V1
 }

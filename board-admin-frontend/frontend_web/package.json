@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "audit:api": "node scripts/audit-api-endpoints.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

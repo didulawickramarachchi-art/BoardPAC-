@@ -3,6 +3,7 @@ package com.portSrilanka.board_admin_backend.security;
 import com.portSrilanka.board_admin_backend.entity.FileAccessLog;
 import com.portSrilanka.board_admin_backend.entity.Paper;
 import com.portSrilanka.board_admin_backend.entity.User;
+import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.FileAccessLogRepository;
 import com.portSrilanka.board_admin_backend.repository.PaperRepository;
@@ -27,7 +28,10 @@ public class SecureFileAccessService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        boolean allowed = permissionService.hasSubcategoryAccess(userId, paper.getMeeting().getSubcategory().getId());
+        boolean boardManager = user.getRoles().stream()
+                .anyMatch(role -> role.getName() == SystemRole.SECRETARY || role.getName() == SystemRole.ADMIN);
+        boolean allowed = boardManager || permissionService.hasSubcategoryAccess(
+                userId, paper.getMeeting().getSubcategory().getId());
         if (!allowed) {
             throw new ResourceNotFoundException("Access denied for this paper");
         }

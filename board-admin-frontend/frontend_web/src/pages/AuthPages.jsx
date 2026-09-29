@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { errorMessage } from '../api/client'
 import { useAuth } from '../state/AuthContext'
@@ -20,12 +20,13 @@ function AuthFrame({ children, title, subtitle }) {
 }
 
 export function LoginPage() {
-  const { user, login } = useAuth()
+  const { user, login, initializing } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({ username: '', password: '' })
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  if (initializing) return <div className="center-page"><span className="spinner" /></div>
   if (user) return <Navigate to="/dashboard" replace />
   const submit = async (event) => {
     event.preventDefault(); setBusy(true); setError('')
@@ -36,17 +37,19 @@ export function LoginPage() {
   return <AuthFrame title="Welcome Back" subtitle="Sign in to your account"><form onSubmit={submit}>
     <label>Username<input autoFocus required value={form.username} onChange={event => setForm({ ...form, username: event.target.value })} placeholder="User Name" /></label>
     <label>Password<div className="password"><input required type={show ? 'text' : 'password'} value={form.password} onChange={event => setForm({ ...form, password: event.target.value })} placeholder="••••••••" /><button type="button" aria-label={show ? 'Hide password' : 'Show password'} onClick={() => setShow(!show)}>{show ? <EyeOff /> : <Eye />}</button></div></label>
+    <Link className="forgot-link" to="/forgot-password">Forgot password?</Link>
     {error && <div className="alert error">{error}</div>}
     <button className="primary wide" disabled={busy}>{busy ? 'Signing in…' : <>Sign In <ArrowRight /></>}</button>
   </form></AuthFrame>
 }
 
 export function VerifyPage() {
-  const { challenge, verify, user } = useAuth()
+  const { challenge, verify, user, initializing } = useAuth()
   const navigate = useNavigate()
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  if (initializing) return <div className="center-page"><span className="spinner" /></div>
   if (user) return <Navigate to="/dashboard" />
   if (!challenge) return <Navigate to="/login" />
   const submit = async (event) => {

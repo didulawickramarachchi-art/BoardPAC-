@@ -3,6 +3,7 @@ package com.portSrilanka.board_admin_backend.service;
 import com.portSrilanka.board_admin_backend.dto.paper.PaperReadStateRequest;
 import com.portSrilanka.board_admin_backend.dto.paper.PaperReadStateResponse;
 import com.portSrilanka.board_admin_backend.entity.*;
+import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.exception.BadRequestException;
 import com.portSrilanka.board_admin_backend.exception.ResourceNotFoundException;
 import com.portSrilanka.board_admin_backend.repository.*;
@@ -83,7 +84,9 @@ public class PaperReadStateService {
     }
 
     private void verifyAccess(User user, Paper paper) {
-        if (!permissionService.hasSubcategoryAccess(
+        boolean boardManager = user.getRoles().stream()
+                .anyMatch(role -> role.getName() == SystemRole.SECRETARY || role.getName() == SystemRole.ADMIN);
+        if (!boardManager && !permissionService.hasSubcategoryAccess(
                 user.getId(), paper.getMeeting().getSubcategory().getId())) {
             throw new AccessDeniedException("User has no access to this paper");
         }
