@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/role_access.dart';
 import '../../agendas/provider/agenda_provider.dart';
 import '../../agendas/model/agenda_item_model.dart';
 import '../../meetings/model/meeting_model.dart';
@@ -9,6 +10,7 @@ import '../../meetings/provider/meeting_provider.dart';
 import '../../papers/model/paper_model.dart';
 import '../../papers/presentation/paper_detail_screen.dart';
 import '../../papers/provider/paper_provider.dart';
+import '../../auth/provider/auth_provider.dart';
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
   const GlobalSearchScreen({super.key});
@@ -45,6 +47,28 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
       });
     }
     try {
+      final access = RoleAccess(ref.read(authProvider).role ?? 'MEMBER');
+      if (access.isAdmin) {
+        final papers = await ref.read(paperRepositoryProvider).getAllPapers();
+        if (mounted) {
+          setState(() {
+            index = papers
+                .map(
+                  (paper) => _Entry(
+                    type: _ResultType.paper,
+                    title: paper.title,
+                    subtitle: 'Board paper',
+                    keywords:
+                        '${paper.referenceNumber ?? ''} ${paper.paperType} ${paper.fileName ?? ''}',
+                    paper: paper,
+                  ),
+                )
+                .toList();
+            loading = false;
+          });
+        }
+        return;
+      }
       var meetings = ref.read(meetingListProvider).valueOrNull;
       if (meetings == null) {
         await ref.read(meetingListProvider.notifier).loadMeetings();
@@ -128,6 +152,9 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
   ];
   @override
   Widget build(BuildContext context) {
+    final paperOnly = RoleAccess(
+      ref.watch(authProvider).role ?? 'MEMBER',
+    ).isAdmin;
     final terms = controller.text
         .trim()
         .toLowerCase()
@@ -146,8 +173,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           controller: controller,
           autofocus: true,
           textInputAction: TextInputAction.search,
-          decoration: const InputDecoration(
-            hintText: 'Search meetings, agendas and papers',
+          decoration: InputDecoration(
+            hintText: paperOnly
+                ? 'Search board papers'
+                : 'Search meetings, agendas and papers',
             border: InputBorder.none,
           ),
           onChanged: (_) {
@@ -164,7 +193,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           : error != null
           ? _SearchError(message: error!, onRetry: _buildIndex)
           : terms.isEmpty
-          ? _Hint(unavailableSources: unavailableSources)
+          ? _Hint(unavailableSources: unavailableSources, paperOnly: paperOnly)
           : results.isEmpty
           ? const Center(child: Text('No matching board content found.'))
           : ListView.separated(
@@ -183,7 +212,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => result.paper == null
-                            ? MeetingDetailScreen(meeting: result.meeting)
+                            ? MeetingDetailScreen(meeting: result.meeting!)
                             : PaperDetailScreen(paper: result.paper!),
                       ),
                     ),
@@ -210,14 +239,14 @@ enum _ResultType {
 class _Entry {
   final _ResultType type;
   final String title, subtitle, keywords;
-  final MeetingModel meeting;
+  final MeetingModel? meeting;
   final PaperModel? paper;
   const _Entry({
     required this.type,
     required this.title,
     required this.subtitle,
     required this.keywords,
-    required this.meeting,
+    this.meeting,
     this.paper,
   });
   String get searchable => '$title $subtitle $keywords'.toLowerCase();
@@ -225,7 +254,8 @@ class _Entry {
 
 class _Hint extends StatelessWidget {
   final int unavailableSources;
-  const _Hint({required this.unavailableSources});
+  final bool paperOnly;
+  const _Hint({required this.unavailableSources, required this.paperOnly});
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
@@ -235,13 +265,17 @@ class _Hint extends StatelessWidget {
         children: [
           const Icon(Icons.manage_search, size: 64),
           const SizedBox(height: 12),
-          const Text(
-            'Search your accessible board content',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            paperOnly
+                ? 'Search board papers'
+                : 'Search your accessible board content',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Try a meeting title, paper reference, agenda topic, board, location, or document name.',
+          Text(
+            paperOnly
+                ? 'Try a paper title, reference number, type, or file name.'
+                : 'Try a meeting title, paper reference, agenda topic, board, location, or document name.',
             textAlign: TextAlign.center,
           ),
           if (unavailableSources > 0) ...[

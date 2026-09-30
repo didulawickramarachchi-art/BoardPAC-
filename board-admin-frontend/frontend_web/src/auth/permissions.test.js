@@ -28,6 +28,13 @@ describe('Flutter-compatible role access', () => {
     expect(secretary.canManageUsers || secretary.canManageDevices || secretary.canManageCategories).toBe(false)
   })
 
+  it('allows administrators to view papers without upload access', () => {
+    const admin = permissionsFor({ role: 'ADMIN' })
+    expect(admin.canViewPapers).toBe(true)
+    expect(admin.canUploadPapers).toBe(false)
+    expect(admin.canAnnotatePapers).toBe(false)
+  })
+
   it('limits administrative reports and access control to admins', () => {
     expect(permissionsFor({ role: 'ADMIN' }).canViewAdminReports).toBe(true)
     expect(permissionsFor({ role: 'MEMBER' }).canViewAdminReports).toBe(false)

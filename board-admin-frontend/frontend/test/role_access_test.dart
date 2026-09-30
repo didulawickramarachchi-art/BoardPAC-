@@ -17,4 +17,12 @@ void main() {
     expect(secretary.canManageCategories, isFalse);
     expect(secretary.canManageSubcategories, isFalse);
   });
+
+  test('administrator can view papers without changing them', () {
+    const admin = RoleAccess('ADMIN');
+    expect(admin.canViewPapers, isTrue);
+    expect(admin.canUploadPapers, isFalse);
+    expect(admin.canAnnotatePapers, isFalse);
+    expect(admin.canApprovePapers, isFalse);
+  });
 }

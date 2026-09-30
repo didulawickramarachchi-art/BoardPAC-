@@ -38,7 +38,7 @@ public class CommentController {
     }
 
     @GetMapping("/paper/{paperId}")
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<CommentResponse>> getByPaper(
             @PathVariable Long paperId,
             Authentication authentication

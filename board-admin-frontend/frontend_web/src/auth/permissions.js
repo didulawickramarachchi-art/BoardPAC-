@@ -22,7 +22,7 @@ export const permissionsFor = user => {
     role, profile,
     canManageUsers: admin, canViewUsers: admin, canManagePrivileges: admin, canManageDevices: admin,
     canViewMeetings: secretary || member, canManageMeetings,
-    canViewPapers: secretary || member, canUploadPapers: secretary,
+    canViewPapers: admin || secretary || member, canUploadPapers: secretary,
     canCommentPapers: ['BOARD_SECRETARY', 'SECRETARY_ASSISTANT', 'MEMBER', 'MEMBER_VIEW_COMMENTS'].includes(profile),
     canApprovePapers, canAnnotatePapers: profile === 'BOARD_SECRETARY' || profile === 'MEMBER',
     canViewPendingApprovals: admin || canApprovePapers, canViewReports: true,

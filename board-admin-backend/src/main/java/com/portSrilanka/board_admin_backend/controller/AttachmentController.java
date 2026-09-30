@@ -28,7 +28,7 @@ public class AttachmentController {
     }
 
     @GetMapping("/paper/{paperId}")
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<PaperAttachmentResponse>> getByPaper(@PathVariable Long paperId, Authentication authentication) {
         return ResponseEntity.ok(attachmentService.getAttachments(paperId, authentication.getName()));
     }

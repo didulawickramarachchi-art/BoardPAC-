@@ -143,7 +143,7 @@ class RoleAccess {
   bool get canManageMeetings =>
       isSecretary && _profileKey != 'SECRETARY_UPLOAD_ONLY';
 
-  bool get canViewPapers => isSecretary || isMember;
+  bool get canViewPapers => isAdmin || isSecretary || isMember;
   bool get canUploadPapers => isSecretary;
   bool get canCommentPapers =>
       _profileKey == 'BOARD_SECRETARY' ||

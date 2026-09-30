@@ -24,13 +24,13 @@ public class PaperController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<PaperResponse>> getAll() {
         return ResponseEntity.ok(paperService.getAll());
     }
 
     @GetMapping("/{paperId}")
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<PaperResponse> getById(@PathVariable Long paperId) {
         return ResponseEntity.ok(paperService.getById(paperId));
     }
@@ -55,10 +55,11 @@ public class PaperController {
     }
 
     @GetMapping("/{paperId}/versions")
-    @PreAuthorize("hasRole('SECRETARY') or hasRole('MEMBER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SECRETARY') or hasRole('MEMBER')")
     public ResponseEntity<List<PaperResponse>> versions(@PathVariable Long paperId, Authentication authentication) {
-        boolean secretary = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SECRETARY"));
-        return ResponseEntity.ok(paperService.versionHistory(paperId, authentication.getName(), secretary));
+        boolean canViewAll = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SECRETARY") || a.getAuthority().equals("ROLE_ADMIN"));
+        return ResponseEntity.ok(paperService.versionHistory(paperId, authentication.getName(), canViewAll));
     }
 
     @PostMapping("/{paperId}/versions")

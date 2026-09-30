@@ -262,11 +262,12 @@ class PaperDetailScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
-          FavoriteButton(
-            type: 'PAPER',
-            targetId: paper.id,
-            color: Colors.white,
-          ),
+          if (!access.isAdmin)
+            FavoriteButton(
+              type: 'PAPER',
+              targetId: paper.id,
+              color: Colors.white,
+            ),
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
@@ -431,6 +432,7 @@ class PaperDetailScreen extends ConsumerWidget {
                         ),
                         onAnnotate:
                             auth.userId != null &&
+                                access.canAnnotatePapers &&
                                 _FilePreview._isPdf(attachment.fileName)
                             ? () => _annotatePdf(
                                 context,
@@ -441,9 +443,13 @@ class PaperDetailScreen extends ConsumerWidget {
                                 filePath: attachment.filePath,
                               )
                             : null,
-                        onReact: (reaction) => ref
-                            .read(attachmentListProvider(paper.id).notifier)
-                            .react(attachment.id, reaction),
+                        onReact: access.isAdmin
+                            ? null
+                            : (reaction) => ref
+                                  .read(
+                                    attachmentListProvider(paper.id).notifier,
+                                  )
+                                  .react(attachment.id, reaction),
                       ),
                     )
                     .toList(),
@@ -476,12 +482,16 @@ class PaperDetailScreen extends ConsumerWidget {
                   ...items.map(
                     (comment) => CommentCard(
                       comment: comment,
-                      onReply: (message) => ref
-                          .read(paperCommentProvider(paper.id).notifier)
-                          .reply(comment.id, message),
-                      onReact: (reaction) => ref
-                          .read(paperCommentProvider(paper.id).notifier)
-                          .react(comment.id, reaction),
+                      onReply: access.canCommentPapers
+                          ? (message) => ref
+                                .read(paperCommentProvider(paper.id).notifier)
+                                .reply(comment.id, message)
+                          : null,
+                      onReact: access.canCommentPapers
+                          ? (reaction) => ref
+                                .read(paperCommentProvider(paper.id).notifier)
+                                .react(comment.id, reaction)
+                          : null,
                     ),
                   ),
                 ],
@@ -725,13 +735,13 @@ class _AttachmentCard extends StatelessWidget {
   final AttachmentModel attachment;
   final VoidCallback onOpen;
   final VoidCallback? onAnnotate;
-  final ValueChanged<String> onReact;
+  final ValueChanged<String>? onReact;
 
   const _AttachmentCard({
     required this.attachment,
     required this.onOpen,
     this.onAnnotate,
-    required this.onReact,
+    this.onReact,
   });
 
   @override
@@ -754,11 +764,12 @@ class _AttachmentCard extends StatelessWidget {
               onAnnotate: onAnnotate,
             ),
             const Divider(height: 20),
-            ReactionBar(
-              currentReaction: attachment.currentReaction,
-              counts: attachment.reactionCounts,
-              onReact: onReact,
-            ),
+            if (onReact != null)
+              ReactionBar(
+                currentReaction: attachment.currentReaction,
+                counts: attachment.reactionCounts,
+                onReact: onReact!,
+              ),
           ],
         ),
       ),

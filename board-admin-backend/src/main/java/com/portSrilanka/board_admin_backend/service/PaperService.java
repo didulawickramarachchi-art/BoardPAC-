@@ -120,10 +120,10 @@ public class PaperService {
                 .toList();
     }
 
-    public List<PaperResponse> versionHistory(Long paperId, String username, boolean secretary) {
+    public List<PaperResponse> versionHistory(Long paperId, String username, boolean canViewAll) {
         Paper paper = paperRepository.findById(paperId).orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
         User user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        if (!secretary && meetingParticipantRepository.findByMeetingIdAndUserId(paper.getMeeting().getId(), user.getId()).isEmpty()) {
+        if (!canViewAll && meetingParticipantRepository.findByMeetingIdAndUserId(paper.getMeeting().getId(), user.getId()).isEmpty()) {
             throw new org.springframework.security.access.AccessDeniedException("Paper access denied");
         }
         Long rootId = paper.getRootPaper() == null ? paper.getId() : paper.getRootPaper().getId();
