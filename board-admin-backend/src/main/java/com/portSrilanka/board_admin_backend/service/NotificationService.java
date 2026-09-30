@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 public class NotificationService {
 
     private final EmailService emailService;
+    private final DeviceEmailService deviceEmailService;
     private final WorkflowSettingService workflowSettingService;
     private final NotificationRepository notificationRepository;
     private final NotificationReplyRepository replyRepository;
@@ -196,12 +197,7 @@ public class NotificationService {
                 + "\nDescription: " + clean(device.getDescription(), "Not provided");
 
         for (User admin : admins) {
-            try {
-                emailService.sendEmail(admin.getBoardEmail(), title, emailBody);
-            } catch (RuntimeException ex) {
-                log.warn("Unable to email pending-device announcement to admin {}",
-                        admin.getUsername(), ex);
-            }
+            deviceEmailService.send(admin.getBoardEmail(), title, emailBody);
         }
     }
 
@@ -222,14 +218,13 @@ public class NotificationService {
                 true
         );
 
-        emailUsers(
-                activeAdmins(),
-                "Device request approved",
-                "A device access request has been approved.\n\n"
-                        + "User: " + senderName(user) + "\n"
-                        + "Device: " + deviceName + "\n"
-                        + "Status: Approved"
-        );
+        String emailBody = "A device access request has been approved.\n\n"
+                + "User: " + senderName(user) + "\n"
+                + "Device: " + deviceName + "\n"
+                + "Status: Approved";
+        for (User admin : activeAdmins()) {
+            deviceEmailService.send(admin.getBoardEmail(), "Device request approved", emailBody);
+        }
     }
 
     @Transactional

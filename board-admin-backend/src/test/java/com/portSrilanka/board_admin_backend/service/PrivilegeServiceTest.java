@@ -71,6 +71,7 @@ class PrivilegeServiceTest {
         NotificationRepository notificationRepository = mock(NotificationRepository.class);
         NotificationService notificationService = new NotificationService(
                 emailService,
+                mock(DeviceEmailService.class),
                 mock(WorkflowSettingService.class),
                 notificationRepository,
                 mock(NotificationReplyRepository.class),

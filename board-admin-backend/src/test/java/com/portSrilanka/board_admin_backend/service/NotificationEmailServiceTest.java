@@ -41,6 +41,7 @@ class NotificationEmailServiceTest {
         notificationRepository = mock(NotificationRepository.class);
         service = new NotificationService(
                 emailService,
+                mock(DeviceEmailService.class),
                 mock(WorkflowSettingService.class),
                 notificationRepository,
                 mock(NotificationReplyRepository.class),
