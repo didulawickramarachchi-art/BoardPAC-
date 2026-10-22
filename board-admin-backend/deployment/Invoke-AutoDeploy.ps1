@@ -15,6 +15,8 @@ $releaseRoot = Join-Path $StateRoot 'releases'
 $logRoot = Join-Path $StateRoot 'logs'
 $lockFile = Join-Path $StateRoot 'deployment.lock'
 $healthUrl = 'http://10.105.4.183:8081/api/auth/login'
+$backendServiceName = 'BoardPACBackend'
+$serviceJar = Join-Path $StateRoot 'active\backend.jar'
 
 function Run([string]$program, [string[]]$arguments) {
     & $program @arguments
@@ -61,6 +63,38 @@ function Start-Backend([string]$jarPath) {
         -WorkingDirectory $serverBackend -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $logRoot "backend-$stamp.out.log") `
         -RedirectStandardError (Join-Path $logRoot "backend-$stamp.err.log") | Out-Null
+}
+
+function Switch-ServiceJar([string]$newJar, [string]$rollbackJar) {
+    $service = Get-Service -Name $backendServiceName -ErrorAction Stop
+    if ($service.Status -ne 'Stopped') {
+        Stop-Service -Name $backendServiceName -ErrorAction Stop
+        $service.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(60))
+    }
+    $deadline = (Get-Date).AddSeconds(30)
+    while ((Get-NetTCPConnection -LocalPort 8081 -State Listen -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) {
+        Start-Sleep -Milliseconds 500
+    }
+    if (Get-NetTCPConnection -LocalPort 8081 -State Listen -ErrorAction SilentlyContinue) {
+        throw 'Port 8081 remained in use after stopping the backend service.'
+    }
+    try {
+        Copy-Item -LiteralPath $newJar -Destination $serviceJar -Force
+        Start-Service -Name $backendServiceName -ErrorAction Stop
+        if (-not (Wait-ForBackend)) { throw 'New backend failed its HTTP check.' }
+    } catch {
+        $deploymentError = $_
+        $service = Get-Service -Name $backendServiceName -ErrorAction SilentlyContinue
+        if ($service -and $service.Status -ne 'Stopped') {
+            Stop-Service -Name $backendServiceName -ErrorAction SilentlyContinue
+            $service.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(60))
+        }
+        if (Test-Path -LiteralPath $rollbackJar) {
+            Copy-Item -LiteralPath $rollbackJar -Destination $serviceJar -Force
+            Start-Service -Name $backendServiceName -ErrorAction Stop
+        }
+        throw "Backend deployment failed and previous JAR was restored: $deploymentError"
+    }
 }
 
 New-Item -ItemType Directory -Path $StateRoot, $releaseRoot, $logRoot -Force | Out-Null
@@ -123,12 +157,18 @@ try {
         }
     }
 
-    Stop-Backend
-    Start-Backend $jar
-    if (-not (Wait-ForBackend)) {
+    if (Get-Service -Name $backendServiceName -ErrorAction SilentlyContinue) {
+        $rollbackJar = Join-Path $releaseRoot "rollback-$commit.jar"
+        Copy-Item -LiteralPath $serviceJar -Destination $rollbackJar -Force
+        Switch-ServiceJar $jar $rollbackJar
+    } else {
         Stop-Backend
-        if ($oldJar -and (Test-Path -LiteralPath $oldJar)) { Start-Backend $oldJar }
-        throw 'New backend failed its HTTP check; previous JAR was restarted.'
+        Start-Backend $jar
+        if (-not (Wait-ForBackend)) {
+            Stop-Backend
+            if ($oldJar -and (Test-Path -LiteralPath $oldJar)) { Start-Backend $oldJar }
+            throw 'New backend failed its HTTP check; previous JAR was restarted.'
+        }
     }
 
     # Copy assets first and index.html last so browsers do not request missing hashed assets.

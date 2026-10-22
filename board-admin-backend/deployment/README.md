@@ -11,7 +11,7 @@ then runs `npm ci` and builds the website with
 `VITE_API_BASE_URL=https://apds.slpa.lk/api`. Only after both builds succeed
 does it replace the backend. It waits for an HTTP response on port 8081 and
 restarts the previous JAR if startup fails. It copies website assets before
-`index.html`. The existing Caddy process serves the updated `dist` directory.
+`index.html`. The Caddy service serves the updated `dist` directory.
 
 ## Install and check
 
@@ -30,12 +30,23 @@ builds on GitHub-hosted runners. The server builds and tests the new commit
 again before deployment.
 
 The deployment preserves `.env`, PostgreSQL, and the configured uploads
-directory. It does not back them up. Caddy and the backend are still ordinary
-processes on this PC; configure them as services before relying on unattended
-restarts after a Windows reboot. The current upload directory is under Maven's
+directory. It does not back them up. The current upload directory is under Maven's
 `target` tree and should be moved to permanent storage before any build that
 cleans `target` in the live checkout. The isolated deployment build does not
 clean that live tree.
+
+On this Windows server, `BoardPACBackend` and `BoardPACCaddy` are automatic
+WinSW services. Their configuration is in
+`C:\BoardPAC-Services\backend\BoardPACBackend.xml` and
+`C:\BoardPAC-Services\caddy\BoardPACCaddy.xml`. The backend service runs the
+JAR at `C:\BoardPAC-AutoDeploy\active\backend.jar`; the deployment script
+stops the service before replacing that file and restarts it afterward. Caddy
+uses the existing Administrator Caddy data directory so its TLS certificates
+are preserved. The old `BoardPAC Backend` boot task is disabled.
+
+Manage the services with `Get-Service`, `Restart-Service`, and `Stop-Service`.
+Service logs are in `C:\BoardPAC-AutoDeploy\logs`. Do not delete the Caddy
+data directory at `C:\Users\Administrator\AppData\Roaming\Caddy`.
 
 The JAR rollback does not undo a Flyway database migration. Review database
 migrations and take a database plus uploads backup before a deployment that
