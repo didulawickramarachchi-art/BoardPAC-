@@ -48,6 +48,19 @@ Manage the services with `Get-Service`, `Restart-Service`, and `Stop-Service`.
 Service logs are in `C:\BoardPAC-AutoDeploy\logs`. Do not delete the Caddy
 data directory at `C:\Users\Administrator\AppData\Roaming\Caddy`.
 
+`BoardPACWatchdog` is a delayed automatic WinSW service configured in
+`C:\BoardPAC-Services\watchdog\BoardPACWatchdog.xml`. It runs
+`Watch-BoardPACServices.ps1` and checks the backend and Caddy service status
+every 15 seconds. After two consecutive `Stopped` checks, it tries to start
+the service. The deployment script writes a short-lived
+`C:\BoardPAC-AutoDeploy\backend-maintenance.flag` during planned backend
+restarts so the watchdog does not interfere. A marker older than ten minutes
+is ignored. Watchdog output is in the service log directory. To intentionally
+keep either app service stopped, stop `BoardPACWatchdog` first.
+
+This checks Windows service state, not application health. The backend and
+Caddy also have Windows Service Control Manager restart-on-failure actions.
+
 The JAR rollback does not undo a Flyway database migration. Review database
 migrations and take a database plus uploads backup before a deployment that
 changes schema or document handling.
