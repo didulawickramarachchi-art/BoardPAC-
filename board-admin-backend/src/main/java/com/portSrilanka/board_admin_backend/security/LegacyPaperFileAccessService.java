@@ -3,6 +3,7 @@ package com.portSrilanka.board_admin_backend.security;
 import com.portSrilanka.board_admin_backend.entity.Paper;
 import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
+import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.repository.PaperRepository;
 import com.portSrilanka.board_admin_backend.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
@@ -38,10 +39,13 @@ public class LegacyPaperFileAccessService {
                 .orElseThrow(() -> new AccessDeniedException("Paper file access denied"));
         Paper paper = paperRepository.findById(paperId)
                 .orElseThrow(() -> new AccessDeniedException("Paper file access denied"));
+        boolean boardManager = user.getRoles().stream()
+                .anyMatch(role -> role.getName() == SystemRole.ADMIN || role.getName() == SystemRole.SECRETARY);
         if (user.getStatus() != UserStatus.ACTIVE || paper.getFilePath() == null
                 || !paper.getFilePath().endsWith("/api/files/content/" + token)
                 || paper.getMeeting() == null
-                || !permissionService.hasSubcategoryAccess(user.getId(), paper.getMeeting().getSubcategory().getId()))
+                || (!boardManager && !permissionService.hasSubcategoryAccess(
+                        user.getId(), paper.getMeeting().getSubcategory().getId())))
             throw new AccessDeniedException("Paper file access denied");
     }
 }

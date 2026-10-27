@@ -1,3 +1,16 @@
 apds.slpa.lk {
     reverse_proxy 10.105.4.183:8081
 }
+
+bpds.slpa.lk {
+    root * C:/Users/Administrator/Desktop/BPAC/BoardPAC-/board-admin-frontend/frontend_web/dist
+
+    handle /api/* {
+        reverse_proxy 10.105.4.183:8081
+    }
+
+    handle {
+        try_files {path} /index.html
+        file_server
+    }
+}

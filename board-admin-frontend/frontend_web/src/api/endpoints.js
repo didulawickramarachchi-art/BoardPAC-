@@ -13,6 +13,7 @@ export const FILE_ENDPOINTS = Object.freeze({
 export const USER_ENDPOINTS = Object.freeze({
   current: '/users/me',
   twoFactor: '/users/me/two-factor',
+  password: '/users/me/password',
   profilePicture: '/users/me/profile-picture',
 })
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { errorMessage } from '../api/client'
 import { useAuth } from '../state/AuthContext'
@@ -20,6 +20,7 @@ function AuthFrame({ children, title, subtitle }) {
 }
 
 export function LoginPage() {
+  const location = useLocation()
   const { user, login, initializing } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({ username: '', password: '' })
@@ -35,6 +36,7 @@ export function LoginPage() {
     finally { setBusy(false) }
   }
   return <AuthFrame title="Welcome Back" subtitle="Sign in to your account"><form onSubmit={submit}>
+    {location.state?.passwordChanged && <div className="alert success" role="status">Password changed. Sign in with your new password.</div>}
     <label>Username<input autoFocus required value={form.username} onChange={event => setForm({ ...form, username: event.target.value })} placeholder="User Name" /></label>
     <label>Password<div className="password"><input required type={show ? 'text' : 'password'} value={form.password} onChange={event => setForm({ ...form, password: event.target.value })} placeholder="••••••••" /><button type="button" aria-label={show ? 'Hide password' : 'Show password'} onClick={() => setShow(!show)}>{show ? <EyeOff /> : <Eye />}</button></div></label>
     <Link className="forgot-link" to="/forgot-password">Forgot password?</Link>

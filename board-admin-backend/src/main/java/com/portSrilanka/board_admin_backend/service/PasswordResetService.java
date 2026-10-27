@@ -99,6 +99,24 @@ public class PasswordResetService {
         );
     }
 
+    @Transactional
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BadRequestException("Account not found"));
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new BadRequestException("Choose a different new password");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        refreshTokenService.revokeAllUserTokens(user.getId());
+        sessionService.revokeAllUserSessions(user.getId());
+        auditService.logInfo("USER", "CHANGE_PASSWORD", username,
+                "Password changed from profile", "WEB");
+    }
+
     private String hash(String value) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")

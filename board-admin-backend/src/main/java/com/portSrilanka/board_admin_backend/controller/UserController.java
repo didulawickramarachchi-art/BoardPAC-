@@ -5,6 +5,7 @@ import com.portSrilanka.board_admin_backend.dto.auth.RegisterRequest;
 import com.portSrilanka.board_admin_backend.dto.user.*;
 import com.portSrilanka.board_admin_backend.service.AuthService;
 import com.portSrilanka.board_admin_backend.service.UserService;
+import com.portSrilanka.board_admin_backend.service.PasswordResetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -24,6 +25,7 @@ public class UserController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -43,6 +45,16 @@ public class UserController {
     ) {
         return ResponseEntity.ok(userService.updateOwnTwoFactor(
                 authentication.getName(), request.isEnabled()));
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<String> changeOwnPassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication
+    ) {
+        passwordResetService.changePassword(authentication.getName(),
+                request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok("Password changed successfully");
     }
 
     @PostMapping(value = "/me/profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -82,12 +82,16 @@ export function SettingGroup() {
 }
 
 export function ProfilePage() {
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, logout } = useAuth()
+  const navigate = useNavigate()
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
+  const [passwordBusy, setPasswordBusy] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
   useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview])
   const choose = event => {
     const next = event.target.files?.[0]
@@ -113,12 +117,38 @@ export function ProfilePage() {
     catch (err) { setError(errorMessage(err)) }
     finally { setBusy(false) }
   }
+  const changePassword = async event => {
+    event.preventDefault()
+    if (passwordBusy) return
+    const validationError = validateResetForm(passwords.next, passwords.confirm)
+    if (validationError) return setPasswordError(validationError)
+    setPasswordBusy(true); setPasswordError('')
+    try {
+      await api.put(USER_ENDPOINTS.password, {
+        currentPassword: passwords.current,
+        newPassword: passwords.next,
+      })
+      setPasswords({ current: '', next: '', confirm: '' })
+      logout()
+      navigate('/login', { replace: true, state: { passwordChanged: true } })
+    } catch (err) { setPasswordError(errorMessage(err)) }
+    finally { setPasswordBusy(false) }
+  }
   return <div className="page"><div className="page-heading"><div><span className="breadcrumb">Home / Profile</span><h2>Profile</h2><p>Manage your photo and account security.</p></div></div>
     <section className="panel profile-panel"><div className="profile-photo">{preview || user.profilePictureUrl ? <img src={preview || user.profilePictureUrl} alt="Profile" /> : <UserRound />}</div><h3>{user.displayName || user.username}</h3><p>{user.role}</p>
       {notice && <div className="alert success">{notice}</div>}{error && <div className="alert error">{error}</div>}
       <label className="secondary file-button"><Upload /> Choose image<input type="file" accept="image/png,image/jpeg" onChange={choose} /></label>
       <button className="primary" disabled={!file || busy} onClick={upload}>{busy ? 'Uploading…' : 'Save profile picture'}</button>
       <label><input type="checkbox" checked={Boolean(user.twoStepEnabled)} disabled={busy} onChange={updateTwoFactor} /> Two-step authentication</label>
+    </section>
+    <section className="panel profile-panel"><h3>Change password</h3><p>Enter your current password and choose a new one. You will sign in again after changing it.</p>
+      <form onSubmit={changePassword}>
+        <label>Current password<input type="password" autoComplete="current-password" required value={passwords.current} onChange={event => setPasswords({ ...passwords, current: event.target.value })} /></label>
+        <label>New password<input type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={passwords.next} onChange={event => setPasswords({ ...passwords, next: event.target.value })} /></label>
+        <label>Confirm new password<input type="password" autoComplete="new-password" required value={passwords.confirm} onChange={event => setPasswords({ ...passwords, confirm: event.target.value })} /></label>
+        {passwordError && <div className="alert error" role="alert">{passwordError}</div>}
+        <button className="primary" disabled={passwordBusy}>{passwordBusy ? 'Changing password…' : 'Change password'}</button>
+      </form>
     </section>
   </div>
 }
