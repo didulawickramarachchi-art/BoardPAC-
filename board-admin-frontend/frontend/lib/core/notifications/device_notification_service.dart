@@ -162,9 +162,9 @@ class DeviceNotificationService {
       NotificationDetails(
         android: AndroidNotificationDetails(
           'boardpac_activity_notifications',
-          'BoardPAC activity',
+          'BPDS activity',
           channelDescription:
-              'Comments, replies, approvals and BoardPAC activity',
+              'Comments, replies, approvals and BPDS activity',
           importance: Importance.high,
           priority: Priority.high,
         ),

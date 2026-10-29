@@ -1,6 +1,6 @@
 {
-    "name": "SLPA BoardPack",
-    "short_name": "SLPA BoardPack",
+    "name": "BPDS",
+    "short_name": "BPDS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

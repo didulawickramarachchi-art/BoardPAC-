@@ -71,7 +71,7 @@ class DeviceIdentityService {
       deviceInfo: kIsWeb ? '$platform browser' : '$platform device',
       boardPacVersion: _appVersion,
       osVersion: platform,
-      description: 'BoardPAC ${kIsWeb ? 'web' : 'app'} installation',
+      description: 'BPDS ${kIsWeb ? 'web' : 'app'} installation',
     );
   }
 

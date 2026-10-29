@@ -11,7 +11,7 @@ import 'reminder_settings_screen.dart';
 
 /// Compact member calendar used on the dashboard. It deliberately keeps the
 /// month and the selected day's meetings together, matching the mental model
-/// of existing BoardPAC users while using the current app theme.
+/// of existing BPDS users while using the current app theme.
 class MemberDashboardCalendar extends StatefulWidget {
   final List<MeetingModel> meetings;
   final bool loading;

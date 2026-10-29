@@ -123,7 +123,7 @@ class OfflinePaperNotifier extends StateNotifier<AsyncValue<String?>> {
     final logoData = await rootBundle.load('assets/images/slpa_logo.png');
     final logo = PdfBitmap(logoData.buffer.asUint8List());
     final font = PdfStandardFont(PdfFontFamily.helvetica, 10);
-    final label = 'SLPA  •  $userName  •  User ID: $userId';
+    final label = 'BPDS  •  $userName  •  User ID: $userId';
 
     for (var pageIndex = 0; pageIndex < document.pages.count; pageIndex++) {
       final page = document.pages[pageIndex];

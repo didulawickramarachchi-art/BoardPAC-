@@ -24,7 +24,6 @@ import '../../notifications/model/notification_request.dart';
 import '../../notifications/provider/notification_provider.dart';
 import '../../news/presentation/news_feed_section.dart';
 import '../../papers/presentation/paper_list_screen.dart';
-import '../../search/presentation/global_search_screen.dart';
 import '../../privileges/presentation/privilege_list_screen.dart';
 import '../../privileges/provider/privilege_provider.dart';
 import '../../subcategories/presentation/subcategory_list_screen.dart';
@@ -554,7 +553,7 @@ class _Header extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'SLPA Board',
+                      'BPDS',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 15,
@@ -2251,11 +2250,6 @@ class _RoleDashboardConfig {
 }
 
 const _adminTiles = [
-  _MenuTileData(
-    'Search Board Papers',
-    Icons.search_rounded,
-    GlobalSearchScreen(),
-  ),
   _MenuTileData('Users', Icons.people_outline_rounded, UserListScreen()),
   _MenuTileData(
     'Privileges',

@@ -9,14 +9,14 @@ import 'features/auth/presentation/reset_password_screen.dart';
 import 'features/auth/presentation/verify_2fa_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 
-class BoardAdminApp extends ConsumerWidget {
-  const BoardAdminApp({super.key});
+class BPDSApp extends ConsumerWidget {
+  const BPDSApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Board Admin',
+      title: 'BPDS',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ref.watch(themeModeProvider),
