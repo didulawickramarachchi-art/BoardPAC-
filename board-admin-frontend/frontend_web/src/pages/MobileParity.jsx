@@ -136,7 +136,7 @@ export function ProfilePage() {
     finally { setPasswordBusy(false) }
   }
   return <div className="page"><div className="page-heading"><div><span className="breadcrumb">Home / Profile</span><h2>Profile</h2><p>Manage your photo and account security.</p></div></div>
-    <section className="panel profile-panel"><div className="profile-photo"><UserRound />{(preview || user.profilePictureUrl) && <img src={preview || publicImageUrl(user.profilePictureUrl)} alt="Profile" onError={event => { event.currentTarget.style.display = 'none' }} />}</div><h3>{user.displayName || user.username}</h3><p>{user.role}</p>
+    <section className="panel profile-panel"><div className="profile-photo"><UserRound />{(preview || user.profilePictureUrl) && <img key={preview || user.profilePictureUrl} src={preview || publicImageUrl(user.profilePictureUrl)} alt="Profile" onError={event => { event.currentTarget.style.display = 'none' }} />}</div><h3>{user.displayName || user.username}</h3><p>{user.role}</p>
       {notice && <div className="alert success">{notice}</div>}{error && <div className="alert error">{error}</div>}
       <label className="secondary file-button"><Upload /> Choose image<input type="file" accept="image/png,image/jpeg" onChange={choose} /></label>
       <button className="primary" disabled={!file || busy} onClick={upload}>{busy ? 'Uploading…' : 'Save profile picture'}</button>
