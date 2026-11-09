@@ -24,10 +24,42 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.when;
 
 class PrivilegeServiceTest {
+
+    @Test
+    void retryingTheSamePrivilegeDoesNotCreateAnotherAssignment() {
+        UserSubcategoryAccessRepository accessRepository = mock(UserSubcategoryAccessRepository.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        SubcategoryRepository subcategoryRepository = mock(SubcategoryRepository.class);
+        NotificationService notificationService = mock(NotificationService.class);
+        PrivilegeService service = new PrivilegeService(accessRepository, userRepository,
+                subcategoryRepository, mock(AuditService.class), notificationService);
+        User user = User.builder().username("member").status(UserStatus.ACTIVE)
+                .roles(Set.of(Role.builder().name(SystemRole.MEMBER).build())).build();
+        user.setId(4L);
+        Subcategory subcategory = Subcategory.builder().name("Audit").build();
+        subcategory.setId(9L);
+        UserSubcategoryAccess existing = UserSubcategoryAccess.builder()
+                .user(user).subcategory(subcategory).assignedRole("MEMBER").build();
+        existing.setId(12L);
+        PrivilegeAssignRequest request = new PrivilegeAssignRequest();
+        request.setUserId(4L);
+        request.setSubcategoryId(9L);
+        request.setAssignedRole("MEMBER");
+        when(userRepository.findById(4L)).thenReturn(Optional.of(user));
+        when(subcategoryRepository.findById(9L)).thenReturn(Optional.of(subcategory));
+        when(accessRepository.findByUserIdAndSubcategoryId(4L, 9L)).thenReturn(Optional.of(existing));
+
+        service.assign(request);
+
+        verify(accessRepository, never()).save(any(UserSubcategoryAccess.class));
+        verify(notificationService, never()).notifySubcategoryPrivilegeAssigned(any(User.class), any(Subcategory.class));
+    }
 
     @Test
     void assigningPrivilegeShouldNotifyTheUserForThatSubcategory() {
@@ -94,7 +126,7 @@ class PrivilegeServiceTest {
         notificationService.notifySubcategoryPrivilegeAssigned(user, subcategory);
 
         verify(notificationRepository).save(any(BoardNotification.class));
-        verify(emailService).sendEmail(
+        verify(emailService, timeout(1000)).sendEmail(
                 eq("nimal@example.com"),
                 eq("BoardPAC subcategory access granted"),
                 contains("Audit under Finance")

@@ -547,18 +547,13 @@ public class NotificationService {
                 false
         );
 
-        try {
-            emailService.sendEmail(
-                    recipient.getBoardEmail(),
-                    "BoardPAC subcategory access granted",
-                    "Hello " + recipient.getFirstName() + ",\n\n" + message
-                            + " You can now access its meetings and papers in BoardPAC.\n\n"
-                            + "Regards,\nBoardPAC Team"
-            );
-        } catch (RuntimeException ex) {
-            log.warn("Unable to email subcategory privilege notification to user {}",
-                    recipient.getUsername(), ex);
-        }
+        emailUsers(
+                List.of(recipient),
+                "BoardPAC subcategory access granted",
+                "Hello " + recipient.getFirstName() + ",\n\n" + message
+                        + " You can now access its meetings and papers in BoardPAC.\n\n"
+                        + "Regards,\nBoardPAC Team"
+        );
     }
 
     private boolean canReceiveMeetingNotifications(User user) {
@@ -788,4 +783,3 @@ public class NotificationService {
         return (user.getFirstName() + " " + user.getLastName()).trim();
     }
 }
-

@@ -27,6 +27,7 @@ public class PrivilegeService {
     private final AuditService auditService;
     private final NotificationService notificationService;
 
+    @Transactional
     public PrivilegeResponse assign(PrivilegeAssignRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -44,6 +45,15 @@ public class PrivilegeService {
 
         Subcategory subcategory = subcategoryRepository.findById(request.getSubcategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Subcategory not found"));
+
+        var existing = accessRepository.findByUserIdAndSubcategoryId(request.getUserId(), request.getSubcategoryId());
+        if (existing.isPresent()) {
+            UserSubcategoryAccess assignment = existing.get();
+            if (!assignment.getAssignedRole().equals(request.getAssignedRole())) {
+                throw new BadRequestException("This user already has a different privilege for the subcategory");
+            }
+            return map(assignment);
+        }
 
         UserSubcategoryAccess access = UserSubcategoryAccess.builder()
                 .user(user)

@@ -5,6 +5,7 @@ import com.portSrilanka.board_admin_backend.entity.MeetingParticipant;
 import com.portSrilanka.board_admin_backend.entity.Paper;
 import com.portSrilanka.board_admin_backend.entity.PaperAttachment;
 import com.portSrilanka.board_admin_backend.entity.Role;
+import com.portSrilanka.board_admin_backend.entity.Subcategory;
 import com.portSrilanka.board_admin_backend.entity.User;
 import com.portSrilanka.board_admin_backend.enums.SystemRole;
 import com.portSrilanka.board_admin_backend.enums.UserStatus;
@@ -105,6 +106,21 @@ class NotificationEmailServiceTest {
 
         verify(emailService, timeout(1000)).sendEmail(
                 eq("kamal@example.com"), eq("Meeting reminder: Board Meeting"), contains("next 24 hours"));
+    }
+
+    @Test
+    void privilegeAssignmentQueuesEmail() {
+        Subcategory subcategory = Subcategory.builder()
+                .name("directors")
+                .displayName("Board of Directors")
+                .build();
+
+        service.notifySubcategoryPrivilegeAssigned(member, subcategory);
+
+        verify(emailService, timeout(1000)).sendEmail(
+                eq("kamal@example.com"),
+                eq("BoardPAC subcategory access granted"),
+                contains("Board of Directors"));
     }
 
     @Test
