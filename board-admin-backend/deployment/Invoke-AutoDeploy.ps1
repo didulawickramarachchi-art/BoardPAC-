@@ -25,6 +25,7 @@ function Run([string]$program, [string[]]$arguments) {
 }
 
 function Wait-ForBackend {
+    Add-Type -AssemblyName System.Net.Http
     $client = [System.Net.Http.HttpClient]::new()
     $client.Timeout = [TimeSpan]::FromSeconds(3)
     try {
