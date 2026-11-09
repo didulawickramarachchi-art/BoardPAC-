@@ -7,8 +7,8 @@ separate checkout in `C:\BoardPAC-AutoDeploy\source`, so it does not reset or
 overwrite the developer's working tree.
 
 After a new push, `Invoke-AutoDeploy.ps1` runs backend tests and builds the JAR,
-then runs `npm ci` and builds the website with
-`VITE_API_BASE_URL=https://apds.slpa.lk/api`. Only after both builds succeed
+then validates the committed `dist/` website build and its production API URL.
+Build and commit `dist/` with `VITE_API_BASE_URL=https://apds.slpa.lk/api` before pushing. Only after validation succeeds
 does it replace the backend. It waits for an HTTP response on port 8081 and
 restarts the previous JAR if startup fails. It copies website assets before
 `index.html`. The Caddy service serves the updated `dist` directory.

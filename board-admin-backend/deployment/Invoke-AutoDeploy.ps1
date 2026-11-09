@@ -137,18 +137,20 @@ try {
     $webSource = Join-Path $source 'board-admin-frontend\frontend_web'
     Push-Location $backendSource
     try { Run 'mvn.cmd' @('-B', 'test', 'package') } finally { Pop-Location }
-    Push-Location $webSource
-    try {
-        $previousApiBase = $env:VITE_API_BASE_URL
-        try {
-            $env:VITE_API_BASE_URL = 'https://apds.slpa.lk/api'
-            Run 'npm.cmd' @('ci')
-            Run 'npm.cmd' @('run', 'build')
-        } finally {
-            if ($null -eq $previousApiBase) { Remove-Item Env:VITE_API_BASE_URL -ErrorAction SilentlyContinue }
-            else { $env:VITE_API_BASE_URL = $previousApiBase }
-        }
-    } finally { Pop-Location }
+    # The repository includes the production web build. Deploying it avoids
+    # making backend releases depend on npm registry availability at runtime.
+    $builtWeb = Join-Path $webSource 'dist'
+    $builtIndex = Join-Path $builtWeb 'index.html'
+    $builtScripts = @(Get-ChildItem -LiteralPath (Join-Path $builtWeb 'assets') -Filter '*.js' -File)
+    if (-not (Test-Path -LiteralPath $builtIndex) -or $builtScripts.Count -eq 0) {
+        throw 'The committed frontend build is missing.'
+    }
+    $configuredApi = $builtScripts | Where-Object {
+        (Get-Content -LiteralPath $_.FullName -Raw).Contains('https://apds.slpa.lk/api')
+    }
+    if (-not $configuredApi) {
+        throw 'The committed frontend build does not contain the production API URL.'
+    }
 
     $release = Join-Path $releaseRoot $commit
     New-Item -ItemType Directory -Path $release -Force | Out-Null
