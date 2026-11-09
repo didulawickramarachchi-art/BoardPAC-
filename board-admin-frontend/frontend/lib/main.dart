@@ -17,7 +17,7 @@ Future<void> main() async {
     ),
   );
 
-  runApp(const ProviderScope(child: BoardAdminApp()));
+  runApp(const ProviderScope(child: BPDSApp()));
 
   // Notification plug-in and time-zone discovery can involve slow platform I/O.
   // They are not needed to paint the first frame, so initialize them afterward.

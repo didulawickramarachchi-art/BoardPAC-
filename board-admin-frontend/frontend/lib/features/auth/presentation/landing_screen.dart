@@ -169,7 +169,7 @@ class _LandingScreenState extends State<LandingScreen>
                               ),
                             ),
                             child: const Text(
-                              'BOARDPACK',
+                              'BPDS',
                               style: TextStyle(
                                 color: Color(0xFFFFB600),
                                 fontSize: 16,

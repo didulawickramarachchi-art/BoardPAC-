@@ -332,7 +332,7 @@ class _CompactBrand extends StatelessWidget {
         _LogoMark(size: 76),
         SizedBox(height: 14),
         Text(
-          'BOARDPAC',
+          'BPDS',
           style: TextStyle(
             color: Colors.white,
             fontSize: 15,
@@ -382,7 +382,7 @@ class _PortraitBrand extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'BOARDPAC',
+                      'BPDS',
                       style: TextStyle(
                         color: Color(0xFFFFC85A),
                         fontSize: 14,

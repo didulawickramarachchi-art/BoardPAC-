@@ -269,7 +269,7 @@ class _MemberHeader extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'SLPA Board',
+                      'BPDS',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
