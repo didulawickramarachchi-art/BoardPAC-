@@ -73,7 +73,8 @@ public class UserService {
         User user = findByUsername(username);
         String extension = extensionFor(file.getContentType());
         String objectPath = "profile-pictures/users/" + user.getId() + "/profile." + extension;
-        String profilePictureUrl = fileStorageService.uploadFile(file, objectPath);
+        String profilePictureUrl = fileStorageService.uploadFile(file, objectPath)
+                + "?v=" + java.util.UUID.randomUUID();
 
         user.setProfilePictureUrl(profilePictureUrl);
         userRepository.save(user);

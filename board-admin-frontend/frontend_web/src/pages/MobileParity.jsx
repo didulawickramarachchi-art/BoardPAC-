@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Activity, ArrowRight, CalendarDays, CheckCircle2, Eye, EyeOff, FileText, History, KeyRound, LockKeyhole, MailCheck, MessageSquare, Settings, ShieldCheck, Upload, UserRound, Users } from 'lucide-react'
 import ResourcePage from './ResourcePage'
 import { api, errorMessage } from '../api/client'
+import { publicImageUrl } from '../api/files'
 import { USER_ENDPOINTS } from '../api/endpoints'
 import { useAuth } from '../state/AuthContext'
 import { permissionsFor } from '../auth/permissions'
@@ -106,7 +107,7 @@ export function ProfilePage() {
     if (!file) return
     setBusy(true); setError('')
     const data = new FormData(); data.append('file', file)
-    try { await api.post(USER_ENDPOINTS.profilePicture, data); await refreshUser(); setFile(null); setNotice('Profile picture updated successfully.') }
+    try { await api.post(USER_ENDPOINTS.profilePicture, data); await refreshUser(); setFile(null); setPreview(null); setNotice('Profile picture updated successfully.') }
     catch (err) { setError(errorMessage(err)) }
     finally { setBusy(false) }
   }
@@ -135,7 +136,7 @@ export function ProfilePage() {
     finally { setPasswordBusy(false) }
   }
   return <div className="page"><div className="page-heading"><div><span className="breadcrumb">Home / Profile</span><h2>Profile</h2><p>Manage your photo and account security.</p></div></div>
-    <section className="panel profile-panel"><div className="profile-photo">{preview || user.profilePictureUrl ? <img src={preview || user.profilePictureUrl} alt="Profile" /> : <UserRound />}</div><h3>{user.displayName || user.username}</h3><p>{user.role}</p>
+    <section className="panel profile-panel"><div className="profile-photo"><UserRound />{(preview || user.profilePictureUrl) && <img src={preview || publicImageUrl(user.profilePictureUrl)} alt="Profile" onError={event => { event.currentTarget.style.display = 'none' }} />}</div><h3>{user.displayName || user.username}</h3><p>{user.role}</p>
       {notice && <div className="alert success">{notice}</div>}{error && <div className="alert error">{error}</div>}
       <label className="secondary file-button"><Upload /> Choose image<input type="file" accept="image/png,image/jpeg" onChange={choose} /></label>
       <button className="primary" disabled={!file || busy} onClick={upload}>{busy ? 'Uploading…' : 'Save profile picture'}</button>

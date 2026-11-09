@@ -181,6 +181,9 @@
 [data-theme="dark"] .stat.danger-stat,[data-theme="dark"] .stat.danger-stat:hover{background:#48232d;border-color:#a94b5b}
 [data-theme="dark"] .stat.danger-stat .stat-icon{background:#632e3a;color:#ffb5b5}
 [data-theme="dark"] .profile-photo{background:#142f58;border-color:#193967;color:#a8b7d6}
+
+.avatar,.profile-photo{position:relative}
+.avatar img,.profile-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
 [data-theme="dark"] .note-list article,[data-theme="dark"] .attachment-grid article,[data-theme="dark"] .comment-thread>article{background:var(--dark-surface);border-color:var(--line)}
 [data-theme="dark"] .auth-card label>input,[data-theme="dark"] .auth-card .password input,[data-theme="dark"] .reset-card label>input,[data-theme="dark"] .reset-card .password input{background:var(--dark-input);color:var(--dark-text);caret-color:var(--gold);border:1px solid #3a5685}
 [data-theme="dark"] .auth-card label>input::placeholder,[data-theme="dark"] .auth-card .password input::placeholder,[data-theme="dark"] .reset-card input::placeholder{color:#9eb0d0;opacity:1}

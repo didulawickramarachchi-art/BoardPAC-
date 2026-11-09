@@ -6,6 +6,7 @@ import { collectionFrom } from '../api/response'
 import { meetingListEndpoint, permissionsFor } from '../auth/permissions'
 import { useAuth } from '../state/AuthContext'
 import { scheduleMeetingReminders } from '../features/meetings/reminders'
+import { publicImageUrl } from '../api/files'
 
 const groups = [
   ['Overview', [['Dashboard', '/dashboard', LayoutDashboard]]],
@@ -239,7 +240,7 @@ export default function AppShell() {
         <div><p>SLPA Board</p><h1>{title}</h1></div>
         <form className="global-search" onSubmit={event => { event.preventDefault(); const value = searchText.trim(); if (value) navigate(`/search?q=${encodeURIComponent(value)}`) }}><Search /><input aria-label="Search BoardPAC" value={searchText} onChange={event => setSearchText(event.target.value)} placeholder="Search anything..." /></form>
         <button className="icon-button" aria-label={dark?'Use light theme':'Use dark theme'} title={dark?'Light theme':'Dark theme'} onClick={()=>setDark(value=>!value)}>{dark?<Sun/>:<Moon/>}</button><button className="icon-button notification-trigger" aria-label="Notifications" onClick={openNotifications}><Bell />{unreadCount > 0 && <span>{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
-        <NavLink to="/profile" className="user" title="Open profile"><div className="avatar">{initials(user?.displayName || user?.username || 'U')}</div><div><b>{user?.displayName || user?.username}</b><span>{role}</span></div></NavLink>
+        <NavLink to="/profile" className="user" title="Open profile"><div className="avatar">{initials(user?.displayName || user?.username || 'U')}{user?.profilePictureUrl && <img src={publicImageUrl(user.profilePictureUrl)} alt="" onError={event => { event.currentTarget.style.display = 'none' }} />}</div><div><b>{user?.displayName || user?.username}</b><span>{role}</span></div></NavLink>
         <button className="icon-button" title="Sign out" onClick={() => { logout(); navigate('/login') }}><LogOut /></button>
       </header>
       <main><Outlet /></main>

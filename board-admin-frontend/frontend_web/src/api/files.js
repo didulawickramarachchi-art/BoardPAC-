@@ -2,6 +2,17 @@ import { api } from './client'
 import { FILE_ENDPOINTS } from './endpoints'
 import { uploadedFilePath } from './response'
 
+export const publicImageUrl = value => {
+  if (!value) return ''
+  try {
+    const url = new URL(value, window.location.origin)
+    if (url.pathname.startsWith('/api/files/public/')) return `${url.pathname}${url.search}`
+    return url.href
+  } catch {
+    return value
+  }
+}
+
 export const uploadFile = async ({ file, meetingId, paperId, onProgress }) => {
   const body = new FormData()
   body.append('file', file, file.name)
