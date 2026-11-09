@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.when;
 
 class NotificationEmailServiceTest {
@@ -70,7 +71,7 @@ class NotificationEmailServiceTest {
     void meetingCreationEmailsActiveMemberParticipants() {
         service.notifyMeetingCreated(meeting, participants);
 
-        verify(emailService).sendEmail(
+        verify(emailService, timeout(1000)).sendEmail(
                 eq("kamal@example.com"),
                 eq("New meeting: Board Meeting"),
                 contains("Date and time")
@@ -88,9 +89,9 @@ class NotificationEmailServiceTest {
         service.notifyPaperCreated(paper, participants, member);
         service.notifyDocumentUploaded(attachment, participants, member);
 
-        verify(emailService).sendEmail(
+        verify(emailService, timeout(1000)).sendEmail(
                 eq("kamal@example.com"), eq("New paper: Budget"), contains("Approval required"));
-        verify(emailService).sendEmail(
+        verify(emailService, timeout(1000)).sendEmail(
                 eq("kamal@example.com"), eq("New attachment: appendix.pdf"), contains("Budget"));
     }
 
@@ -102,7 +103,7 @@ class NotificationEmailServiceTest {
         service.notifyMeetingReminder(meeting, participants);
         service.notifyMeetingReminder(meeting, participants);
 
-        verify(emailService).sendEmail(
+        verify(emailService, timeout(1000)).sendEmail(
                 eq("kamal@example.com"), eq("Meeting reminder: Board Meeting"), contains("next 24 hours"));
     }
 

@@ -55,6 +55,7 @@ api.interceptors.response.use(response => response, async error => {
 
 export const errorMessage = error => {
   if (error?.code === 'ERR_CANCELED') return 'Request cancelled.'
+  if (error?.code === 'ECONNABORTED' || error?.code === 'ETIMEDOUT') return 'The server took too long to respond. Please check whether the record was created before trying again.'
   if (error?.code === 'ERR_NETWORK' || (!error?.response && error?.request)) return 'Cannot connect to the server.'
   const data = error?.response?.data
   const fieldMessages = validationMessages(data)

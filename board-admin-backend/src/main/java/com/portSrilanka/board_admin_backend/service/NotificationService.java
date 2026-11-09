@@ -27,6 +27,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.HashSet;
@@ -568,16 +573,35 @@ public class NotificationService {
                 && !user.getBoardEmail().isBlank();
     }
 
+    private static final ExecutorService EMAIL_EXECUTOR = Executors.newFixedThreadPool(2, runnable -> {
+        Thread thread = new Thread(runnable, "board-notification-email");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     private void emailUsers(List<User> users, String subject, String body) {
         Set<Long> seen = new HashSet<>();
-        for (User user : users) {
-            if (!hasDeliverableEmail(user) || !seen.add(user.getId())) continue;
-            try {
-                emailService.sendEmail(user.getBoardEmail().trim(), subject, body);
-            } catch (RuntimeException ex) {
-                log.warn("Unable to send '{}' email to user {} ({})",
-                        subject, user.getUsername(), user.getBoardEmail(), ex);
+        List<String> addresses = users.stream()
+                .filter(this::hasDeliverableEmail)
+                .filter(user -> seen.add(user.getId()))
+                .map(user -> user.getBoardEmail().trim())
+                .toList();
+        if (addresses.isEmpty()) return;
+        Runnable send = () -> EMAIL_EXECUTOR.execute(() -> {
+            for (String address : addresses) {
+                try {
+                    emailService.sendEmail(address, subject, body);
+                } catch (RuntimeException ex) {
+                    log.warn("Unable to send '{}' email to {}", subject, address, ex);
+                }
             }
+        });
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { send.run(); }
+            });
+        } else {
+            send.run();
         }
     }
 

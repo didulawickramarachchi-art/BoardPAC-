@@ -17,6 +17,7 @@ const display = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : v
 
 function RemoteSelect({ field, form, update }) {
   const dependency = field.dependsOn ? form[field.dependsOn] : true
+  const filterValue = field.dependsOn ? form[field.dependsOn] : null
   const [options, setOptions] = useState([]); const [loading, setLoading] = useState(false); const [error, setError] = useState('')
   useEffect(() => {
     if (!dependency) { setOptions([]); return }
@@ -24,7 +25,7 @@ function RemoteSelect({ field, form, update }) {
     const url = typeof field.optionsEndpoint === 'function' ? field.optionsEndpoint(form) : field.optionsEndpoint
     api.get(url).then(({ data }) => { if (active) setOptions(collectionFrom(data).filter(item => !field.filter || field.filter(item, form))) }).catch(err => { if (active) setError(errorMessage(err)) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [field, dependency, form])
+  }, [field, dependency, filterValue])
   const label = item => item[field.optionLabel || 'displayName'] || item.name || item.title || item.username || `#${item.id}`
   return <select required={field.required} disabled={!dependency || loading} value={form[field.name] ?? ''} onChange={e => update(field, e.target.value)}><option value="">{loading ? 'Loading…' : error ? 'Failed to load options' : field.placeholder || `Select ${field.label.toLowerCase()}…`}</option>{options.map(item => <option key={item[field.optionValue || 'id']} value={item[field.optionValue || 'id']}>{label(item)}</option>)}</select>
 }
