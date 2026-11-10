@@ -21,7 +21,7 @@ const reportItems = [
 ]
 
 const settingItems = [
-  ['Content visibility', 'content-visibility', 'Schedule when meetings and papers are hidden', EyeOff],
+  ['Content visibility', 'content-visibility', 'Hide meetings and their papers by meeting date', EyeOff],
   ['Meeting & Circular', 'MEETING_CIRCULAR', 'Manage meeting and circular settings', CalendarDays],
   ['Agenda', 'AGENDA', 'Configure agenda related settings', FileText],
   ['Paper', 'PAPER', 'Manage paper settings and rules', FileText],

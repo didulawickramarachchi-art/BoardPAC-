@@ -21,8 +21,11 @@ public class PackDeliveryService {
     private final UserRepository userRepository;
     private final PaperRepository paperRepository;
     private final AuditService auditService;
+    private final ContentVisibilityService contentVisibilityService;
 
     public List<PackDeliveryResponse> getByPaper(Long paperId) {
+        if (contentVisibilityService.isHiddenPaper(paperId))
+            throw new AccessDeniedException("This paper is hidden by the administrator");
         return packDeliveryRepository.findByPaperId(paperId).stream()
                 .map(this::map)
                 .toList();
@@ -31,7 +34,9 @@ public class PackDeliveryService {
     public List<PackDeliveryResponse> getByUser(Long userId, String username, boolean secretary) {
         var current = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (!secretary && !current.getId().equals(userId)) throw new AccessDeniedException("Delivery history access denied");
+        var hiddenPeriod = contentVisibilityService.current();
         return packDeliveryRepository.findByUserId(userId).stream()
+                .filter(delivery -> !contentVisibilityService.isHidden(delivery.getPaper(), hiddenPeriod))
                 .map(this::map)
                 .toList();
     }
@@ -39,6 +44,8 @@ public class PackDeliveryService {
     public void markDownloaded(Long paperId, String username) {
         var user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         var paper = paperRepository.findById(paperId).orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+        if (contentVisibilityService.isHidden(paper))
+            throw new AccessDeniedException("This paper is hidden by the administrator");
         var delivery = packDeliveryRepository.findByPaperIdAndUserId(paperId, user.getId())
                 .orElse(PackDelivery.builder().paper(paper).user(user).deliveryStatus(DeliveryStatus.NOT_READ).build());
         if (delivery.getDeliveryStatus() != DeliveryStatus.READ) delivery.setDeliveryStatus(DeliveryStatus.DOWNLOADED);

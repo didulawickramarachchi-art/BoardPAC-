@@ -26,6 +26,7 @@ public class PaperService {
     private final AuditService auditService;
     private final WorkflowSettingService workflowSettingService;
     private final NotificationService notificationService;
+    private final ContentVisibilityService contentVisibilityService;
 
     public PaperResponse create(PaperRequest request, String username) {
 
@@ -91,16 +92,20 @@ public class PaperService {
     }
 
     public List<PaperResponse> getByMeeting(Long meetingId) {
+        var hiddenPeriod = contentVisibilityService.current();
         return paperRepository.findByMeetingId(meetingId)
                 .stream()
+                .filter(paper -> !contentVisibilityService.isHidden(paper, hiddenPeriod))
                 .filter(Paper::isCurrentVersion)
                 .map(this::mapPaper)
                 .toList();
     }
 
     public List<PaperResponse> getAll() {
+        var hiddenPeriod = contentVisibilityService.current();
         return paperRepository.findAll()
                 .stream()
+                .filter(paper -> !contentVisibilityService.isHidden(paper, hiddenPeriod))
                 .filter(Paper::isCurrentVersion)
                 .map(this::mapPaper)
                 .toList();
@@ -109,12 +114,16 @@ public class PaperService {
     public PaperResponse getById(Long paperId) {
         Paper paper = paperRepository.findById(paperId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+        if (contentVisibilityService.isHidden(paper))
+            throw new org.springframework.security.access.AccessDeniedException("Paper is hidden by the administrator");
         return mapPaper(paper);
     }
 
     public List<PaperResponse> getByAgendaItem(Long agendaItemId) {
+        var hiddenPeriod = contentVisibilityService.current();
         return paperRepository.findByAgendaItemId(agendaItemId)
                 .stream()
+                .filter(paper -> !contentVisibilityService.isHidden(paper, hiddenPeriod))
                 .filter(Paper::isCurrentVersion)
                 .map(this::mapPaper)
                 .toList();
@@ -122,6 +131,8 @@ public class PaperService {
 
     public List<PaperResponse> versionHistory(Long paperId, String username, boolean canViewAll) {
         Paper paper = paperRepository.findById(paperId).orElseThrow(() -> new ResourceNotFoundException("Paper not found"));
+        if (contentVisibilityService.isHidden(paper))
+            throw new org.springframework.security.access.AccessDeniedException("Paper is hidden by the administrator");
         User user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (!canViewAll && meetingParticipantRepository.findByMeetingIdAndUserId(paper.getMeeting().getId(), user.getId()).isEmpty()) {
             throw new org.springframework.security.access.AccessDeniedException("Paper access denied");

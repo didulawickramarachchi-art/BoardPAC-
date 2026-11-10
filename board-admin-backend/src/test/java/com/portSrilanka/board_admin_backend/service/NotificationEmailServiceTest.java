@@ -48,7 +48,8 @@ class NotificationEmailServiceTest {
                 notificationRepository,
                 mock(NotificationReplyRepository.class),
                 mock(NotificationReactionRepository.class),
-                mock(UserRepository.class)
+                mock(UserRepository.class),
+                mock(ContentVisibilityService.class)
         );
         Role memberRole = Role.builder().name(SystemRole.MEMBER).build();
         member = User.builder()

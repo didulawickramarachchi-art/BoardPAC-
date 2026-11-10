@@ -22,6 +22,7 @@ public class PaperReadStateService {
     private final PaperRepository paperRepository;
     private final UserRepository userRepository;
     private final PermissionService permissionService;
+    private final ContentVisibilityService contentVisibilityService;
 
     public PaperReadStateResponse get(Long paperId, String username) {
         User user = user(username);
@@ -35,10 +36,12 @@ public class PaperReadStateService {
 
     public List<com.portSrilanka.board_admin_backend.dto.paper.RecentPaperResponse> recent(String username) {
         User user = user(username);
+        var hiddenPeriod = contentVisibilityService.current();
         return readStateRepository.findTop20ByUserIdOrderByLastOpenedAtDesc(user.getId())
                 .stream()
                 .filter(state -> permissionService.hasSubcategoryAccess(
                         user.getId(), state.getPaper().getMeeting().getSubcategory().getId()))
+                .filter(state -> !contentVisibilityService.isHidden(state.getPaper(), hiddenPeriod))
                 .map(state -> {
                     Paper paper = state.getPaper();
                     return com.portSrilanka.board_admin_backend.dto.paper.RecentPaperResponse.builder()

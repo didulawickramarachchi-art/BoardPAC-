@@ -19,6 +19,7 @@ public class AgendaSharingService {
     private final UserRepository userRepository;
     private final WorkflowSettingService workflowSettingService;
     private final AuditService auditService;
+    private final ContentVisibilityService contentVisibilityService;
 
     public SharedAgendaItemResponse shareAgendaItem(ShareAgendaItemRequest request) {
         workflowSettingService.requireEnabled(
@@ -28,6 +29,8 @@ public class AgendaSharingService {
 
         AgendaItem agendaItem = agendaItemRepository.findById(request.getAgendaItemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agenda item not found"));
+        if (contentVisibilityService.isHidden(agendaItem.getMeeting()))
+            throw new org.springframework.security.access.AccessDeniedException("This meeting is hidden by the administrator");
 
         Subcategory targetSubcategory = subcategoryRepository.findById(request.getTargetSubcategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Target subcategory not found"));
@@ -57,8 +60,10 @@ public class AgendaSharingService {
     }
 
     public List<SharedAgendaItemResponse> getSharedToSubcategory(Long subcategoryId) {
+        var hiddenPeriod = contentVisibilityService.current();
         return sharedAgendaItemRepository.findByTargetSubcategoryIdAndActiveTrue(subcategoryId)
                 .stream()
+                .filter(shared -> !contentVisibilityService.isHidden(shared.getSourceAgendaItem().getMeeting(), hiddenPeriod))
                 .map(this::map)
                 .toList();
     }

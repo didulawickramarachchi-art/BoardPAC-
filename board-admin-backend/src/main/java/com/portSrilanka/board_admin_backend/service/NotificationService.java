@@ -52,12 +52,18 @@ public class NotificationService {
     private final NotificationReplyRepository replyRepository;
     private final NotificationReactionRepository reactionRepository;
     private final UserRepository userRepository;
+    private final ContentVisibilityService contentVisibilityService;
 
     @Transactional(readOnly = true)
     public List<NotificationResponse> getForUser(Long userId, String username, boolean admin, int limit) {
         requireUserAccess(userId, username, admin);
+        var hiddenPeriod = contentVisibilityService.current();
         List<BoardNotification> notifications = notificationRepository
-                .findByRecipientIdOrderByCreatedAtDesc(userId, PageRequest.of(0, Math.min(Math.max(limit, 1), 100)));
+                .findByRecipientIdOrderByCreatedAtDesc(userId, PageRequest.of(0, Math.min(Math.max(limit, 1), 100)))
+                .stream()
+                .filter(item -> !contentVisibilityService.isHiddenMeeting(item.getRelatedMeetingId(), hiddenPeriod))
+                .filter(item -> !contentVisibilityService.isHiddenPaper(item.getRelatedPaperId(), hiddenPeriod))
+                .toList();
         if (notifications.isEmpty()) {
             return List.of();
         }

@@ -108,7 +108,8 @@ class PrivilegeServiceTest {
                 notificationRepository,
                 mock(NotificationReplyRepository.class),
                 mock(NotificationReactionRepository.class),
-                mock(UserRepository.class)
+                mock(UserRepository.class),
+                mock(ContentVisibilityService.class)
         );
         User user = User.builder()
                 .username("member")

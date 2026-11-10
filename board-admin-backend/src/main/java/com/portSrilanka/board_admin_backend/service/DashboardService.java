@@ -34,6 +34,7 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final UserSubcategoryAccessRepository accessRepository;
     private final DeviceRepository deviceRepository;
+    private final ContentVisibilityService contentVisibilityService;
 
     public DashboardSummaryResponse getSummaryForUser(Long userId, String username) {
         User user = userRepository.findById(userId)
@@ -47,11 +48,15 @@ public class DashboardService {
         boolean isMember = hasRole(user, "MEMBER");
         boolean isAdmin = hasRole(user, "ADMIN");
         boolean seesAllMeetings = isSecretary || !isMember;
-        List<Meeting> visibleMeetings = seesAllMeetings ? List.of() : getVisibleMeetings(user);
-        long totalMeetings = seesAllMeetings
+        var hiddenPeriod = contentVisibilityService.current();
+        boolean hasHiddenRange = hiddenPeriod.startDate() != null && hiddenPeriod.endDate() != null && !isAdmin;
+        List<Meeting> visibleMeetings = seesAllMeetings && !hasHiddenRange ? List.of()
+                : getVisibleMeetings(user).stream()
+                    .filter(meeting -> !contentVisibilityService.isHidden(meeting, hiddenPeriod)).toList();
+        long totalMeetings = seesAllMeetings && !hasHiddenRange
                 ? meetingRepository.countByType(MeetingType.MEETING)
                 : countType(visibleMeetings, MeetingType.MEETING);
-        long totalCirculars = seesAllMeetings
+        long totalCirculars = seesAllMeetings && !hasHiddenRange
                 ? meetingRepository.countByType(MeetingType.CIRCULAR)
                 : countType(visibleMeetings, MeetingType.CIRCULAR);
 
@@ -60,7 +65,7 @@ public class DashboardService {
         // participant lookup per meeting (an expensive N+1 query) entirely.
         List<Meeting> upcomingCandidates = isAdmin
                 ? List.of()
-                : isSecretary ? meetingRepository.findAll() : visibleMeetings;
+                : isSecretary && !hasHiddenRange ? meetingRepository.findAll() : visibleMeetings;
         Meeting upcomingMeeting = upcomingCandidates.stream()
                 .filter(meeting -> meeting.getType() == MeetingType.MEETING)
                 .filter(meeting -> meeting.getStatus() != MeetingStatus.CANCELLED)

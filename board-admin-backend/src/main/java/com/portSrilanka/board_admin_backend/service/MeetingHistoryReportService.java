@@ -27,13 +27,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MeetingHistoryReportService {
     private final MeetingRepository meetingRepository;
+    private final ContentVisibilityService contentVisibilityService;
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     @Transactional(readOnly = true)
     public List<MeetingHistoryReportResponse> getReport(
             Long categoryId, Long subcategoryId, LocalDate from, LocalDate to) {
         LocalDateTime now = LocalDateTime.now();
+        var hiddenPeriod = contentVisibilityService.current();
         return meetingRepository.findAll().stream()
+                .filter(meeting -> !contentVisibilityService.isHidden(meeting, hiddenPeriod))
                 .filter(meeting -> meeting.getType() == MeetingType.MEETING)
                 .filter(meeting -> meeting.getStatus() == MeetingStatus.CLOSED
                         || meeting.getStatus() == MeetingStatus.LAST

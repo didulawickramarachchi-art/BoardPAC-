@@ -29,6 +29,7 @@ public class MeetingService {
     private final UserSubcategoryAccessRepository accessRepository;
     private final AuditService auditService;
     private final NotificationService notificationService;
+    private final ContentVisibilityService contentVisibilityService;
 
     @Transactional
     public MeetingResponse create(MeetingRequest request, String username) {
@@ -95,8 +96,10 @@ public class MeetingService {
     }
 
     public List<MeetingResponse> getAll() {
+        var hiddenPeriod = contentVisibilityService.current();
         return meetingRepository.findAll()
                 .stream()
+                .filter(meeting -> !contentVisibilityService.isHidden(meeting, hiddenPeriod))
                 .map(this::mapMeeting)
                 .toList();
     }
@@ -106,8 +109,10 @@ public class MeetingService {
             throw new BadRequestException("Subcategory id is required");
         }
 
+        var hiddenPeriod = contentVisibilityService.current();
         return meetingRepository.findBySubcategoryId(subcategoryId)
                 .stream()
+                .filter(meeting -> !contentVisibilityService.isHidden(meeting, hiddenPeriod))
                 .map(this::mapMeeting)
                 .toList();
     }
@@ -266,10 +271,12 @@ public class MeetingService {
                 .map(access -> access.getSubcategory().getId())
                 .collect(java.util.stream.Collectors.toSet());
 
+        var hiddenPeriod = contentVisibilityService.current();
         return meetingRepository.findAll()
                 .stream()
                 .filter(meeting -> meeting.getSubcategory() != null
                         && allowedSubcategoryIds.contains(meeting.getSubcategory().getId()))
+                .filter(meeting -> !contentVisibilityService.isHidden(meeting, hiddenPeriod))
                 .map(this::mapMeeting)
                 .toList();
     }
@@ -367,8 +374,10 @@ public class MeetingService {
         if (allowedSubcategoryIds.isEmpty()) {
             return List.of();
         }
+        var hiddenPeriod = contentVisibilityService.current();
         return meetingRepository.findVisibleForMember(user.getId(), allowedSubcategoryIds)
                 .stream()
+                .filter(meeting -> !contentVisibilityService.isHidden(meeting, hiddenPeriod))
                 .map(this::mapMeeting)
                 .toList();
     }

@@ -23,6 +23,7 @@ public class AdminReportService {
     private final UserSubcategoryAccessRepository accessRepository;
     private final UserRepository userRepository;
     private final PaperApprovalRepository paperApprovalRepository;
+    private final ContentVisibilityService contentVisibilityService;
 
     public List<UserCategoryReportResponse> userCategoryReport() {
         return accessRepository.findAll().stream()
@@ -43,9 +44,11 @@ public class AdminReportService {
     }
 
     public List<PendingApprovalReportResponse> pendingApprovalReport(String username, boolean canViewAll) {
+        var hiddenPeriod = contentVisibilityService.current();
         return paperApprovalRepository.findAll().stream()
                 .filter(pa -> pa.getApprovalStatus() == ApprovalStatus.PENDING)
                 .filter(pa -> canViewAll || pa.getUser().getUsername().equals(username))
+                .filter(pa -> !contentVisibilityService.isHidden(pa.getPaper(), hiddenPeriod))
                 .map(this::mapPending)
                 .toList();
     }

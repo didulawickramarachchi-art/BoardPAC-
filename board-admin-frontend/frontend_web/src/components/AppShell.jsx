@@ -196,8 +196,6 @@ export default function AppShell() {
   const location = useLocation()
   const [searchText, setSearchText] = useState('')
   const [dark,setDark] = useState(() => localStorage.getItem('boardpac_theme') !== 'light')
-  const [hidePeriod, setHidePeriod] = useState(null)
-  const contentRoute = /^\/(dashboard|meetings|papers|calendar|approvals|favorites|pack-delivery|reports|search)(\/|$)/.test(location.pathname)
   const title = useMemo(() => [...groups.flatMap(g => g[1])].find(i => location.pathname.startsWith(i[1]))?.[0] || 'Board Management', [location.pathname])
 
   useEffect(() => {
@@ -217,17 +215,6 @@ export default function AppShell() {
   }, [user?.id])
   useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light';localStorage.setItem('boardpac_theme',dark?'dark':'light')},[dark])
   useEffect(()=>{if(!user)return;api.get(meetingListEndpoint(user)).then(({data})=>scheduleMeetingReminders(collectionFrom(data))).catch(()=>{})},[user])
-  useEffect(() => {
-    if (role === 'ADMIN') return
-    let active = true
-    const refresh = () => api.get('/content-visibility').then(({ data }) => {
-      if (active) setHidePeriod(data)
-    }).catch(() => { if (active) setHidePeriod(null) })
-    refresh()
-    const timer = window.setInterval(refresh, 30000)
-    return () => { active = false; window.clearInterval(timer) }
-  }, [role])
-  const isHidden = role !== 'ADMIN' && hidePeriod?.startAt && Date.now() >= new Date(hidePeriod.startAt).getTime() && Date.now() < new Date(hidePeriod.endAt).getTime()
 
   const openNotifications = async () => {
     if (user?.id && unreadCount > 0) {
@@ -256,7 +243,7 @@ export default function AppShell() {
         <NavLink to="/profile" className="user" title="Open profile"><div className="avatar">{initials(user?.displayName || user?.username || 'U')}{user?.profilePictureUrl && <img key={user.profilePictureUrl} src={publicImageUrl(user.profilePictureUrl)} alt="" onError={event => { event.currentTarget.style.display = 'none' }} />}</div><div><b>{user?.displayName || user?.username}</b><span>{role}</span></div></NavLink>
         <button className="icon-button" title="Sign out" onClick={() => { logout(); navigate('/login') }}><LogOut /></button>
       </header>
-      <main>{contentRoute && isHidden ? <div className="page"><section className="panel" style={{ padding: '2rem' }}><h2>Content temporarily hidden</h2><p>Meetings and papers are unavailable until {new Date(hidePeriod.endAt).toLocaleString()}.</p></section></div> : <Outlet />}</main>
+      <main><Outlet /></main>
     </div>
     {notificationsOpen && <NotificationPanel user={user} role={role} onClose={() => setNotificationsOpen(false)} onUnreadChange={setUnreadCount} />}
   </div>

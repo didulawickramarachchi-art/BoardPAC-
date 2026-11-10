@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface PaperAttachmentRepository extends JpaRepository<PaperAttachment, Long> {
     List<PaperAttachment> findByPaperIdOrderByDisplayOrderAsc(Long paperId);
+    List<PaperAttachment> findByFilePathEndingWith(String suffix);
 }

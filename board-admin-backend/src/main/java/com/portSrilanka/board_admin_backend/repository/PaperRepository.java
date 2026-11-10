@@ -16,6 +16,7 @@ public interface PaperRepository extends JpaRepository<Paper, Long> {
     List<Paper> findByMeetingId(Long meetingId);
     List<Paper> findByAgendaItemId(Long agendaItemId);
     Optional<Paper> findByReferenceNumber(String referenceNumber);
+    List<Paper> findByFilePathEndingWith(String suffix);
 
     @Query("""
             select count(p) from Paper p

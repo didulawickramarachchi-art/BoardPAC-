@@ -18,11 +18,17 @@ public class FavoriteService {
     private final MeetingRepository meetingRepository;
     private final PaperRepository paperRepository;
     private final PermissionService permissionService;
+    private final ContentVisibilityService contentVisibilityService;
 
     public List<FavoriteResponse> list(String username) {
         User user = user(username);
+        var hiddenPeriod = contentVisibilityService.current();
         return favoriteRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream().map(this::map).toList();
+                .stream()
+                .filter(favorite -> favorite.getFavoriteType().equals("MEETING")
+                        ? !contentVisibilityService.isHiddenMeeting(favorite.getTargetId(), hiddenPeriod)
+                        : !contentVisibilityService.isHiddenPaper(favorite.getTargetId(), hiddenPeriod))
+                .map(this::map).toList();
     }
 
     @Transactional
@@ -45,6 +51,9 @@ public class FavoriteService {
     }
 
     private void verify(User user, String type, Long targetId) {
+        if (type.equals("MEETING") ? contentVisibilityService.isHiddenMeeting(targetId)
+                : contentVisibilityService.isHiddenPaper(targetId))
+            throw new AccessDeniedException("This item is hidden by the administrator");
         Long subcategoryId = type.equals("MEETING")
                 ? meetingRepository.findById(targetId)
                     .orElseThrow(() -> new ResourceNotFoundException("Meeting not found"))
