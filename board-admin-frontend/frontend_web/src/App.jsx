@@ -20,6 +20,7 @@ import { IssueReportPage, SettingGroupPage } from './features/admin/SettingsAndI
 import { MeetingHistoryPage, PagedReportPage, PersonalActivityPage, SnapshotReportPage } from './features/reports/ReportPages'
 import CalendarPage from './features/meetings/CalendarPage'
 import AccessValidationPage from './features/admin/AccessValidationPage'
+import ContentVisibilityPage from './features/admin/ContentVisibilityPage'
 import LegacyArchivePage from './pages/LegacyArchivePage'
 import LegacyAuditPage from './pages/LegacyAuditPage'
 import LegacyDevicePage from './pages/LegacyDevicePage'
@@ -69,6 +70,7 @@ export default function App(){return <Routes>
     <Route path="/reports/license-utilization" element={<RequirePermission name="canViewAdminReports"><SnapshotReportPage type="license"/></RequirePermission>}/>
     <Route path="/reports/pending-approvals" element={<RequirePermission name="canViewPendingApprovals"><SnapshotReportPage type="approvals"/></RequirePermission>}/>
     <Route path="/settings" element={<RequirePermission name="canManageSettings"><SettingsHome/></RequirePermission>}/>
+    <Route path="/settings/content-visibility" element={<RequirePermission name="canManageSettings"><ContentVisibilityPage/></RequirePermission>}/>
     <Route path="/settings/:group" element={<RequirePermission name="canManageSettings"><SettingGroupPage/></RequirePermission>}/>
     <Route path="/issues" element={<RequirePermission name="canReportIssues"><IssueReportPage/></RequirePermission>}/>
     <Route path="/profile" element={<ProfilePage/>}/>
