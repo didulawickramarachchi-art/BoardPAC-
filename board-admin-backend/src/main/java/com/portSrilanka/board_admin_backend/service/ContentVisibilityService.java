@@ -5,6 +5,7 @@ import com.portSrilanka.board_admin_backend.enums.SettingGroup;
 import com.portSrilanka.board_admin_backend.repository.AppSettingRepository;
 import java.time.Clock;
 import java.time.Instant;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,6 +14,7 @@ public class ContentVisibilityService {
     private final AppSettingRepository settings;
     private final Clock clock;
 
+    @Autowired
     public ContentVisibilityService(AppSettingRepository settings) {
         this(settings, Clock.systemUTC());
     }
