@@ -15,6 +15,14 @@ describe('Flutter-compatible role access', () => {
     expect(access.canAnnotatePapers).toBe(false)
   })
 
+  it('allows only board secretaries to manage meetings', () => {
+    const assistant = permissionsFor({ role: 'SECRETARY', accessProfile: 'SECRETARY_ASSISTANT' })
+    expect(assistant.canViewMeetings).toBe(true)
+    expect(assistant.canUploadPapers).toBe(true)
+    expect(assistant.canManageMeetings).toBe(false)
+    expect(permissionsFor({ role: 'SECRETARY', accessProfile: 'BOARD_SECRETARY' }).canManageMeetings).toBe(true)
+  })
+
   it('matches member comment and annotation profiles', () => {
     expect(permissionsFor({ role: 'MEMBER', accessProfile: 'MEMBER_VIEW_ONLY' }).canCommentPapers).toBe(false)
     expect(permissionsFor({ role: 'MEMBER', accessProfile: 'MEMBER_VIEW_COMMENTS' }).canCommentPapers).toBe(true)

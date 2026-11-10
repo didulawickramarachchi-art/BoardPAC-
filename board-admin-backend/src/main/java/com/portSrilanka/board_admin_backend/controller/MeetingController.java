@@ -18,7 +18,7 @@ public class MeetingController {
     private final MeetingService meetingService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') and @accessProfileService.canManageMeetings(authentication.name)")
     public ResponseEntity<MeetingResponse> create(
             @RequestBody MeetingRequest request,
             Authentication authentication
@@ -50,19 +50,19 @@ public class MeetingController {
     }
 
     @PutMapping("/{meetingId}/open")
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') and @accessProfileService.canManageMeetings(authentication.name)")
     public ResponseEntity<MeetingResponse> open(@PathVariable Long meetingId) {
         return ResponseEntity.ok(meetingService.openMeeting(meetingId));
     }
 
     @PutMapping("/{meetingId}/close")
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') and @accessProfileService.canManageMeetings(authentication.name)")
     public ResponseEntity<MeetingResponse> close(@PathVariable Long meetingId) {
         return ResponseEntity.ok(meetingService.closeMeeting(meetingId));
     }
 
     @PostMapping("/participants")
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') and @accessProfileService.canManageMeetings(authentication.name)")
     public ResponseEntity<MeetingParticipantResponse> addParticipant(@RequestBody MeetingParticipantRequest request) {
         return ResponseEntity.ok(meetingService.addParticipant(request));
     }
@@ -74,7 +74,7 @@ public class MeetingController {
     }
 
     @GetMapping("/{meetingId}/participant-options")
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') and @accessProfileService.canManageMeetings(authentication.name)")
     public ResponseEntity<List<ParticipantOptionResponse>> getParticipantOptions(
             @PathVariable Long meetingId
     ) {
@@ -100,7 +100,7 @@ public class MeetingController {
     }
 
     @DeleteMapping("/{meetingId}")
-    @PreAuthorize("hasRole('SECRETARY')")
+    @PreAuthorize("hasRole('SECRETARY') and @accessProfileService.canManageMeetings(authentication.name)")
     public ResponseEntity<String> deleteMeeting(
             @PathVariable Long meetingId,
             Authentication authentication

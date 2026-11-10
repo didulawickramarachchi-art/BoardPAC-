@@ -42,7 +42,7 @@ public class AccessProfileService {
 
     public boolean canManageMeetings(String username) {
         return switch (profile(username)) {
-            case BOARD_SECRETARY, SECRETARY_ASSISTANT -> true;
+            case BOARD_SECRETARY -> true;
             default -> false;
         };
     }

@@ -16,7 +16,7 @@ export const permissionsFor = user => {
   const admin = role === 'ADMIN'
   const secretary = role === 'SECRETARY'
   const member = role === 'MEMBER'
-  const canManageMeetings = secretary && profile !== 'SECRETARY_UPLOAD_ONLY'
+  const canManageMeetings = secretary && profile === 'BOARD_SECRETARY'
   const canApprovePapers = profile === 'BOARD_SECRETARY' || profile === 'MEMBER'
   return {
     role, profile,
